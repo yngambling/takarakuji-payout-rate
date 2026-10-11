@@ -3,6 +3,7 @@
 
 import { evaluate, maxRate } from './ev.mjs';
 import { nextDrawDate, median, fmtMd, fmtShort, man, capLabel } from './util.mjs';
+import { specialOf, withSpecialCap } from './special.mjs';
 
 export const DRAW_CLOSE_MIN = 18 * 60 + 20; // 数字選択式のネット販売締切の目安（18:20）
 
@@ -142,8 +143,11 @@ export function applyOverride(row, ov, today) {
   if (Number.isFinite(ov.salesEst)) { row.salesEst = ov.salesEst; row.salesNote = ov.note || '手動で入力した値'; }
 }
 
-/** 1つのくじについて、表示と計算に必要なものをまとめる */
-export function computeGame(def, st, now, override) {
+/**
+ * 1つのくじについて、表示と計算に必要なものをまとめる。
+ * manualSpecial は data/overrides.json の big777 など（特別開催回を手で決める場所）
+ */
+export function computeGame(def, st, now, override, manualSpecial) {
   let status;
   if (def.model === 'fixed') status = fixedStatus(def, now);
   else if (def.model === 'none') status = { kind: 'other', text: def.drawLabel || '', deadline: '', label: '' };
@@ -153,22 +157,28 @@ export function computeGame(def, st, now, override) {
   const row = { id: def.id, def, status, ...salesEstimate(def, st, status), ...carryoverOf(def, st, status) };
   applyOverride(row, override, now.iso);
 
-  const ev = evaluate(def, { salesEst: row.salesEst, carryover: row.carryover });
+  // 特別開催回（BIG777）なら、1等の上限を引き上げて計算する
+  row.special = def.special && status.o?.round ? specialOf(def, status.o.round, st, manualSpecial) : null;
+  const calc = withSpecialCap(def, row.special);
+  row.calcDef = calc;
+
+  const ev = evaluate(calc, { salesEst: row.salesEst, carryover: row.carryover });
   row.ev = ev;
   row.computable = !!ev.computable;
   row.rate = ev.computable ? ev.rate : null;
-  row.maxRate = def.model === 'parimutuel' && row.salesEst ? maxRate(def, row.salesEst) : null;
+  row.maxRate = def.model === 'parimutuel' && row.salesEst ? maxRate(calc, row.salesEst) : null;
   row.hasCO = !!def.carryover;
-  const topTier = def.tiers?.find((t) => t.top);
+  const topTier = calc.tiers?.find((t) => t.top);
   row.capNormal = topTier?.capNormal ?? null;
   row.capCO = topTier?.capCO ?? null;
-  row.capText = row.capCO ? `${capLabel(row.capNormal)}（繰越時${capLabel(row.capCO)}）` : row.capNormal ? capLabel(row.capNormal) : '';
+  if (row.special?.on) row.capText = `${def.special.capText}（${def.special.name}）`;
+  else row.capText = row.capCO ? `${capLabel(row.capNormal)}（繰越時${capLabel(row.capCO)}）` : row.capNormal ? capLabel(row.capNormal) : '';
   row.listed = row.computable && !['upcoming', 'ended'].includes(status.kind);
   return row;
 }
 
 export function computeAll(defs, state, now, overrides = {}) {
-  return Object.values(defs).map((def) => computeGame(def, state.games?.[def.id], now, overrides.games?.[def.id]));
+  return Object.values(defs).map((def) => computeGame(def, state.games?.[def.id], now, overrides.games?.[def.id], def.special ? overrides[def.special.id] : undefined));
 }
 
 /**
@@ -202,9 +212,9 @@ export function carryoverTable(def, salesEst, currentCO = 0) {
 /**
  * 還元率の推移。記録した日ごとの値（history）に、公開前の期間を公式データから計算し直した値を足す。
  *   ロト：前の回の繰越額と、その回の実際の販売実績額から、その回までの日の還元率を出す
- *   BIG系・DUNK：前の回の繰越額と、その回の売上金額から、販売期間中の還元率を出す
+ *   BIG系・DUNK：前の回の繰越額と、その回の売上金額から、販売期間中の還元率を出す（BIG777 の回は上限を引き上げて計算）
  */
-export function rateSeries(def, st, historyDays = {}) {
+export function rateSeries(def, st, historyDays = {}, manualSpecial) {
   const pts = new Map();
   const addDays = (from, to, v) => {
     if (!from || !to || !Number.isFinite(v)) return;
@@ -228,7 +238,8 @@ export function rateSeries(def, st, historyDays = {}) {
     for (let i = 1; i < results.length; i++) {
       const prev = results[i - 1], cur = results[i];
       if (!(cur.sales > 0) || !cur.salesStart) continue;
-      addDays(cur.salesStart, cur.salesEnd || cur.salesStart, evaluate(def, { salesEst: cur.sales, carryover: prev.carryoverOut || 0 }).rate);
+      const calc = def.special ? withSpecialCap(def, specialOf(def, cur.round, st, manualSpecial)) : def;
+      addDays(cur.salesStart, cur.salesEnd || cur.salesStart, evaluate(calc, { salesEst: cur.sales, carryover: prev.carryoverOut || 0 }).rate);
     }
   }
   for (const [d, rec] of Object.entries(historyDays)) {

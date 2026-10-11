@@ -50,6 +50,7 @@ export function createRenderer(ctx) {
   const rankOf = Object.fromEntries(listed.map((r) => [r.id, 1 + listed.filter((x) => Math.round(x.rate * 1000) > Math.round(r.rate * 1000)).length]));
   const coList = listed.filter((r) => r.hasCO && r.carryover > 0).sort((a, b) => b.carryover - a.carryover);
   const hasContact = !!(site.contactFormUrl || site.contactEmail);
+  const overrides = ctx.overrides || {};
   const shops = links.shops || {};
   const signups = links.signups || {};
 
@@ -248,6 +249,7 @@ export function createRenderer(ctx) {
 
   function statusBadges(r, { co = true } = {}) {
     const t = [];
+    if (r.special?.on) t.push(`<span class="badge gold" title="1等の上限${esc(r.special.capText)}">${esc(r.special.name)}</span>`);
     if (co && r.hasCO && r.carryover > 0) t.push('<span class="badge hot">キャリーオーバー発生中</span>');
     if (r.provisional) t.push('<span class="badge wait">暫定</span>');
     if (r.status.kind === 'before') t.push('<span class="badge gray">販売前</span>');
@@ -271,12 +273,29 @@ export function createRenderer(ctx) {
     return { amount: capped ? top.cap : top.expected, note: Number.isFinite(top.cap) ? `上限${yen(top.cap)}` : '', capped, p: top.p };
   }
 
-  const capTextOf = (r) => (r.capCO ? `${yen(r.capNormal)}（キャリーオーバー時${yen(r.capCO)}）` : r.capNormal ? yen(r.capNormal) : '');
+  /** くじの決まりとしての1等の上限：3億円（キャリーオーバー時6億円） */
+  function capBaseText(d) {
+    const top = d.tiers?.find((t) => t.top);
+    if (!top?.capNormal) return '';
+    return top.capCO ? `${yen(top.capNormal)}（キャリーオーバー時${yen(top.capCO)}）` : yen(top.capNormal);
+  }
+
+  /** 宝くじ一覧用：BIG777 のような特別開催回の上限も書き添える */
+  function capRuleText(d) {
+    const base = capBaseText(d);
+    return base && d.special ? `${base}。${d.special.name}の回（毎月7日を含む週）は、キャリーオーバーの有無にかかわらず${d.special.capText}` : base;
+  }
+
+  /** いま販売中の回の1等の上限 */
+  const capTextOf = (r) => {
+    if (r.special?.on) return `${r.special.capText}（第${r.special.round}回は${r.special.name}の回のため、キャリーオーバーの有無にかかわらず。通常は${capBaseText(r.def)}）`;
+    return r.capCO ? `${yen(r.capNormal)}（キャリーオーバー時${yen(r.capCO)}）` : r.capNormal ? yen(r.capNormal) : '';
+  };
 
   const seriesCache = {};
   const seriesOf = (r) => {
     if (!seriesCache[r.id]) {
-      const s = rateSeries(r.def, ctx.state.games?.[r.id], history.days);
+      const s = rateSeries(r.def, ctx.state.games?.[r.id], history.days, r.def.special ? overrides[r.def.special.id] : undefined);
       if (r.listed && Number.isFinite(r.rate) && !s.some((p) => p.d === now.iso)) s.push({ d: now.iso, v: Math.round(r.rate * 10000) / 10000, calc: false });
       seriesCache[r.id] = s;
     }
@@ -730,6 +749,7 @@ ${sparse ? `<p class="note">記録があるのは${fmtShort(pts[0].d)}以降で�
 </div>
 ${bar(best.rate)}
 <ul class="chips">
+${best.special?.on ? `<li class="chip chip-pt">${esc(best.special.name)}<b>1等最高${esc(best.special.capText)}</b></li>` : ''}
 ${best.hasCO && best.carryover > 0 ? `<li class="chip chip-co">キャリーオーバー<b>${cuYen(best.carryover)}</b></li>` : ''}
 ${cdHtml(best) ? `<li class="chip chip-cd">${cdHtml(best)}</li>` : `<li class="chip">${esc(best.status.short || best.status.text)}</li>`}
 ${bbr ? `<li class="chip chip-pt"><a href="${rel}point.html">ポイント込み<b>${pct(effRate(best))}</b></a></li>` : ''}
@@ -807,8 +827,11 @@ ${related(rel, null)}
   }
 
   function coTableHtml(r) {
-    const t = carryoverTable(r.def, r.salesEst, r.carryover);
+    const t = carryoverTable(r.calcDef || r.def, r.salesEst, r.carryover);
     if (!t) return '';
+    const capNote = r.special?.on
+      ? `※第${r.special.round}回は${esc(r.special.name)}の回なので、1等の上限はキャリーオーバーの有無にかかわらず${esc(r.special.capText)}です（通常は${yen(r.def.tiers.find((x) => x.top).capNormal)}、キャリーオーバー発生時${yen(r.def.tiers.find((x) => x.top).capCO)}）。上限を超えた分は次の回に繰り越されます。`
+      : `※1等の上限は、通常${yen(t.capNormal)}、キャリーオーバー発生時${yen(t.capCO)}です。上限を超えた分は次の回に繰り越されます。${r.def.special ? `毎月7日を含む週の回（${esc(r.def.special.name)}）は${esc(r.def.special.capText)}に上がります。` : ''}`;
     const trs = t.rows.map((x) => `<tr class="${x.atCap ? 'cap' : x.current ? 'now' : ''}"><td class="r">${x.carryover ? yen(x.carryover) : '0円'}${x.current ? '<span class="sub">いまの額</span>' : ''}${x.atCap ? '<span class="sub">1等が上限に届く額</span>' : ''}</td><td class="r">${yen(x.lonePrize)}${x.atCap ? '<span class="sub">上限</span>' : ''}</td><td class="r"><b>${pct(x.rate)}</b></td></tr>`).join('\n');
     const nowNote = t.currentAbove
       ? `いまのキャリーオーバー（${yen(r.carryover)}）は、1等が上限に届く額をすでに超えています。いまの還元率は${pct(r.rate)}です。`
@@ -818,7 +841,15 @@ ${related(rel, null)}
 <div class="tbl-wrap"><table class="t compact"><thead><tr><th>キャリーオーバー</th><th>1等の金額（1人で当たった場合）</th><th>還元率</th></tr></thead><tbody>
 ${trs}
 </tbody></table></div>
-<div class="note"><p>※1等の上限は、通常${yen(t.capNormal)}、キャリーオーバー発生時${yen(t.capCO)}です。上限を超えた分は次の回に繰り越されます。</p>${nowNote ? `<p>※${nowNote}</p>` : ''}</div>`;
+<div class="note"><p>${capNote}</p>${nowNote ? `<p>※${nowNote}</p>` : ''}</div>`;
+  }
+
+  /** BIG777 のような特別開催回のお知らせ（くじ別ページの上） */
+  function specialNotice(r) {
+    if (!r.special?.on) return '';
+    const sp = r.def.special;
+    const normalCO = r.def.tiers.find((t) => t.top).capCO;
+    return `<p class="notice">第${r.special.round}回は「${esc(sp.name)}」の回です。1等の上限が、キャリーオーバーの有無にかかわらず${esc(sp.capText)}に上がります（通常は最高${yen(normalCO)}）。このページの還元率も、この上限で計算しています。</p>`;
   }
 
   function game(r) {
@@ -872,6 +903,7 @@ ${crumbs(rel, [{ name: d.name }])}
 <h1 class="page-title">${esc(d.name)}の還元率</h1>
 ${updatedLine()}
 ${d.verify ? `<p class="notice">${esc(d.verify)}</p>` : ''}
+${specialNotice(r)}
 ${ev.computable ? `<div class="score">
 <div class="score-top"><span class="lbl">還元率</span><span class="num">${cuPct(r.rate)}<small>%</small></span>${delta(r)}<span class="sub">1口${yen(d.price)}で、平均約${Math.round(ev.ev)}円が戻る計算${rankOf[r.id] ? `・全${listed.length}くじ中${rankOf[r.id]}位` : ''}</span></div>
 <dl class="score-grid">${tiles.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
@@ -966,7 +998,7 @@ ${related(rel, r.id)}
       rowsHtml.push(['当せん金', tierListHtml(d)]);
       if (d.payoutNote && d.model !== 'fixed') rowsHtml.push(['当せん金の総額', esc(d.payoutNote)]);
       rowsHtml.push(['キャリーオーバー', d.carryover ? 'あり（1等の当せん者がいない場合などに、次の回の1等へ繰り越し）' : 'なし']);
-      if (r?.capNormal) rowsHtml.push(['1等の最高額', esc(capTextOf(r))]);
+      if (capRuleText(d)) rowsHtml.push(['1等の最高額', esc(capRuleText(d))]);
       if (d.rules) rowsHtml.push(['ルール', esc(d.rules)]);
       if (d.age) rowsHtml.push(['購入できる年齢', `${d.age}歳以上`]);
       return `<section class="kuji-sec" id="k-${id}">
@@ -993,6 +1025,16 @@ ${ad('bottom')}
   }
 
   /* ---------------- 計算方法 ---------------- */
+
+  /** 計算方法のページ：BIG777 の説明（上限が上がった分、1等の分の還元率がどれだけ上がるか） */
+  function bigSpecialText() {
+    const d = ctx.defs.big;
+    const sp = d?.special;
+    const top = d?.tiers?.find((t) => t.top);
+    if (!sp || !top?.capCO) return '';
+    const share = (cap) => pct(cap / d.combos / d.price);
+    return `<p>BIGには、毎月7日を含む週の回だけ1等の上限が${esc(sp.capText)}に上がる「${esc(sp.name)}」があります。その回は1等の分の還元率が最大で約${share(sp.cap)}（通常は約${share(top.capCO)}）になるので、上限を上げて計算しています。公式の発表は「毎月7日を含む週」までで、どの回が対象かは細かく書かれていないため、このサイトでは「${esc(sp.rule)}」を${esc(sp.name)}の回としています。この決め方は、これまでの1等の当せん金（${esc(sp.capText)}と${yen(top.capCO)}ちょうど）と合っています。</p>`;
+  }
 
   function keisan() {
     const path = 'keisan.html';
@@ -1023,6 +1065,7 @@ ${ex}
 <p>1等を1人で当てた場合の還元率も、くじ別のページに参考として載せています。キャリーオーバーが小さいときほど、山分けの影響で実際の還元率はこの値より低くなります。</p>
 <h2 id="cap">キャリーオーバーと1等の上限</h2>
 <p>キャリーオーバーが増えても、1口あたりの上限があるので、1等から受け取れる額は上限で止まります。たとえばBIGは1等の確率が1/4,782,969、上限が6億円なので、1等の分の還元率は最大でも約41.8%です。BIG・MEGA BIG・100円BIGは、繰越額が上限の何倍にもなっていることが多く、その間は還元率がほぼ一定です。</p>
+${bigSpecialText()}
 ${ad('middle')}
 <h2 id="sales">販売額の見込み</h2>
 <p>まだ締め切っていない回の販売額は分からないので、ロト6は同じ曜日の直近4回、ロト7は直近4回の販売実績額の中央値を使います。BIG系・DUNKは直近3回の売上金額の中央値です。キャリーオーバーが大きい回は売上が増えやすく、そのぶん山分けが増えるため、実際の還元率は表示より少し下がることがあります。</p>

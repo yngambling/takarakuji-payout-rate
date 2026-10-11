@@ -3,6 +3,7 @@
 //   ・ポイントの率、支払い方法、購入場所、ジャンボの発売予定が書かれた公式ページを開き、前の日と比べる
 //   ・変わっていたら「確認のお願い」を出す（notify.mjs が GitHub の Issue にする）。サイトの数値は自動では変えない
 //   ・次のジャンボが未登録、報道ベースの賞金表の発売が近い、ポイントの確認から90日、なども知らせる
+//   ・BIG777（毎月7日を含む週の BIG）の回を月に1回知らせ、判定が当せん金と合わないときも知らせる
 // どこかで失敗しても終了コードは 0（サイトの更新は止めない）。
 
 import { readFile, writeFile } from 'node:fs/promises';
@@ -12,7 +13,7 @@ import { fetchBytes, decodeBytes } from './lib/http.mjs';
 import { jstParts, sleep } from './lib/util.mjs';
 import { resolveGames } from './lib/model.mjs';
 import { loadAlerts, saveAlerts, raise, clear } from './lib/alerts.mjs';
-import { extractLines, hashLines, changeIssue, downIssue, scheduleChecks } from './lib/watchlib.mjs';
+import { extractLines, hashLines, changeIssue, downIssue, scheduleChecks, specialChecks } from './lib/watchlib.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const P = (...a) => path.join(ROOT, ...a);
@@ -73,6 +74,19 @@ try {
   }
 } catch (e) {
   lines.push(`⚠ 日付のチェックに失敗: ${e.message || e}`);
+}
+
+// BIG777（1等の上限が上がる特別開催回）のお知らせ。同じお知らせを何度も出さないよう、記録を data/watch.json に残す
+try {
+  const defs = resolveGames(await readJson('data/games.json', {}));
+  const state = await readJson('data/state.json', { games: {} });
+  const overrides = await readJson('data/overrides.json', {});
+  saved.special ??= {};
+  for (const c of specialChecks(defs, state, overrides, today, saved.special)) {
+    if (c.type === 'raise') { raise(alerts, c.key, c.title, c.body); lines.push(`${c.title.startsWith('【お知らせ】') ? '' : '⚠ '}${c.title}`); } else clear(alerts, c.key);
+  }
+} catch (e) {
+  lines.push(`⚠ BIG777 のチェックに失敗: ${e.message || e}`);
 }
 
 saved._note = '公式ページの見張りの記録（scripts/watch.mjs が毎日更新）。前の日と比べるために使います。';

@@ -294,7 +294,7 @@ t('404ページ（存在しない深い階層のURLでも、CSSとリンクが�
 
 /* ---------- 公式ページの見張り・お知らせ ---------- */
 
-const { extractLines, diffLines, scheduleChecks, changeIssue } = await import('./lib/watchlib.mjs');
+const { extractLines, diffLines, scheduleChecks, changeIssue, specialChecks } = await import('./lib/watchlib.mjs');
 
 t('見張る行の取り出し（日付・残り日数は無視）', () => {
   const html = '<div><p>購入額の1%のポイントが貯まります（2026年10月10日更新）</p><p>楽天カードで払うとさらに1%</p><p>関係ない文章</p><p>ポイントの使い方</p><p>あと3日で終了：ポイント2倍</p></div>';
@@ -320,6 +320,138 @@ t('日付から分かるお願い（次のジャンボ・賞金表の確認・�
   assert.equal(k['jumbo-next'], 'raise', '年末ジャンボのあとが未登録');
   k = kinds('2027-01-20');
   assert.equal(k['points-recheck'], 'raise', '確認から90日');
+});
+
+/* ---------- BIG777（毎月7日を含む週の回は、1等の上限が7億7万7千円） ---------- */
+
+const { weekWith7, specialOf, withSpecialCap } = await import('./lib/special.mjs');
+
+// 2026年の実際の販売期間と1等の当せん金（6億円ちょうど＝通常の回、7億7万7千円＝BIG777 の回）
+const res = (round, salesStart, salesEnd, prize = 0, winners = 0) => ({
+  round, salesStart, salesEnd, resultDate: salesEnd, sales: 686037300, units: null, carryoverOut: 4607319900,
+  tiers: [{ tier: 1, prize, winners }, { tier: 2, prize: 1, winners: 1 }, { tier: 3, prize: 1, winners: 1 }],
+});
+const bigState = {
+  results: [
+    res(1633, '2026-05-30', '2026-06-06', 600000000, 1),
+    res(1634, '2026-06-06', '2026-06-12'),
+    res(1636, '2026-06-12', '2026-06-20'),
+    res(1638, '2026-07-02', '2026-07-07'),
+    res(1639, '2026-07-07', '2026-07-14'),
+    res(1643, '2026-07-28', '2026-08-01', 600000000, 1),
+    res(1644, '2026-08-01', '2026-08-08'),
+    res(1645, '2026-08-08', '2026-08-15'),
+    res(1650, '2026-09-02', '2026-09-05', 600000000, 1),
+    res(1652, '2026-09-05', '2026-09-09'),
+    res(1653, '2026-09-09', '2026-09-12'),
+    res(1654, '2026-09-12', '2026-09-19'),
+    res(1658, '2026-09-29', '2026-10-03', 600000000, 1),
+    res(1660, '2026-10-03', '2026-10-10', 700077000, 1),
+  ].reverse(),
+  onSale: { round: 1662, salesStart: '2026-10-10', salesEnd: '2026-10-13' },
+};
+
+t('BIG777 の週（毎月7日を含む週・日曜〜土曜）', () => {
+  assert.deepEqual(weekWith7('2026-10-10'), { from: '2026-10-04', to: '2026-10-10', month: '2026-10' });
+  assert.deepEqual(weekWith7('2026-06-06'), { from: '2026-06-07', to: '2026-06-13', month: '2026-06' }); // 6/7 は日曜
+  assert.deepEqual(weekWith7('2026-11-03'), { from: '2026-11-01', to: '2026-11-07', month: '2026-11' }); // 11/7 は土曜
+  assert.deepEqual(weekWith7('2026-12-20'), { from: '2026-12-06', to: '2026-12-12', month: '2026-12' });
+});
+
+t('BIG777 の回の判定（これまでの1等の当せん金と合う）', () => {
+  const on = (round, st = bigState, manual) => specialOf(defs.big, round, st, manual)?.on;
+  const want = { 1633: false, 1634: true, 1636: false, 1638: true, 1639: false, 1643: false, 1644: true, 1645: false, 1650: false, 1652: false, 1653: true, 1654: false, 1658: false, 1660: true, 1662: false };
+  for (const [round, w] of Object.entries(want)) assert.equal(on(+round), w, `第${round}回`);
+  assert.equal(specialOf(defs.big, 1660, bigState).why, 'payout');
+  // 当せん金を見なくても（日付の決まりだけで）、当せん金が分かっている回と合う
+  const noPay = { ...bigState, results: bigState.results.map((r) => ({ ...r, tiers: [{ tier: 1, prize: 0, winners: 0 }] })) };
+  for (const round of [1633, 1643, 1650, 1658, 1660]) assert.equal(specialOf(defs.big, round, noPay).on, want[round], `日付の決まり 第${round}回`);
+  // 11月：火曜締切の第1669回は、同じ週にあとから締め切る回があるか分かるまで「未確定」（通常の回として計算）
+  const nov = { results: [], onSale: { round: 1669, salesStart: '2026-10-31', salesEnd: '2026-11-03' } };
+  assert.deepEqual([specialOf(defs.big, 1669, nov).on, specialOf(defs.big, 1669, nov).sure], [false, false]);
+  const nov2 = { ...nov, nextSale: { round: 1670, salesStart: '2026-11-03', salesEnd: '2026-11-07' } };
+  assert.deepEqual([specialOf(defs.big, 1669, nov2).on, specialOf(defs.big, 1669, nov2).sure], [false, true]);
+  assert.equal(specialOf(defs.big, 1670, nov2).on, true, '土曜締切の第1670回');
+  // data/overrides.json の big777 で直せる
+  assert.equal(on(1669, nov, { add: [1669] }), true);
+  assert.equal(on(1660, bigState, { remove: [1660] }), false);
+  // BIG 以外のくじには関係しない
+  assert.equal(specialOf(defs.megabig, 1660, bigState), null);
+  assert.equal(specialOf(defs.big100, 1660, bigState), null);
+});
+
+t('BIG777 の回は1等の上限7億7万7千円で計算する（繰越約46億円なら51.8%→58.8%）', () => {
+  const sp = { on: true, cap: 700077000 };
+  const b777 = evaluate(withSpecialCap(defs.big, sp), { salesEst: 686037300, carryover: 4607319900 });
+  near(b777.rate, (700077000 / 4782969 + 0.5 * 0.2 * 300) / 300, 0.002, 'BIG777');
+  near(b777.rate, 0.588, 0.001, 'BIG777');
+  near(evaluate(defs.big, { salesEst: 686037300, carryover: 4607319900 }).rate, 0.518, 0.001, '通常の回');
+  const top = withSpecialCap(defs.big, sp).tiers.find((x) => x.top);
+  assert.deepEqual([top.capNormal, top.capCO], [700077000, 700077000], 'キャリーオーバーがなくても7億7万7千円');
+  assert.equal(withSpecialCap(defs.big, { on: false, cap: 700077000 }), defs.big);
+  assert.equal(defs.big.tiers.find((x) => x.top).capCO, 600000000, '元の定義は書き換えない');
+});
+
+t('BIG777 の回のページ（バッジ・お知らせ・上限・計算方法）', () => {
+  const now777 = { ...at('2026-11-05T12:00'), y: 2026 };
+  const st777 = { ...state, games: { ...state.games, big: { ...state.games.big, onSale: { round: 1670, salesStart: '2026-11-03', salesStartTime: '13:50', salesEnd: '2026-11-07', salesEndTime: '19:00', resultDate: '2026-11-08' } } } };
+  const rows777 = computeAll(defs, st777, now777, {});
+  const big = rows777.find((r) => r.id === 'big');
+  const normal = rowsT.find((r) => r.id === 'big');
+  assert.equal(big.special.on, true);
+  assert.equal(big.capCO, 700077000);
+  assert.ok(big.rate > normal.rate + 0.06, `BIG777 ${big.rate} / 通常 ${normal.rate}`);
+  assert.equal(computeAll(defs, st777, now777, { big777: { remove: [1670] } }).find((r) => r.id === 'big').special.on, false, '手で外せる');
+  const rd = createRenderer({
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} },
+    links, points, rows: rows777, byId: Object.fromEntries(rows777.map((r) => [r.id, r])), log: [], history: { days: {} },
+    catalog: { order: ['big'], items: {} }, now: now777, state: st777, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])),
+    preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
+  });
+  const html = rd.game(big).html;
+  assert.ok(html.includes('第1670回は「BIG777」の回です'), 'お知らせ');
+  assert.ok(html.includes('7億7万7千円（第1670回はBIG777の回のため'), '1等の上限');
+  const top = rd.index().html;
+  assert.ok(top.includes('<span class="badge gold"'), 'ランキングにもバッジ');
+  assert.ok(top.includes('BIG777<b>1等最高7億7万7千円</b>'), '1位になったら結論の欄にも出す');
+  const k = rd.keisan().html;
+  assert.ok(k.includes('「BIG777」') && k.includes('約48.8%') && k.includes('約41.8%'), '計算方法');
+  assert.ok(rd.ichiran().html.includes('BIG777の回（毎月7日を含む週）は、キャリーオーバーの有無にかかわらず7億7万7千円'), '宝くじ一覧');
+  for (const page of [html, k]) {
+    const text = page.replace(/<script[\s\S]*?<\/script>/g, '');
+    for (const bad of ['NaN', 'undefined', 'Infinity', '[object']) assert.ok(!text.includes(bad), `${bad} が出ている`);
+  }
+  assert.ok(!renderT.game(normal).html.includes('「BIG777」の回です'), '通常の回には出さない');
+});
+
+t('BIG777 のお知らせ（月に1回・週が終わって1週間で閉じる・当せん金と合わないとき）', () => {
+  const memo = {};
+  const raised = (items) => items.filter((c) => c.type === 'raise');
+  const run = (st, today, ov = {}) => specialChecks(defs, { games: { big: st } }, ov, today, memo);
+  // 見張りを始めた日より前に終わった週（10月）は、お知らせしない
+  assert.deepEqual(raised(run(bigState, '2026-10-12')), []);
+  // 11月：火曜締切の第1669回（未確定）が販売中のうちは、まだお知らせしない
+  const nov = { results: bigState.results, onSale: { round: 1669, salesStart: '2026-10-31', salesEnd: '2026-11-03' } };
+  assert.deepEqual(raised(run(nov, '2026-11-02')), []);
+  // 土曜締切の第1670回の販売が始まったら、1回だけお知らせ
+  const nov2 = { results: [res(1669, '2026-10-31', '2026-11-03'), ...bigState.results], onSale: { round: 1670, salesStart: '2026-11-03', salesEnd: '2026-11-07' } };
+  const r1 = raised(run(nov2, '2026-11-04'));
+  assert.equal(r1.length, 1);
+  assert.equal(r1[0].key, 'special-big-2026-11');
+  assert.ok(r1[0].title.includes('第1670回') && r1[0].body.includes('data/overrides.json'));
+  assert.deepEqual(raised(run(nov2, '2026-11-05')), [], '2回目は出さない');
+  // 週（11/1〜11/7）が終わって1週間たつと、自動で閉じる
+  assert.ok(run(nov2, '2026-11-15').some((c) => c.type === 'clear' && c.key === 'special-big-2026-11'));
+  // 実際の当せん金が日付の決まりと合わない回は、1回だけお知らせ
+  const odd = { results: [res(1671, '2026-11-07', '2026-11-14', 700077000, 1), ...nov2.results], onSale: { round: 1672, salesStart: '2026-11-14', salesEnd: '2026-11-17' } };
+  const r2 = raised(run(odd, '2026-11-16'));
+  assert.deepEqual(r2.map((c) => c.key), ['special-big-mismatch-1671']);
+  assert.ok(r2[0].body.includes('7億7万7,000円'));
+  assert.deepEqual(raised(run(odd, '2026-11-17')), [], '1回だけ');
+  assert.deepEqual(raised(run({ ...odd, results: odd.results.slice(1) }, '2026-11-18', { big777: { add: [1673] } })), []);
+  // 週が終わっても BIG777 の回が分からなかったら、確認をお願いする（12月：データなし）
+  assert.deepEqual(raised(run({ results: [] }, '2026-12-14')).map((c) => c.key), ['special-big-2026-12-unknown']);
+  assert.ok(memo.big.notified.includes('2026-12') && memo.big.mismatch.includes(1671), '記録を残す');
 });
 
 console.log(`\n${n}件すべて成功`);
