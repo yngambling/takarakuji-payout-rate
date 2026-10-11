@@ -10,7 +10,7 @@ import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { jstParts, weekdayOf } from './lib/util.mjs';
+import { jstParts, weekdayOf, verificationCode } from './lib/util.mjs';
 import { resolveGames, computeAll } from './lib/model.mjs';
 import { createRenderer } from './lib/render.mjs';
 
@@ -47,6 +47,10 @@ history.days ??= {};
 const overrides = await readJson('data/overrides.json', { games: {} });
 const catalog = await readJson('data/catalog.json');
 const css = await readFile(P('static/style.css'), 'utf8');
+// Google Search Console の確認コード（config/google-site-verification.txt に貼ったタグから取り出す。なければ空）
+const gsvText = existsSync(P('config/google-site-verification.txt')) ? await readFile(P('config/google-site-verification.txt'), 'utf8') : '';
+const verification = verificationCode(gsvText);
+const gsvPasted = gsvText.split(/\r?\n/).some((l) => l.trim() && !l.trim().startsWith('#'));
 
 const now = parseNow(opt('--now') || process.env.BUILD_NOW) || jstParts();
 const defs = resolveGames(gamesRaw);
@@ -65,7 +69,7 @@ if (RECORD) {
 }
 
 const render = createRenderer({
-  site, links, points, rows, byId, log, history, catalog, now, state, defs, order, overrides,
+  site, links, points, rows, byId, log, history, catalog, now, state, defs, order, overrides, verification,
   preview: PREVIEW, placeholders: PLACEHOLDERS || PREVIEW, inlineCss: PREVIEW, css,
   cssVersion: createHash('md5').update(css).digest('hex').slice(0, 8),
 });
@@ -100,3 +104,5 @@ for (const r of listed) {
   console.log(`  ${(r.rate * 100).toFixed(1).padStart(5)}%  ${r.def.name}${r.hasCO ? `  繰越 ${r.carryover.toLocaleString('ja-JP')}円` : ''}${r.provisional ? '（暫定）' : ''}  ${r.status.label} ${r.status.text}${r.special?.on ? `  ★${r.special.name}（1等の上限${r.special.capText}）` : ''}`);
 }
 if (base.includes('example.com')) console.log('※ config/site.json の baseUrl がまだ example.com です。公開する前に自分のURLに変えてください。');
+if (verification) console.log('Google Search Console の確認タグ：全ページに入れました');
+else if (gsvPasted) console.log('::warning::config/google-site-verification.txt から確認コードを読み取れませんでした。Search Console の「HTML タグ」をそのまま貼り付けてください。');

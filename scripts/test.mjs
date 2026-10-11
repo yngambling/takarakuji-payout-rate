@@ -322,6 +322,32 @@ t('日付から分かるお願い（次のジャンボ・賞金表の確認・�
   assert.equal(k['points-recheck'], 'raise', '確認から90日');
 });
 
+/* ---------- Google Search Console の確認タグ ---------- */
+
+const { verificationCode } = await import('./lib/util.mjs');
+
+t('Search Console の確認タグ（貼ったタグから取り出して全ページの head に入れる）', () => {
+  const code = 'Ab3dEf_gH1jK-lMn0pQrStUvWxYz0123456789abcd';
+  const file = readFileSync(path.join(ROOT, 'config/google-site-verification.txt'), 'utf8');
+  assert.equal(verificationCode(file), '', 'まだ貼っていないときは空');
+  assert.equal(verificationCode(`${file}<meta name="google-site-verification" content="${code}" />\n`), code, 'タグをそのまま貼った');
+  assert.equal(verificationCode(`${file}  ${code}  \n`), code, 'コードだけを貼った');
+  assert.equal(verificationCode(`<meta name='google-site-verification' content='${code}'>`), code, '一重引用符');
+  assert.equal(verificationCode('<meta name="google-site-verification" content="abc"><script>'), '', '短すぎる・おかしな文字は使わない');
+  assert.equal(verificationCode(`${code}"><script>alert(1)</script>`), '', 'タグ以外の文字が混ざったら使わない');
+  const page = (verification) => createRenderer({
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} },
+    links, points, rows: rowsT, byId: Object.fromEntries(rowsT.map((r) => [r.id, r])), log: [], history: { days: {} },
+    catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])),
+    preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x', verification,
+  });
+  const html = page(code).index().html;
+  const head = html.slice(0, html.indexOf('</head>'));
+  assert.ok(head.includes(`<meta name="google-site-verification" content="${code}">`), 'トップページの head に入る');
+  assert.ok(page(code).about().html.includes('google-site-verification'), 'ほかのページにも入る');
+  assert.ok(!page('').index().html.includes('google-site-verification'), 'コードがなければ入れない');
+});
+
 /* ---------- BIG777（毎月7日を含む週の回は、1等の上限が7億7万7千円） ---------- */
 
 const { weekWith7, specialOf, withSpecialCap } = await import('./lib/special.mjs');
