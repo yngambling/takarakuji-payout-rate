@@ -395,8 +395,9 @@ ${ad('sidebar')}
 
   const displayChars = () => encodeURIComponent([...new Set(`宝くじ還元率ランキング${site.siteName || ''}`)].join(''));
 
-  function layout({ path, title, description, body, current = null, jsonld = [], noindex = false, scripts = '', stickyHtml = '' }) {
-    const rel = relOf(path);
+  /** linkBase を渡すと、サイト内のリンクと CSS をその文字列から書く（404 ページ用）。渡さなければページの階層からの相対パス */
+  function layout({ path, title, description, body, current = null, jsonld = [], noindex = false, scripts = '', stickyHtml = '', linkBase = null }) {
+    const rel = linkBase ?? relOf(path);
     const url = pageUrl(path);
     const a = site.adsense || {};
     const fonts = `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&amp;display=swap&amp;text=${displayChars()}"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&amp;display=swap">`;
@@ -1356,8 +1357,12 @@ ${hasContact ? '<h2>個人情報の取り扱い</h2><p>お問い合わせでい�
 
   function notFound() {
     const path = '404.html';
-    const body = `<h1 class="page-title">ページが見つかりません</h1><p>URLが変わったか、ページが削除された可能性があります。<a href="${preview ? 'index.html' : '/'}">トップページ</a>から探してください。</p>`;
-    return { path, html: layout({ path, title: `ページが見つかりません｜${site.siteName}`, description: 'ページが見つかりません。', body, noindex: true }) };
+    // GitHub Pages は、存在しない URL（/kuji/abc/def.html のような深い階層も）でこのページをそのまま返す。
+    // 相対パスだと、そのURLの階層からたどってしまい CSS もリンクもずれるため、baseUrl から始まるURLで書く。
+    // 独自ドメインに移ったあとも baseUrl に合わせて変わる（共有プレビューはファイルを直接開くので相対パスのまま）
+    const linkBase = preview ? '' : `${base}/`;
+    const body = `<h1 class="page-title">ページが見つかりません</h1><p>URLが変わったか、ページが削除された可能性があります。<a href="${home(linkBase)}">トップページ</a>から探してください。</p>`;
+    return { path, html: layout({ path, title: `ページが見つかりません｜${site.siteName}`, description: 'ページが見つかりません。', body, noindex: true, linkBase }) };
   }
 
   return { index, game, ichiran, keisan, kaikata, point, suii, about, privacy, notFound };
