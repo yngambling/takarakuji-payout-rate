@@ -1,0 +1,202 @@
+{
+  "_note": "テスト用の写し（2026年10月11日時点の data/games.json のジャンボ）。本物のファイルは、運営者が Issue の案内で直したり足したりするので、テストではこちらを使う。",
+  "halloween2026": {
+    "name": "ハロウィンジャンボ宝くじ",
+    "round": "第1126回全国自治宝くじ",
+    "group": "takarakuji",
+    "category": "ジャンボ宝くじ",
+    "price": 300,
+    "model": "fixed",
+    "totalTickets": 120000000,
+    "salesStart": "2026-09-16",
+    "salesEnd": "2026-10-16",
+    "drawDate": "2026-10-26",
+    "how": "組と番号が印刷された券を買う普通くじ。1ユニット1,000万枚・12ユニット（発売予定額360億円）",
+    "drawLabel": "10月26日（月）抽せん",
+    "deadline": "10月16日（金）まで",
+    "payoutNote": "賞金は固定。キャリーオーバーなし",
+    "tiers": [
+      {
+        "name": "1等",
+        "prize": 200000000,
+        "count": 12
+      },
+      {
+        "name": "1等の前後賞",
+        "prize": 100000000,
+        "count": 24
+      },
+      {
+        "name": "1等の組違い賞",
+        "prize": 100000,
+        "count": 1188
+      },
+      {
+        "name": "2等",
+        "prize": 100000000,
+        "count": 24
+      },
+      {
+        "name": "3等",
+        "prize": 1000000,
+        "count": 120
+      },
+      {
+        "name": "4等",
+        "prize": 10000,
+        "count": 240000
+      },
+      {
+        "name": "5等",
+        "prize": 3000,
+        "count": 1200000
+      },
+      {
+        "name": "6等",
+        "prize": 300,
+        "count": 12000000
+      }
+    ],
+    "rules": "1等・前後賞合わせて4億円。2026年は1等が2億円に下がり、2等1億円が24本に増えました。",
+    "sources": [
+      {
+        "title": "福岡県「ハロウィンジャンボ宝くじ」発売概要",
+        "url": "https://www.pref.fukuoka.lg.jp/contents/halloween-2026.html"
+      },
+      {
+        "title": "愛知県「ハロウィンジャンボ宝くじの発売情報」",
+        "url": "https://www.pref.aichi.jp/soshiki/shikin-kikaku/jumbo.html"
+      }
+    ]
+  },
+  "halloweenmini2026": {
+    "name": "ハロウィンジャンボミニ",
+    "round": "第1127回全国自治宝くじ",
+    "group": "takarakuji",
+    "category": "ジャンボ宝くじ",
+    "price": 300,
+    "model": "fixed",
+    "totalTickets": 50000000,
+    "salesStart": "2026-09-16",
+    "salesEnd": "2026-10-16",
+    "drawDate": "2026-10-26",
+    "how": "組と番号が印刷された券を買う普通くじ。5ユニット（発売予定額150億円）",
+    "drawLabel": "10月26日（月）抽せん",
+    "deadline": "10月16日（金）まで",
+    "payoutNote": "賞金は固定。キャリーオーバーなし",
+    "tiers": [
+      {
+        "name": "1等",
+        "prize": 20000000,
+        "count": 50
+      },
+      {
+        "name": "1等の前後賞",
+        "prize": 10000000,
+        "count": 100
+      },
+      {
+        "name": "2等",
+        "prize": 1000000,
+        "count": 100
+      },
+      {
+        "name": "3等",
+        "prize": 10000,
+        "count": 200000
+      },
+      {
+        "name": "4等",
+        "prize": 3000,
+        "count": 500000
+      },
+      {
+        "name": "5等",
+        "prize": 300,
+        "count": 5000000
+      }
+    ],
+    "rules": "1等・前後賞合わせて4,000万円。",
+    "sources": [
+      {
+        "title": "福岡県「ハロウィンジャンボミニ」発売概要",
+        "url": "https://www.pref.fukuoka.lg.jp/contents/halloween-2026.html"
+      }
+    ]
+  },
+  "nenmatsu2026": {
+    "name": "年末ジャンボ宝くじ",
+    "round": "第1134回全国自治宝くじ",
+    "group": "takarakuji",
+    "category": "ジャンボ宝くじ",
+    "price": 300,
+    "model": "fixed",
+    "totalTickets": 460000000,
+    "salesStart": "2026-11-24",
+    "salesEnd": "2026-12-25",
+    "drawDate": "2026-12-31",
+    "how": "組と番号が印刷された券を買う普通くじ。1ユニット2,000万枚・23ユニット（発売予定額1,380億円）",
+    "drawLabel": "12月31日（木）抽せん",
+    "deadline": "12月25日（金）まで",
+    "payoutNote": "賞金は固定。キャリーオーバーなし",
+    "verify": "2026年10月1日の報道（共同通信配信）にもとづく賞金表です。5〜7等の本数は当せん確率から算出しました。発売前に宝くじ公式サイトの発表で確認して更新します。",
+    "tiers": [
+      {
+        "name": "1等",
+        "prize": 700000000,
+        "count": 23
+      },
+      {
+        "name": "1等の前後賞",
+        "prize": 150000000,
+        "count": 46
+      },
+      {
+        "name": "1等の組違い賞",
+        "prize": 100000,
+        "count": 4577
+      },
+      {
+        "name": "2等",
+        "prize": 100000000,
+        "count": 23
+      },
+      {
+        "name": "3等",
+        "prize": 10000000,
+        "count": 46
+      },
+      {
+        "name": "4等",
+        "prize": 1000000,
+        "count": 1380
+      },
+      {
+        "name": "5等",
+        "prize": 10000,
+        "count": 1380000
+      },
+      {
+        "name": "6等",
+        "prize": 3000,
+        "count": 4600000
+      },
+      {
+        "name": "7等",
+        "prize": 300,
+        "count": 46000000
+      }
+    ],
+    "rules": "1等・前後賞合わせて10億円。年末ジャンボミニ（第1135回）は賞金表を確認でき次第追加します。",
+    "sources": [
+      {
+        "title": "福井新聞「年末ジャンボ宝くじ2026は何が変わる？ 販売スケジュール、当選本数が判明」",
+        "url": "https://www.fukuishimbun.co.jp/articles/-/2711442"
+      },
+      {
+        "title": "宝くじ公式サイト",
+        "url": "https://www.takarakuji-official.jp/"
+      }
+    ]
+  }
+}
