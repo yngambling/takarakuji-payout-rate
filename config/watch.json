@@ -1,0 +1,17 @@
+{
+  "_how": "毎日1回、ここにある公式ページを開いて、keywords を含む行（digit が true なら数字も含む行）だけを取り出し、前の日と比べます。変わっていたら GitHub の Issue でお知らせします（サイトの表示は自動では変えません）。ページのURLが変わったら url を直し、見張る必要がなくなったら項目ごと消してください。file と what は、Issue に書く「見直すファイル」です。",
+  "pages": [
+    { "id": "pt-takarakuji", "kind": "point", "name": "宝くじポイントの説明（宝くじ公式サイト）", "url": "https://www.takarakuji-official.jp/guide/point.html", "keywords": ["ポイント"], "digit": true, "file": "config/points.json", "what": "宝くじ公式サイトのポイントの率" },
+    { "id": "pt-rakuten-toto", "kind": "point", "name": "楽天totoでポイントが貯まる（楽天PointClub）", "url": "https://point.rakuten.co.jp/get/entertainment/toto/", "keywords": ["ポイント", "%"], "digit": true, "file": "config/points.json", "what": "楽天totoのポイントの率" },
+    { "id": "pt-docomo-toto", "kind": "point", "name": "ドコモスポーツくじ（NTTドコモ）", "url": "https://www.docomo.ne.jp/service/docomo_toto/", "keywords": ["ポイント"], "digit": true, "file": "config/points.json", "what": "ドコモスポーツくじのポイントの率" },
+    { "id": "pt-rakutenbank-toto", "kind": "point", "name": "楽天銀行totoポイント（楽天銀行）", "url": "https://www.rakuten-bank.co.jp/toto/first/point.html", "keywords": ["ポイント"], "digit": true, "file": "config/points.json", "what": "楽天銀行（スポーツくじ）のポイントの率" },
+    { "id": "pt-rakutenbank-happy", "kind": "point", "name": "ハッピープログラムの対象取引（楽天銀行）", "url": "https://www.rakuten-bank.co.jp/happyprogram/point.html", "keywords": ["宝くじ", "ロト", "ナンバーズ", "toto"], "digit": false, "file": "config/points.json", "what": "楽天銀行（ロト・ナンバーズ）のポイント" },
+    { "id": "pt-paypay", "kind": "point", "name": "PayPayの付与率（PayPay）", "url": "https://paypay.ne.jp/article/reward-rate/", "keywords": ["%"], "digit": true, "file": "config/points.json", "what": "宝くじ公式サイトのPayPay払いのポイントの率" },
+    { "id": "pay-takarakuji", "kind": "pay", "name": "お支払い方法の登録ガイド（宝くじ公式サイト）", "url": "https://www.takarakuji-official.jp/special/payment_guide/", "keywords": ["払い", "カード", "PayPay"], "digit": false, "file": "config/points.json", "what": "宝くじ公式サイトで使える支払い方法" },
+    { "id": "pay-clubtoto", "kind": "pay", "name": "お支払方法の追加（スポーツくじオフィシャルサイト）", "url": "https://www.toto-dream.com/club/add_info.html", "keywords": ["カード", "口座"], "digit": false, "file": "config/links.json", "what": "スポーツくじ公式サイトで使えるカード（購入場所の説明文）" },
+    { "id": "shop-toto", "kind": "shop", "name": "提携サイトで購入（スポーツくじオフィシャルサイト）", "url": "https://www.toto-dream.com/big/buy/teikei/", "keywords": ["サイト"], "digit": false, "file": "config/links.json", "what": "スポーツくじの購入場所（提携サイト）" },
+    { "id": "shop-takarakuji", "kind": "shop", "name": "インターネット販売金融機関の販売サイト（宝くじ公式サイト）", "url": "https://www.takarakuji-official.jp/kuji/mail-order-site.html", "keywords": ["銀行"], "digit": false, "file": "config/links.json", "what": "宝くじの購入場所（ネットで売っている銀行）" },
+    { "id": "jumbo-takarakuji", "kind": "jumbo", "name": "宝くじ商品のご案内（宝くじ公式サイト）", "url": "https://www.takarakuji-official.jp/kuji/top.html", "keywords": ["ジャンボ"], "digit": false, "file": "data/games.json", "what": "ジャンボ宝くじの賞金表と発売期間" },
+    { "id": "jumbo-mizuho", "kind": "jumbo", "name": "宝くじの販売予定（みずほ銀行）", "url": "https://www.mizuhobank.co.jp/takarakuji/yotei/index.html", "keywords": ["ジャンボ"], "digit": false, "file": "data/games.json", "what": "ジャンボ宝くじの賞金表と発売期間" }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "_note": "公開前に baseUrl・operatorName・contactEmail（または contactFormUrl）を自分のものに変えてください。AdSense の審査に通ったら adsense.client（ca-pub-から始まるID）と各広告ユニットのIDを入れます。スロットIDが空でも client だけ入れれば自動広告が使えます。ga4 は G- から始まる測定ID。",
+  "siteName": "宝くじ還元率ランキング",
+  "tagline": "どの宝くじが狙い目か一目で分かるサイト",
+  "baseUrl": "https://example.com",
+  "operatorName": "宝くじ還元率ランキング 管理人",
+  "contactEmail": "",
+  "contactFormUrl": "",
+  "xAccount": "",
+  "startedOn": "2026-10-10",
+  "adsense": {
+    "client": "",
+    "slots": {
+      "top": "",
+      "middle": "",
+      "middle2": "",
+      "bottom": "",
+      "sidebar": ""
+    }
+  },
+  "ga4": "",
+  "showAdPlaceholders": false
+}

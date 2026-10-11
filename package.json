@@ -1,0 +1,14 @@
+{
+  "name": "takarakuji-kitaichi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "宝くじ・スポーツくじの期待値をキャリーオーバー込みで毎日計算する静的サイト",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "fetch": "node scripts/fetch.mjs",
+    "build": "node scripts/build.mjs",
+    "test": "node scripts/test.mjs",
+    "update": "node scripts/fetch.mjs && node scripts/build.mjs"
+  }
+}

@@ -1,0 +1,1042 @@
+{
+  "_note": "くじの仕組みの定義です。賞金体系が改定されたらここを直します（金額は円）。count は全組合せ combos のうち当せんになる組合せ数。",
+  "loto6": {
+    "name": "ロト6",
+    "group": "takarakuji",
+    "category": "数字選択式宝くじ",
+    "price": 200,
+    "model": "parimutuel",
+    "combos": 6096454,
+    "carryover": true,
+    "how": "1〜43から異なる6個の数字を選ぶ。抽せんは本数字6個とボーナス数字1個",
+    "drawDays": [
+      1,
+      4
+    ],
+    "drawLabel": "毎週月・木曜",
+    "deadline": "抽せん日の18:20ごろまで（ネット購入）",
+    "payoutNote": "当せん金の総額は発売額の約45%。5等は原則1,000円で固定",
+    "tiers": [
+      {
+        "name": "1等",
+        "cond": "本数字6個がすべて一致",
+        "count": 1,
+        "theo": 200000000,
+        "top": true,
+        "capNormal": 200000000,
+        "capCO": 600000000
+      },
+      {
+        "name": "2等",
+        "cond": "本数字5個とボーナス数字が一致",
+        "count": 6,
+        "theo": 10000000
+      },
+      {
+        "name": "3等",
+        "cond": "本数字5個が一致",
+        "count": 216,
+        "theo": 300000
+      },
+      {
+        "name": "4等",
+        "cond": "本数字4個が一致",
+        "count": 9990,
+        "theo": 6800
+      },
+      {
+        "name": "5等",
+        "cond": "本数字3個が一致",
+        "count": 155400,
+        "fixed": 1000
+      }
+    ],
+    "rules": "1等は1口最高2億円、キャリーオーバー発生時は最高6億円。当せん者がいない等級の原資と、上限を超えた分は次回の1等に繰り越されます。",
+    "data": {
+      "type": "mizuho",
+      "key": "loto6"
+    },
+    "sources": [
+      {
+        "title": "三菱UFJ銀行「ロト6」当せん金と確率",
+        "url": "https://www.bk.mufg.jp/tsukau/sonota/takarakuji/loto6/index.html"
+      },
+      {
+        "title": "みずほ銀行「ロト6」",
+        "url": "https://www.mizuhobank.co.jp/takarakuji/products/loto6/index.html"
+      }
+    ],
+    "defaultSales": 1300000000
+  },
+  "loto7": {
+    "name": "ロト7",
+    "group": "takarakuji",
+    "category": "数字選択式宝くじ",
+    "price": 300,
+    "model": "parimutuel",
+    "combos": 10295472,
+    "carryover": true,
+    "how": "1〜37から異なる7個の数字を選ぶ。抽せんは本数字7個とボーナス数字2個",
+    "drawDays": [
+      5
+    ],
+    "drawLabel": "毎週金曜",
+    "deadline": "抽せん日の18:20ごろまで（ネット購入）",
+    "payoutNote": "当せん金の総額は発売額の約45%",
+    "tiers": [
+      {
+        "name": "1等",
+        "cond": "本数字7個がすべて一致",
+        "count": 1,
+        "theo": 700000000,
+        "top": true,
+        "capNormal": 700000000,
+        "capCO": 1200000000
+      },
+      {
+        "name": "2等",
+        "cond": "本数字6個とボーナス数字1個が一致",
+        "count": 14,
+        "theo": 6077700
+      },
+      {
+        "name": "3等",
+        "cond": "本数字6個が一致",
+        "count": 196,
+        "theo": 500000
+      },
+      {
+        "name": "4等",
+        "cond": "本数字5個が一致",
+        "count": 9135,
+        "theo": 6500
+      },
+      {
+        "name": "5等",
+        "cond": "本数字4個が一致",
+        "count": 142100,
+        "theo": 1400
+      },
+      {
+        "name": "6等",
+        "cond": "本数字3個とボーナス数字1〜2個が一致",
+        "count": 242550,
+        "theo": 1000
+      }
+    ],
+    "rules": "1等は1口最高7億円、キャリーオーバー発生時は最高12億円（2025年2月の第613回から）。当せん者がいない等級の原資と、上限を超えた分は次回の1等に繰り越されます。",
+    "data": {
+      "type": "mizuho",
+      "key": "loto7"
+    },
+    "sources": [
+      {
+        "title": "三菱UFJ銀行「ロト7」当せん金と確率",
+        "url": "https://www.bk.mufg.jp/tsukau/sonota/takarakuji/loto7/index.html"
+      },
+      {
+        "title": "みずほ銀行「ロト7」",
+        "url": "https://www.mizuhobank.co.jp/takarakuji/products/loto7/index.html"
+      }
+    ],
+    "defaultSales": 2100000000
+  },
+  "miniloto": {
+    "name": "ミニロト",
+    "group": "takarakuji",
+    "category": "数字選択式宝くじ",
+    "price": 200,
+    "model": "theoretical",
+    "combos": 169911,
+    "carryover": false,
+    "how": "1〜31から異なる5個の数字を選ぶ。抽せんは本数字5個とボーナス数字1個",
+    "drawDays": [
+      2
+    ],
+    "drawLabel": "毎週火曜",
+    "deadline": "抽せん日の18:20ごろまで（ネット購入）",
+    "payoutNote": "当せん金の総額は発売額の約45%。キャリーオーバーなし",
+    "tiers": [
+      {
+        "name": "1等",
+        "cond": "本数字5個がすべて一致",
+        "count": 1,
+        "theo": 10000000,
+        "top": true
+      },
+      {
+        "name": "2等",
+        "cond": "本数字4個とボーナス数字が一致",
+        "count": 5,
+        "theo": 150000
+      },
+      {
+        "name": "3等",
+        "cond": "本数字4個が一致",
+        "count": 125,
+        "theo": 10000
+      },
+      {
+        "name": "4等",
+        "cond": "本数字3個が一致",
+        "count": 3250,
+        "theo": 1000
+      }
+    ],
+    "rules": "キャリーオーバーはありません。当せん者がいない等級や上限（1口4,000万円）を超えた分は、同じ回で当せん者がいる最上位の等級に上乗せされます。",
+    "sources": [
+      {
+        "title": "三菱UFJ銀行「ミニロト」",
+        "url": "https://www.bk.mufg.jp/tsukau/sonota/takarakuji/miniloto/index.html"
+      }
+    ]
+  },
+  "bingo5": {
+    "name": "ビンゴ5",
+    "group": "takarakuji",
+    "category": "数字選択式宝くじ",
+    "price": 200,
+    "model": "theoretical",
+    "combos": 390625,
+    "countsFrom": "bingo5",
+    "carryover": false,
+    "how": "中央FREEを除く8マスで、各マス5つの数字から1つずつ選ぶ。そろったライン数で等級が決まる",
+    "drawDays": [
+      3
+    ],
+    "drawLabel": "毎週水曜",
+    "deadline": "抽せん日の18:20ごろまで（宝くじ公式サイト）",
+    "payoutNote": "キャリーオーバーなし。7等（1ライン）は原則200円",
+    "tiers": [
+      {
+        "name": "1等",
+        "cond": "8ライン成立",
+        "lines": 8,
+        "theo": 5556200,
+        "top": true
+      },
+      {
+        "name": "2等",
+        "cond": "6ライン成立",
+        "lines": 6,
+        "theo": 300000
+      },
+      {
+        "name": "3等",
+        "cond": "5ライン成立",
+        "lines": 5,
+        "theo": 45000
+      },
+      {
+        "name": "4等",
+        "cond": "4ライン成立",
+        "lines": 4,
+        "theo": 18200
+      },
+      {
+        "name": "5等",
+        "cond": "3ライン成立",
+        "lines": 3,
+        "theo": 2500
+      },
+      {
+        "name": "6等",
+        "cond": "2ライン成立",
+        "lines": 2,
+        "theo": 700
+      },
+      {
+        "name": "7等",
+        "cond": "1ライン成立",
+        "lines": 1,
+        "theo": 200
+      }
+    ],
+    "rules": "キャリーオーバーはありません。7ライン成立はあり得ないため7ラインの等級はありません。",
+    "sources": [
+      {
+        "title": "みずほ銀行「ビンゴ5」",
+        "url": "https://www.mizuhobank.co.jp/takarakuji/products/bingo5/index.html"
+      },
+      {
+        "title": "群馬県「ビンゴ5」当せん金（理論値）",
+        "url": "https://www.pref.gunma.jp/site/gunmazaisei/13811.html"
+      }
+    ]
+  },
+  "numbers4": {
+    "name": "ナンバーズ4",
+    "group": "takarakuji",
+    "category": "数字選択式宝くじ",
+    "price": 200,
+    "model": "numbers",
+    "combos": 10000,
+    "carryover": false,
+    "how": "0000〜9999から4桁の数字と申込タイプを選ぶ",
+    "drawDays": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "drawLabel": "月〜金曜（毎日）",
+    "deadline": "抽せん日の18:20ごろまで（ネット購入）",
+    "payoutNote": "当せん金の総額は発売額の約45%。1口最高2,000万円",
+    "types": [
+      {
+        "name": "ストレート",
+        "cond": "4桁の数字と並び順がすべて一致",
+        "hits": [
+          {
+            "label": "一致",
+            "count": 1,
+            "prize": 900000
+          }
+        ]
+      },
+      {
+        "name": "ボックス",
+        "cond": "並び順は問わず4つの数字が一致（4つとも違う数字で申込み）",
+        "hits": [
+          {
+            "label": "一致",
+            "count": 24,
+            "prize": 37500
+          }
+        ]
+      },
+      {
+        "name": "セット",
+        "cond": "ストレートとボックスに半分ずつ（4つとも違う数字で申込み）",
+        "hits": [
+          {
+            "label": "ストレート一致",
+            "count": 1,
+            "prize": 468700
+          },
+          {
+            "label": "ボックス一致",
+            "count": 23,
+            "prize": 18700
+          }
+        ]
+      }
+    ],
+    "rules": "どの申込タイプでも理論上の還元率はほぼ同じです。実際の当せん金は発売額と当せん口数で毎回変わります（人気の数字ほど山分けで少なくなります）。",
+    "sources": [
+      {
+        "title": "三井住友銀行「ナンバーズ4」",
+        "url": "https://www.smbc.co.jp/kojin/takarakuji/numbers/numbers4.html"
+      },
+      {
+        "title": "みずほ銀行「ナンバーズ」",
+        "url": "https://www.mizuhobank.co.jp/takarakuji/products/numbers/index.html"
+      }
+    ]
+  },
+  "numbers3": {
+    "name": "ナンバーズ3",
+    "group": "takarakuji",
+    "category": "数字選択式宝くじ",
+    "price": 200,
+    "model": "numbers",
+    "combos": 1000,
+    "carryover": false,
+    "how": "000〜999から3桁の数字と申込タイプを選ぶ（下2桁だけのミニもある）",
+    "drawDays": [
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
+    "drawLabel": "月〜金曜（毎日）",
+    "deadline": "抽せん日の18:20ごろまで（ネット購入）",
+    "payoutNote": "当せん金の総額は発売額の約45%",
+    "types": [
+      {
+        "name": "ストレート",
+        "cond": "3桁の数字と並び順がすべて一致",
+        "hits": [
+          {
+            "label": "一致",
+            "count": 1,
+            "prize": 90000
+          }
+        ]
+      },
+      {
+        "name": "ボックス",
+        "cond": "並び順は問わず3つの数字が一致（3つとも違う数字で申込み）",
+        "hits": [
+          {
+            "label": "一致",
+            "count": 6,
+            "prize": 15000
+          }
+        ]
+      },
+      {
+        "name": "セット",
+        "cond": "ストレートとボックスに半分ずつ（3つとも違う数字で申込み）",
+        "hits": [
+          {
+            "label": "ストレート一致",
+            "count": 1,
+            "prize": 52500
+          },
+          {
+            "label": "ボックス一致",
+            "count": 5,
+            "prize": 7500
+          }
+        ]
+      },
+      {
+        "name": "ミニ",
+        "cond": "下2桁の数字と並び順が一致",
+        "hits": [
+          {
+            "label": "一致",
+            "count": 10,
+            "prize": 9000
+          }
+        ]
+      }
+    ],
+    "rules": "どの申込タイプでも理論上の還元率はほぼ同じです。",
+    "sources": [
+      {
+        "title": "みずほ銀行「ナンバーズ」",
+        "url": "https://www.mizuhobank.co.jp/takarakuji/products/numbers/index.html"
+      }
+    ]
+  },
+  "halloween2026": {
+    "name": "ハロウィンジャンボ宝くじ",
+    "round": "第1126回全国自治宝くじ",
+    "group": "takarakuji",
+    "category": "ジャンボ宝くじ",
+    "price": 300,
+    "model": "fixed",
+    "totalTickets": 120000000,
+    "salesStart": "2026-09-16",
+    "salesEnd": "2026-10-16",
+    "drawDate": "2026-10-26",
+    "how": "組と番号が印刷された券を買う普通くじ。1ユニット1,000万枚・12ユニット（発売予定額360億円）",
+    "drawLabel": "10月26日（月）抽せん",
+    "deadline": "10月16日（金）まで",
+    "payoutNote": "賞金は固定。キャリーオーバーなし",
+    "tiers": [
+      {
+        "name": "1等",
+        "prize": 200000000,
+        "count": 12
+      },
+      {
+        "name": "1等の前後賞",
+        "prize": 100000000,
+        "count": 24
+      },
+      {
+        "name": "1等の組違い賞",
+        "prize": 100000,
+        "count": 1188
+      },
+      {
+        "name": "2等",
+        "prize": 100000000,
+        "count": 24
+      },
+      {
+        "name": "3等",
+        "prize": 1000000,
+        "count": 120
+      },
+      {
+        "name": "4等",
+        "prize": 10000,
+        "count": 240000
+      },
+      {
+        "name": "5等",
+        "prize": 3000,
+        "count": 1200000
+      },
+      {
+        "name": "6等",
+        "prize": 300,
+        "count": 12000000
+      }
+    ],
+    "rules": "1等・前後賞合わせて4億円。2026年は1等が2億円に下がり、2等1億円が24本に増えました。",
+    "sources": [
+      {
+        "title": "福岡県「ハロウィンジャンボ宝くじ」発売概要",
+        "url": "https://www.pref.fukuoka.lg.jp/contents/halloween-2026.html"
+      },
+      {
+        "title": "愛知県「ハロウィンジャンボ宝くじの発売情報」",
+        "url": "https://www.pref.aichi.jp/soshiki/shikin-kikaku/jumbo.html"
+      }
+    ]
+  },
+  "halloweenmini2026": {
+    "name": "ハロウィンジャンボミニ",
+    "round": "第1127回全国自治宝くじ",
+    "group": "takarakuji",
+    "category": "ジャンボ宝くじ",
+    "price": 300,
+    "model": "fixed",
+    "totalTickets": 50000000,
+    "salesStart": "2026-09-16",
+    "salesEnd": "2026-10-16",
+    "drawDate": "2026-10-26",
+    "how": "組と番号が印刷された券を買う普通くじ。5ユニット（発売予定額150億円）",
+    "drawLabel": "10月26日（月）抽せん",
+    "deadline": "10月16日（金）まで",
+    "payoutNote": "賞金は固定。キャリーオーバーなし",
+    "tiers": [
+      {
+        "name": "1等",
+        "prize": 20000000,
+        "count": 50
+      },
+      {
+        "name": "1等の前後賞",
+        "prize": 10000000,
+        "count": 100
+      },
+      {
+        "name": "2等",
+        "prize": 1000000,
+        "count": 100
+      },
+      {
+        "name": "3等",
+        "prize": 10000,
+        "count": 200000
+      },
+      {
+        "name": "4等",
+        "prize": 3000,
+        "count": 500000
+      },
+      {
+        "name": "5等",
+        "prize": 300,
+        "count": 5000000
+      }
+    ],
+    "rules": "1等・前後賞合わせて4,000万円。",
+    "sources": [
+      {
+        "title": "福岡県「ハロウィンジャンボミニ」発売概要",
+        "url": "https://www.pref.fukuoka.lg.jp/contents/halloween-2026.html"
+      }
+    ]
+  },
+  "nenmatsu2026": {
+    "name": "年末ジャンボ宝くじ",
+    "round": "第1134回全国自治宝くじ",
+    "group": "takarakuji",
+    "category": "ジャンボ宝くじ",
+    "price": 300,
+    "model": "fixed",
+    "totalTickets": 460000000,
+    "salesStart": "2026-11-24",
+    "salesEnd": "2026-12-25",
+    "drawDate": "2026-12-31",
+    "how": "組と番号が印刷された券を買う普通くじ。1ユニット2,000万枚・23ユニット（発売予定額1,380億円）",
+    "drawLabel": "12月31日（木）抽せん",
+    "deadline": "12月25日（金）まで",
+    "payoutNote": "賞金は固定。キャリーオーバーなし",
+    "verify": "2026年10月1日の報道（共同通信配信）にもとづく賞金表です。5〜7等の本数は当せん確率から算出しました。発売前に宝くじ公式サイトの発表で確認して更新します。",
+    "tiers": [
+      {
+        "name": "1等",
+        "prize": 700000000,
+        "count": 23
+      },
+      {
+        "name": "1等の前後賞",
+        "prize": 150000000,
+        "count": 46
+      },
+      {
+        "name": "1等の組違い賞",
+        "prize": 100000,
+        "count": 4577
+      },
+      {
+        "name": "2等",
+        "prize": 100000000,
+        "count": 23
+      },
+      {
+        "name": "3等",
+        "prize": 10000000,
+        "count": 46
+      },
+      {
+        "name": "4等",
+        "prize": 1000000,
+        "count": 1380
+      },
+      {
+        "name": "5等",
+        "prize": 10000,
+        "count": 1380000
+      },
+      {
+        "name": "6等",
+        "prize": 3000,
+        "count": 4600000
+      },
+      {
+        "name": "7等",
+        "prize": 300,
+        "count": 46000000
+      }
+    ],
+    "rules": "1等・前後賞合わせて10億円。年末ジャンボミニ（第1135回）は賞金表を確認でき次第追加します。",
+    "sources": [
+      {
+        "title": "福井新聞「年末ジャンボ宝くじ2026は何が変わる？ 販売スケジュール、当選本数が判明」",
+        "url": "https://www.fukuishimbun.co.jp/articles/-/2711442"
+      },
+      {
+        "title": "宝くじ公式サイト",
+        "url": "https://www.takarakuji-official.jp/"
+      }
+    ]
+  },
+  "megabig": {
+    "name": "MEGA BIG",
+    "group": "sports",
+    "category": "スポーツくじ（サッカー・予想不要）",
+    "price": 300,
+    "model": "parimutuel",
+    "combos": 16777216,
+    "payoutRate": 0.5,
+    "carryover": true,
+    "how": "指定12試合の両チーム合計得点（1点以下・2点・3点・4点以上）をコンピュータがランダムに選ぶ",
+    "drawLabel": "開催回ごと",
+    "deadline": "開催回ごと（試合開始前まで）",
+    "age": 19,
+    "payoutNote": "売上の50%を等級ごとの割合で配分",
+    "tiers": [
+      {
+        "name": "1等",
+        "cond": "12個の数字がすべて一致",
+        "count": 1,
+        "share": 0.7,
+        "top": true,
+        "capNormal": 700000020,
+        "capCO": 1200000000
+      },
+      {
+        "name": "2等",
+        "cond": "1個はずれ",
+        "count": 36,
+        "share": 0.14
+      },
+      {
+        "name": "3等",
+        "cond": "2個はずれ",
+        "count": 594,
+        "share": 0.02
+      },
+      {
+        "name": "4等",
+        "cond": "3個はずれ",
+        "count": 5940,
+        "share": 0.03
+      },
+      {
+        "name": "5等",
+        "cond": "4個はずれ",
+        "count": 40095,
+        "share": 0.05
+      },
+      {
+        "name": "6等",
+        "cond": "5個はずれ",
+        "count": 192456,
+        "share": 0.06
+      }
+    ],
+    "rules": "1等は1口最高7億20円（広告では7億円）、キャリーオーバー発生時は最高12億円。",
+    "data": {
+      "type": "big",
+      "key": "MEGA BIG"
+    },
+    "sources": [
+      {
+        "title": "スポーツくじオフィシャルサイト「くじの種類」",
+        "url": "https://www.toto-dream.com/big/about/"
+      }
+    ],
+    "defaultSales": 580000000
+  },
+  "big": {
+    "name": "BIG",
+    "group": "sports",
+    "category": "スポーツくじ（サッカー・予想不要）",
+    "price": 300,
+    "model": "parimutuel",
+    "combos": 4782969,
+    "payoutRate": 0.5,
+    "carryover": true,
+    "how": "指定14試合のホームチームの勝ち・負け・その他をコンピュータがランダムに選ぶ",
+    "drawLabel": "開催回ごと",
+    "deadline": "開催回ごと（試合開始前まで）",
+    "age": 19,
+    "payoutNote": "売上の50%を等級ごとの割合で配分",
+    "tiers": [
+      {
+        "name": "1等",
+        "cond": "14個の数字がすべて一致",
+        "count": 1,
+        "share": 0.8,
+        "top": true,
+        "capNormal": 300000000,
+        "capCO": 600000000
+      },
+      {
+        "name": "2等",
+        "cond": "1個はずれ",
+        "count": 28,
+        "share": 0.07
+      },
+      {
+        "name": "3等",
+        "cond": "2個はずれ",
+        "count": 364,
+        "share": 0.02
+      },
+      {
+        "name": "4等",
+        "cond": "3個はずれ",
+        "count": 2912,
+        "share": 0.03
+      },
+      {
+        "name": "5等",
+        "cond": "4個はずれ",
+        "count": 16016,
+        "share": 0.03
+      },
+      {
+        "name": "6等",
+        "cond": "5個はずれ",
+        "count": 64064,
+        "share": 0.05
+      }
+    ],
+    "rules": "1等は1口最高3億円、キャリーオーバー発生時は最高6億円。",
+    "data": {
+      "type": "big",
+      "key": "BIG"
+    },
+    "sources": [
+      {
+        "title": "スポーツくじオフィシャルサイト「くじの種類」",
+        "url": "https://www.toto-dream.com/big/about/"
+      }
+    ],
+    "defaultSales": 690000000
+  },
+  "big100": {
+    "name": "100円BIG",
+    "group": "sports",
+    "category": "スポーツくじ（サッカー・予想不要）",
+    "price": 100,
+    "model": "parimutuel",
+    "combos": 4782969,
+    "payoutRate": 0.5,
+    "carryover": true,
+    "how": "BIGと同じ14試合の結果をコンピュータがランダムに選ぶ（1口100円）",
+    "drawLabel": "開催回ごと",
+    "deadline": "開催回ごと（試合開始前まで）",
+    "age": 19,
+    "payoutNote": "売上の50%を等級ごとの割合で配分",
+    "tiers": [
+      {
+        "name": "1等",
+        "cond": "14個の数字がすべて一致",
+        "count": 1,
+        "share": 0.76,
+        "top": true,
+        "capNormal": 100000000,
+        "capCO": 200000000
+      },
+      {
+        "name": "2等",
+        "cond": "1個はずれ",
+        "count": 28,
+        "share": 0.1
+      },
+      {
+        "name": "3等",
+        "cond": "2個はずれ",
+        "count": 364,
+        "share": 0.04
+      },
+      {
+        "name": "4等",
+        "cond": "3個はずれ",
+        "count": 2912,
+        "share": 0.04
+      },
+      {
+        "name": "5等",
+        "cond": "4個はずれ",
+        "count": 16016,
+        "share": 0.06
+      }
+    ],
+    "rules": "1等は1口最高1億円、キャリーオーバー発生時は最高2億円。",
+    "data": {
+      "type": "big",
+      "key": "100円BIG"
+    },
+    "sources": [
+      {
+        "title": "スポーツくじオフィシャルサイト「くじの種類」",
+        "url": "https://www.toto-dream.com/big/about/"
+      }
+    ],
+    "defaultSales": 320000000
+  },
+  "big1000": {
+    "name": "BIG1000",
+    "group": "sports",
+    "category": "スポーツくじ（サッカー・予想不要）",
+    "price": 200,
+    "model": "parimutuel",
+    "combos": 177147,
+    "payoutRate": 0.5,
+    "carryover": true,
+    "how": "指定11試合の結果をコンピュータがランダムに選ぶ",
+    "drawLabel": "開催回ごと",
+    "deadline": "開催回ごと（試合開始前まで）",
+    "age": 19,
+    "payoutNote": "売上の50%を等級ごとの割合で配分",
+    "tiers": [
+      {
+        "name": "1等",
+        "cond": "11個の数字がすべて一致",
+        "count": 1,
+        "share": 0.6,
+        "top": true
+      },
+      {
+        "name": "2等",
+        "cond": "1個はずれ",
+        "count": 22,
+        "share": 0.15
+      },
+      {
+        "name": "3等",
+        "cond": "2個はずれ",
+        "count": 220,
+        "share": 0.15
+      },
+      {
+        "name": "4等",
+        "cond": "3個はずれ",
+        "count": 1320,
+        "share": 0.1
+      }
+    ],
+    "rules": "1等は約1,000万円（理論値）。",
+    "data": {
+      "type": "big",
+      "key": "BIG1000"
+    },
+    "sources": [
+      {
+        "title": "スポーツくじオフィシャルサイト「くじの種類」",
+        "url": "https://www.toto-dream.com/big/about/"
+      }
+    ],
+    "defaultSales": 130000000
+  },
+  "minibig": {
+    "name": "mini BIG",
+    "group": "sports",
+    "category": "スポーツくじ（サッカー・予想不要）",
+    "price": 200,
+    "model": "parimutuel",
+    "combos": 19683,
+    "payoutRate": 0.5,
+    "carryover": true,
+    "how": "指定9試合の結果をコンピュータがランダムに選ぶ",
+    "drawLabel": "開催回ごと",
+    "deadline": "開催回ごと（試合開始前まで）",
+    "age": 19,
+    "payoutNote": "売上の50%を等級ごとの割合で配分",
+    "tiers": [
+      {
+        "name": "1等",
+        "cond": "9個の数字がすべて一致",
+        "count": 1,
+        "share": 0.5,
+        "top": true
+      },
+      {
+        "name": "2等",
+        "cond": "1個はずれ",
+        "count": 18,
+        "share": 0.2
+      },
+      {
+        "name": "3等",
+        "cond": "2個はずれ",
+        "count": 144,
+        "share": 0.3
+      }
+    ],
+    "rules": "1等は約100万円（理論値）。",
+    "data": {
+      "type": "big",
+      "key": "mini BIG"
+    },
+    "sources": [
+      {
+        "title": "スポーツくじオフィシャルサイト「くじの種類」",
+        "url": "https://www.toto-dream.com/big/about/"
+      }
+    ],
+    "defaultSales": 110000000
+  },
+  "dunk10": {
+    "name": "DUNK10",
+    "group": "sports",
+    "category": "スポーツくじ（バスケ・予想不要）",
+    "price": 300,
+    "model": "parimutuel",
+    "combos": 1048576,
+    "payoutRate": 0.5,
+    "carryover": true,
+    "how": "指定10試合の勝敗と合計得点（160点以上か未満か）の4択をコンピュータがランダムに選ぶ",
+    "drawLabel": "開催回ごと",
+    "deadline": "開催回ごと（試合開始前まで）",
+    "age": 19,
+    "payoutNote": "売上の50%を等級ごとの割合で配分。2026年9月に始まった新しいくじ",
+    "tiers": [
+      {
+        "name": "1等",
+        "cond": "10個の数字がすべて一致",
+        "count": 1,
+        "share": 0.75,
+        "top": true,
+        "capNormal": 100000020,
+        "capCO": 300000000
+      },
+      {
+        "name": "2等",
+        "cond": "1個はずれ",
+        "count": 30,
+        "share": 0.1
+      },
+      {
+        "name": "3等",
+        "cond": "2個はずれ",
+        "count": 405,
+        "share": 0.04
+      },
+      {
+        "name": "4等",
+        "cond": "3個はずれ",
+        "count": 3240,
+        "share": 0.04
+      },
+      {
+        "name": "5等",
+        "cond": "4個はずれ",
+        "count": 17010,
+        "share": 0.07
+      }
+    ],
+    "rules": "1等は1口最高1億20円（広告では1億円）、キャリーオーバー発生時は最高3億円。",
+    "data": {
+      "type": "dunk",
+      "key": "DUNK10"
+    },
+    "sources": [
+      {
+        "title": "楽天銀行「DUNKとは」",
+        "url": "https://www.rakuten-bank.co.jp/toto/big/dunk.html"
+      },
+      {
+        "title": "スポーツくじオフィシャルサイト「DUNK」",
+        "url": "https://www.toto-dream.com/dunk/"
+      }
+    ],
+    "defaultSales": 66000000
+  },
+  "dunk6a": {
+    "name": "DUNK6-A",
+    "extends": "dunk6",
+    "data": {
+      "type": "dunk",
+      "key": "DUNK6-A"
+    }
+  },
+  "dunk6b": {
+    "name": "DUNK6-B",
+    "extends": "dunk6",
+    "data": {
+      "type": "dunk",
+      "key": "DUNK6-B"
+    }
+  },
+  "dunk6": {
+    "template": true,
+    "name": "DUNK6",
+    "group": "sports",
+    "category": "スポーツくじ（バスケ・予想不要）",
+    "price": 100,
+    "model": "parimutuel",
+    "combos": 4096,
+    "payoutRate": 0.5,
+    "carryover": true,
+    "how": "指定6試合の勝敗と合計得点（160点以上か未満か）の4択をコンピュータがランダムに選ぶ",
+    "drawLabel": "開催回ごと",
+    "deadline": "開催回ごと（試合開始前まで）",
+    "age": 19,
+    "payoutNote": "売上の50%を等級ごとの割合で配分。A・Bの2種類が別々の試合で発売されます",
+    "tiers": [
+      {
+        "name": "1等",
+        "cond": "6個の数字がすべて一致",
+        "count": 1,
+        "share": 0.5,
+        "top": true
+      },
+      {
+        "name": "2等",
+        "cond": "1個はずれ",
+        "count": 18,
+        "share": 0.17
+      },
+      {
+        "name": "3等",
+        "cond": "2個はずれ",
+        "count": 135,
+        "share": 0.33
+      }
+    ],
+    "rules": "1等は約10万円（理論値）。",
+    "sources": [
+      {
+        "title": "楽天銀行「DUNKとは」",
+        "url": "https://www.rakuten-bank.co.jp/toto/big/dunk.html"
+      }
+    ],
+    "defaultSales": 20000000
+  }
+}

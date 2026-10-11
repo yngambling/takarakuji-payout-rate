@@ -1,0 +1,202 @@
+{
+  "_how": "購入場所ごとのポイント還元です（ポイント還元ランキングのページと、各ページの「ポイント込み」に使います）。率が変わったら parts の rate と checkedOn を直してください。rate は購入額に対する割合（0.01 = 1%）、perUnit は1口あたりのポイント数です。rate が null の部分は「＋α」として表示だけして、計算には入れません。期間限定の上乗せは campaigns に until（最終日）付きで書くと、期限を過ぎたら自動で表示されなくなります。signups は links.json の signups のキーです。",
+  "checkedOn": "2026-10-10",
+  "routes": [
+    {
+      "id": "takarakuji",
+      "shop": "takarakuji",
+      "how": "PayPayクレジットで払う",
+      "parts": [
+        {
+          "name": "宝くじポイント",
+          "detail": "購入額100円ごとに1ポイント（1ポイント＝1円で宝くじの購入に使える）",
+          "rate": 0.01
+        },
+        {
+          "name": "PayPayポイント",
+          "detail": "PayPayクレジットで払うと基本1.0%（PayPay残高なら0.5%）",
+          "rate": 0.01,
+          "optional": true
+        }
+      ],
+      "base": "PayPay以外で払う場合は宝くじポイントの1%に、支払いに使うカードや決済サービスのポイントが加わります",
+      "feature": "ジャンボ・ロト・ナンバーズ・ビンゴ5をまとめて買える公式サイト",
+      "signups": [
+        "takarakuji_member",
+        "paypay_card"
+      ],
+      "caution": "PayPayの付与率はPayPayが公表している基本付与率です。宝くじ公式サイトでの支払いでもPayPayポイントがもらえることはPayPayが案内しています。",
+      "sources": [
+        {
+          "title": "宝くじポイントとは（宝くじ公式サイト）",
+          "url": "https://www.takarakuji-official.jp/guide/point.html"
+        },
+        {
+          "title": "お支払い方法の登録ガイド（宝くじ公式サイト）",
+          "url": "https://www.takarakuji-official.jp/special/payment_guide/"
+        },
+        {
+          "title": "PayPayの付与率（PayPay）",
+          "url": "https://paypay.ne.jp/article/reward-rate/"
+        },
+        {
+          "title": "PayPayなら24時間どこでも宝くじが買える（PayPay）",
+          "url": "https://paypay.ne.jp/article/0071/"
+        }
+      ]
+    },
+    {
+      "id": "rakuten_toto",
+      "shop": "rakuten_toto",
+      "how": "楽天カードで払う",
+      "parts": [
+        {
+          "name": "楽天ポイント",
+          "detail": "くじの購入額の1%",
+          "rate": 0.01
+        },
+        {
+          "name": "楽天カードのポイント",
+          "detail": "楽天カードで払うと、決済額のさらに1%",
+          "rate": 0.01,
+          "optional": true
+        }
+      ],
+      "base": "楽天カード以外で払う場合は1%です",
+      "feature": "BIG・MEGA BIG・DUNKを買える。楽天会員ならすぐ始められる",
+      "signups": [
+        "rakuten_member",
+        "rakuten_card"
+      ],
+      "sources": [
+        {
+          "title": "楽天グループ プレスリリース（2026年1月19日）",
+          "url": "https://corp.rakuten.co.jp/news/press/2026/0119_01.html"
+        },
+        {
+          "title": "楽天totoでポイントが貯まる（楽天PointClub）",
+          "url": "https://point.rakuten.co.jp/get/entertainment/toto/"
+        }
+      ]
+    },
+    {
+      "id": "docomo_toto",
+      "shop": "docomo_toto",
+      "how": "dカードで払う",
+      "parts": [
+        {
+          "name": "dポイント",
+          "detail": "購入額100円ごとに1ポイント",
+          "rate": 0.01
+        },
+        {
+          "name": "dカードのポイント",
+          "detail": "dカードで払うと、100円ごとにさらに1ポイント",
+          "rate": 0.01,
+          "optional": true
+        }
+      ],
+      "base": "dカード以外で払う場合は1%です",
+      "feature": "BIG・MEGA BIG・100円BIGを買える。dポイントで買うこともでき、ドコモの回線がなくても使える",
+      "signups": [
+        "d_account",
+        "d_card"
+      ],
+      "sources": [
+        {
+          "title": "ドコモスポーツくじ（NTTドコモ）",
+          "url": "https://www.docomo.ne.jp/service/docomo_toto/"
+        }
+      ]
+    },
+    {
+      "id": "rakutenbank_toto",
+      "shop": "rakutenbank_toto",
+      "how": "",
+      "parts": [
+        {
+          "name": "楽天銀行totoポイント",
+          "detail": "購入額の1%（100ポイント単位でスポーツくじの購入に使える）",
+          "rate": 0.01
+        }
+      ],
+      "base": "",
+      "feature": "口座ひとつでBIG・DUNKも、ロト・ナンバーズも買える。当せん金は自動で口座に入る",
+      "signups": [
+        "rakuten_bank"
+      ],
+      "caution": "楽天銀行totoポイントは楽天ポイントとは別のポイントで、BIG・toto・DUNK・WINNERの購入にだけ使えます。",
+      "sources": [
+        {
+          "title": "楽天銀行totoポイント（楽天銀行）",
+          "url": "https://www.rakuten-bank.co.jp/toto/first/point.html"
+        }
+      ]
+    },
+    {
+      "id": "rakutenbank_kuji",
+      "shop": "rakutenbank_kuji",
+      "how": "",
+      "parts": [
+        {
+          "name": "楽天ポイント",
+          "detail": "1口ごとに1ポイント（ハッピープログラムのベーシックステージ）",
+          "perUnit": 1
+        }
+      ],
+      "base": "",
+      "feature": "ロト・ナンバーズを口座から購入。当せん金は自動で口座に入る",
+      "signups": [
+        "rakuten_bank"
+      ],
+      "caution": "1口の値段が高いくじほど率は下がります（ロト7は300円で1ポイント）。ステージが上がるとポイントが増える場合があります。",
+      "sources": [
+        {
+          "title": "ハッピープログラムの対象取引（楽天銀行）",
+          "url": "https://www.rakuten-bank.co.jp/happyprogram/point.html"
+        },
+        {
+          "title": "ロト・ナンバーズ（楽天銀行）",
+          "url": "https://www.rakuten-bank.co.jp/takarakuji/"
+        }
+      ]
+    },
+    {
+      "id": "toto_official",
+      "shop": "toto_official",
+      "how": "ポイントの貯まるカードで払う",
+      "parts": [
+        {
+          "name": "支払いに使うカードのポイント",
+          "detail": "楽天カード・三井住友カード・JCB・セゾンなど、カード会社の規定による",
+          "rate": null
+        }
+      ],
+      "base": "",
+      "feature": "BIG・DUNK・toto・WINNERの公式販売サイト。サイト独自のポイントはなく、カードのポイントが付く",
+      "signups": [
+        "club_toto"
+      ],
+      "sources": [
+        {
+          "title": "お支払方法の追加（スポーツくじオフィシャルサイト）",
+          "url": "https://www.toto-dream.com/club/add_info.html"
+        }
+      ]
+    }
+  ],
+  "noPoint": [
+    "paypaybank",
+    "mizuho",
+    "mufg",
+    "smbc",
+    "paypaybank_toto",
+    "yahoo_toto",
+    "aupay_toto",
+    "jibunbank_toto",
+    "netbk_toto",
+    "smbc_toto"
+  ],
+  "noPointNote": "公式ページに、くじの購入で貯まる独自のポイントの記載がない購入場所です。支払いに使うカードのポイントは、カード会社の規定によって付く場合があります。",
+  "campaigns": []
+}

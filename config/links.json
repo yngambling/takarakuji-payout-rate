@@ -1,0 +1,530 @@
+{
+  "_how": "ASP（A8.net・もしもアフィリエイト・バリューコマース・afb・アクセストレード・楽天アフィリエイトなど）で提携できたら、該当する url を広告リンクに差し替えて affiliate を true にしてください。「PR」表記と rel=\"sponsored\" が自動で付きます。shops はくじを買う場所、signups は登録・口座開設・カードの申し込み先です。shops の affiliate が true の店は、各くじのリンクもすべてその広告リンクになります。くじごとに別の広告リンクを使うときは、games の各リンクに url と \"affiliate\": true を書きます。",
+  "shops": {
+    "takarakuji": {
+      "name": "宝くじ公式サイト",
+      "short": "公式サイト",
+      "note": "ジャンボ・ロト・ナンバーズ・ビンゴ5まで全部買える。購入額の1%の宝くじポイントが付く",
+      "url": "https://www.takarakuji-official.jp/",
+      "signup": "takarakuji_member",
+      "affiliate": false
+    },
+    "rakutenbank_kuji": {
+      "name": "楽天銀行",
+      "short": "楽天銀行",
+      "note": "ロト・ナンバーズ。1口ごとに楽天ポイント1ポイント。当せん金は口座へ自動入金",
+      "url": "https://www.rakuten-bank.co.jp/takarakuji/",
+      "signup": "rakuten_bank",
+      "affiliate": false
+    },
+    "paypaybank": {
+      "name": "PayPay銀行",
+      "short": "PayPay銀行",
+      "note": "ロト・ナンバーズ。抽せん日18:20締切。当せん金は口座へ自動入金",
+      "url": "https://www.paypay-bank.co.jp/lottery/",
+      "signup": "paypay_bank",
+      "affiliate": false
+    },
+    "mizuho": {
+      "name": "みずほ銀行",
+      "short": "みずほ",
+      "note": "ロト・ナンバーズとジャンボなどの普通くじ（みずほダイレクト）",
+      "url": "https://www.mizuhobank.co.jp/takarakuji/purchase/index.html",
+      "affiliate": false
+    },
+    "mufg": {
+      "name": "三菱UFJ銀行",
+      "short": "三菱UFJ",
+      "note": "ロト・ナンバーズ（ネットバンキング）",
+      "url": "https://www.bk.mufg.jp/tsukau/sonota/takarakuji/index.html",
+      "affiliate": false
+    },
+    "smbc": {
+      "name": "三井住友銀行",
+      "short": "三井住友",
+      "note": "ロト・ナンバーズ（SMBCダイレクト）",
+      "url": "https://www.smbc.co.jp/kojin/takarakuji/numbers/numbers4.html",
+      "affiliate": false
+    },
+    "toto_official": {
+      "name": "スポーツくじ公式（Club toto）",
+      "short": "公式サイト",
+      "note": "BIG・DUNK・toto・WINNERの公式販売サイト。楽天カード・三井住友カード・JCBなど多くのカードで払える",
+      "url": "https://store.toto-dream.com/dcs/subos/screen/ps01/spsl000/PGSPSL00001InitBig.form",
+      "signup": "club_toto",
+      "affiliate": false
+    },
+    "rakuten_toto": {
+      "name": "楽天toto",
+      "short": "楽天toto",
+      "note": "購入額の1%の楽天ポイント（楽天カード払いでさらに1%）。BIG・DUNK・toto・WINNER",
+      "url": "https://toto.rakuten.co.jp/big/",
+      "signup": "rakuten_member",
+      "affiliate": false
+    },
+    "docomo_toto": {
+      "name": "ドコモスポーツくじ",
+      "short": "ドコモ",
+      "note": "100円ごとにdポイント1ポイント（dカード払いでさらに1ポイント）。ドコモの回線がなくても使える",
+      "url": "https://toto.docomo.ne.jp/",
+      "signup": "d_account",
+      "affiliate": false
+    },
+    "rakutenbank_toto": {
+      "name": "楽天銀行（スポーツくじ）",
+      "short": "楽天銀行",
+      "note": "購入額の1%の楽天銀行totoポイント。当せん金は口座へ自動入金",
+      "url": "https://www.rakuten-bank.co.jp/toto/",
+      "signup": "rakuten_bank",
+      "affiliate": false
+    },
+    "paypaybank_toto": {
+      "name": "PayPay銀行（スポーツくじ）",
+      "short": "PayPay銀行",
+      "note": "BIG・toto・WINNER。PayPay銀行の口座から購入し、当せん金は自動で入金",
+      "url": "https://www.paypay-bank.co.jp/sports/index.html",
+      "signup": "paypay_bank",
+      "affiliate": false
+    },
+    "yahoo_toto": {
+      "name": "Yahoo! toto",
+      "short": "Yahoo!",
+      "note": "BIG・MEGA BIG・100円BIG・BIG1000・mini BIG。Yahoo!ウォレットに登録した支払い方法で購入",
+      "url": "https://toto.yahoo.co.jp/",
+      "affiliate": false
+    },
+    "aupay_toto": {
+      "name": "au PAY toto",
+      "short": "au PAY",
+      "note": "au・UQ mobile・povoの契約者向け。くじ代を通信料金と一緒に払える",
+      "url": "https://www.au.com/mobile/service/au-toto/",
+      "affiliate": false
+    },
+    "jibunbank_toto": {
+      "name": "auじぶん銀行（toto）",
+      "short": "じぶん銀行",
+      "note": "BIG・MEGA BIG・100円BIG・toto・WINNER。口座から購入（DUNKは取り扱いなし）",
+      "url": "https://www.jibunbank.co.jp/entertainment/toto/index.html",
+      "signup": "jibun_bank",
+      "affiliate": false
+    },
+    "netbk_toto": {
+      "name": "ドコモSMTBネット銀行",
+      "short": "SMTB",
+      "note": "BIG系5種。口座から購入。毎回・曜日・月イチなどの購入予約ができる",
+      "url": "https://www.netbk.co.jp/contents/gen/lineup/bigtoto/big_guide.html",
+      "signup": "netbk",
+      "affiliate": false
+    },
+    "smbc_toto": {
+      "name": "SMBC toto",
+      "short": "SMBC",
+      "note": "三井住友銀行の口座で購入。当せん金は口座へ自動振込",
+      "url": "https://www.smbc.co.jp/kojin/toto/",
+      "affiliate": false
+    }
+  },
+  "signups": {
+    "takarakuji_member": {
+      "name": "宝くじ公式サイト",
+      "kind": "site",
+      "label": "宝くじ公式サイトに会員登録",
+      "url": "https://www.takarakuji-official.jp/guide/account.html",
+      "affiliate": false
+    },
+    "club_toto": {
+      "name": "Club toto",
+      "kind": "site",
+      "label": "Club totoに入会（無料）",
+      "url": "https://www.toto-dream.com/club/",
+      "affiliate": false
+    },
+    "rakuten_member": {
+      "name": "楽天toto",
+      "kind": "site",
+      "label": "楽天totoをはじめる",
+      "url": "https://toto.rakuten.co.jp/beginner/",
+      "affiliate": false
+    },
+    "d_account": {
+      "name": "ドコモスポーツくじ",
+      "kind": "site",
+      "label": "ドコモスポーツくじをはじめる",
+      "url": "https://www.docomo.ne.jp/service/docomo_toto/",
+      "affiliate": false
+    },
+    "rakuten_card": {
+      "name": "楽天カード",
+      "kind": "card",
+      "label": "楽天カードを見る",
+      "url": "https://www.rakuten-card.co.jp/",
+      "affiliate": false
+    },
+    "d_card": {
+      "name": "dカード",
+      "kind": "card",
+      "label": "dカードを見る",
+      "url": "https://dcard.docomo.ne.jp/",
+      "affiliate": false
+    },
+    "paypay_card": {
+      "name": "PayPayカード",
+      "kind": "card",
+      "label": "PayPayカードを見る",
+      "url": "https://www.paypay-card.co.jp/",
+      "affiliate": false
+    },
+    "rakuten_bank": {
+      "name": "楽天銀行",
+      "kind": "bank",
+      "label": "楽天銀行の口座を開く（無料）",
+      "url": "https://www.rakuten-bank.co.jp/account/",
+      "affiliate": false
+    },
+    "paypay_bank": {
+      "name": "PayPay銀行",
+      "kind": "bank",
+      "label": "PayPay銀行の口座を開く",
+      "url": "https://www.paypay-bank.co.jp/",
+      "affiliate": false
+    },
+    "jibun_bank": {
+      "name": "auじぶん銀行",
+      "kind": "bank",
+      "label": "auじぶん銀行の口座を開く",
+      "url": "https://www.jibunbank.co.jp/",
+      "affiliate": false
+    },
+    "netbk": {
+      "name": "ドコモSMTBネット銀行",
+      "kind": "bank",
+      "label": "ドコモSMTBネット銀行の口座を開く",
+      "url": "https://www.netbk.co.jp/",
+      "affiliate": false
+    }
+  },
+  "games": {
+    "loto6": [
+      {
+        "shop": "takarakuji",
+        "url": "https://www.takarakuji-official.jp/ec/loto6/?kujiprdShbt=62&knyschm=0"
+      },
+      {
+        "shop": "rakutenbank_kuji"
+      },
+      {
+        "shop": "paypaybank",
+        "url": "https://www.paypay-bank.co.jp/lottery/loto/detail.html"
+      },
+      {
+        "shop": "mizuho",
+        "url": "https://www.mizuhobank.co.jp/takarakuji/products/loto6/index.html"
+      },
+      {
+        "shop": "mufg",
+        "url": "https://www.bk.mufg.jp/tsukau/sonota/takarakuji/loto6/index.html"
+      },
+      {
+        "shop": "smbc",
+        "url": "https://www.smbc.co.jp/kojin/takarakuji/loto/loto6.html"
+      }
+    ],
+    "loto7": [
+      {
+        "shop": "takarakuji",
+        "url": "https://www.takarakuji-official.jp/ec/loto7/?kujiprdShbt=61&knyschm=0"
+      },
+      {
+        "shop": "rakutenbank_kuji"
+      },
+      {
+        "shop": "paypaybank",
+        "url": "https://www.paypay-bank.co.jp/lottery/loto/detail.html"
+      },
+      {
+        "shop": "mizuho",
+        "url": "https://www.mizuhobank.co.jp/takarakuji/products/loto7/index.html"
+      },
+      {
+        "shop": "mufg",
+        "url": "https://www.bk.mufg.jp/tsukau/sonota/takarakuji/loto7/index.html"
+      },
+      {
+        "shop": "smbc",
+        "url": "https://www.smbc.co.jp/kojin/takarakuji/loto/loto7.html"
+      }
+    ],
+    "miniloto": [
+      {
+        "shop": "takarakuji",
+        "url": "https://www.takarakuji-official.jp/ec/miniloto/?kujiprdShbt=63&knyschm=0"
+      },
+      {
+        "shop": "rakutenbank_kuji",
+        "url": "https://www.rakuten-bank.co.jp/takarakuji/mini/"
+      },
+      {
+        "shop": "paypaybank",
+        "url": "https://www.paypay-bank.co.jp/lottery/loto/detail.html"
+      },
+      {
+        "shop": "mizuho"
+      },
+      {
+        "shop": "mufg",
+        "url": "https://www.bk.mufg.jp/tsukau/sonota/takarakuji/miniloto/index.html"
+      },
+      {
+        "shop": "smbc",
+        "url": "https://www.smbc.co.jp/kojin/takarakuji/loto/miniloto.html"
+      }
+    ],
+    "bingo5": [
+      {
+        "shop": "takarakuji"
+      }
+    ],
+    "numbers4": [
+      {
+        "shop": "takarakuji",
+        "url": "https://www.takarakuji-official.jp/ec/numbers4/?kujiprdShbt=71&knyschm=0"
+      },
+      {
+        "shop": "rakutenbank_kuji",
+        "url": "https://www.rakuten-bank.co.jp/takarakuji/numbers4/"
+      },
+      {
+        "shop": "paypaybank",
+        "url": "https://www.paypay-bank.co.jp/lottery/numbers/detail.html"
+      },
+      {
+        "shop": "mizuho"
+      },
+      {
+        "shop": "mufg",
+        "url": "https://www.bk.mufg.jp/tsukau/sonota/takarakuji/numbers4/index.html"
+      },
+      {
+        "shop": "smbc"
+      }
+    ],
+    "numbers3": [
+      {
+        "shop": "takarakuji",
+        "url": "https://www.takarakuji-official.jp/ec/numbers3/?kujiprdShbt=72&knyschm=0"
+      },
+      {
+        "shop": "rakutenbank_kuji",
+        "url": "https://www.rakuten-bank.co.jp/takarakuji/numbers3/"
+      },
+      {
+        "shop": "paypaybank",
+        "url": "https://www.paypay-bank.co.jp/lottery/numbers/detail.html"
+      },
+      {
+        "shop": "mizuho"
+      },
+      {
+        "shop": "mufg",
+        "url": "https://www.bk.mufg.jp/tsukau/sonota/takarakuji/numbers3/index.html"
+      },
+      {
+        "shop": "smbc",
+        "url": "https://www.smbc.co.jp/kojin/takarakuji/numbers/numbers3.html"
+      }
+    ],
+    "halloween2026": [
+      {
+        "shop": "takarakuji"
+      },
+      {
+        "shop": "mizuho"
+      }
+    ],
+    "halloweenmini2026": [
+      {
+        "shop": "takarakuji"
+      },
+      {
+        "shop": "mizuho"
+      }
+    ],
+    "nenmatsu2026": [
+      {
+        "shop": "takarakuji"
+      },
+      {
+        "shop": "mizuho"
+      }
+    ],
+    "megabig": [
+      {
+        "shop": "toto_official"
+      },
+      {
+        "shop": "rakuten_toto"
+      },
+      {
+        "shop": "docomo_toto"
+      },
+      {
+        "shop": "rakutenbank_toto"
+      },
+      {
+        "shop": "yahoo_toto"
+      },
+      {
+        "shop": "aupay_toto"
+      },
+      {
+        "shop": "jibunbank_toto"
+      },
+      {
+        "shop": "netbk_toto"
+      },
+      {
+        "shop": "smbc_toto"
+      }
+    ],
+    "big": [
+      {
+        "shop": "toto_official"
+      },
+      {
+        "shop": "rakuten_toto"
+      },
+      {
+        "shop": "docomo_toto"
+      },
+      {
+        "shop": "rakutenbank_toto"
+      },
+      {
+        "shop": "paypaybank_toto"
+      },
+      {
+        "shop": "yahoo_toto"
+      },
+      {
+        "shop": "aupay_toto"
+      },
+      {
+        "shop": "jibunbank_toto"
+      },
+      {
+        "shop": "netbk_toto"
+      },
+      {
+        "shop": "smbc_toto"
+      }
+    ],
+    "big100": [
+      {
+        "shop": "toto_official"
+      },
+      {
+        "shop": "rakuten_toto"
+      },
+      {
+        "shop": "docomo_toto"
+      },
+      {
+        "shop": "rakutenbank_toto"
+      },
+      {
+        "shop": "yahoo_toto"
+      },
+      {
+        "shop": "jibunbank_toto"
+      },
+      {
+        "shop": "netbk_toto"
+      },
+      {
+        "shop": "smbc_toto"
+      }
+    ],
+    "big1000": [
+      {
+        "shop": "toto_official"
+      },
+      {
+        "shop": "rakuten_toto"
+      },
+      {
+        "shop": "rakutenbank_toto"
+      },
+      {
+        "shop": "yahoo_toto"
+      },
+      {
+        "shop": "netbk_toto"
+      },
+      {
+        "shop": "smbc_toto"
+      }
+    ],
+    "minibig": [
+      {
+        "shop": "toto_official"
+      },
+      {
+        "shop": "rakuten_toto"
+      },
+      {
+        "shop": "rakutenbank_toto"
+      },
+      {
+        "shop": "yahoo_toto"
+      },
+      {
+        "shop": "netbk_toto"
+      },
+      {
+        "shop": "smbc_toto"
+      }
+    ],
+    "dunk10": [
+      {
+        "shop": "toto_official",
+        "url": "https://store.toto-dream.com/dcs/subos/screen/ps01/spsl000/PGSPSL00001InitDunk.form"
+      },
+      {
+        "shop": "rakuten_toto",
+        "url": "https://toto.rakuten.co.jp/dunk/"
+      },
+      {
+        "shop": "rakutenbank_toto",
+        "url": "https://www.rakuten-bank.co.jp/toto/big/dunk.html"
+      }
+    ],
+    "dunk6a": [
+      {
+        "shop": "toto_official",
+        "url": "https://store.toto-dream.com/dcs/subos/screen/ps01/spsl000/PGSPSL00001InitDunk.form"
+      },
+      {
+        "shop": "rakuten_toto",
+        "url": "https://toto.rakuten.co.jp/dunk/"
+      },
+      {
+        "shop": "rakutenbank_toto",
+        "url": "https://www.rakuten-bank.co.jp/toto/big/dunk.html"
+      }
+    ],
+    "dunk6b": [
+      {
+        "shop": "toto_official",
+        "url": "https://store.toto-dream.com/dcs/subos/screen/ps01/spsl000/PGSPSL00001InitDunk.form"
+      },
+      {
+        "shop": "rakuten_toto",
+        "url": "https://toto.rakuten.co.jp/dunk/"
+      },
+      {
+        "shop": "rakutenbank_toto",
+        "url": "https://www.rakuten-bank.co.jp/toto/big/dunk.html"
+      }
+    ]
+  }
+}
