@@ -2,4 +2,4 @@
 # Search Console の「HTML タグ」でコピーしたタグ（<meta name="google-site-verification" … />）を、
 # この説明の下の空いている行に、そのまま貼り付けて保存（Commit changes）します。
 # 保存すると、サイトのすべてのページにこのタグが入ります。確認が終わったあとも、消さずに残してください（消すと確認が外れます）。
-
+<meta name="google-site-verification" content="EbGi5jqvcAgE6_AF3I44IprUPoGXUL7tsfJqlnf3k3I" />
