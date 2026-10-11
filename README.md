@@ -76,6 +76,18 @@ AdSense は、自分が管理するドメインで申請するのが確実です
 3. 「Enforce HTTPS」にチェックを入れます。
 4. `config/site.json` の `baseUrl` をそのドメインに変えます。
 
+このサイトは `https://takarakuji-kangen.com`（2026年10月11日に Xserverドメインで取得）で公開しています。古い `https://yngambling.github.io/takarakuji-payout-rate/` は、新しいドメインに自動で転送されます。Xserverドメインの「DNSレコード設定」には、次を登録しています（元からある NS と SOA の行は消さないでください）。
+
+| ホスト名 | 種別 | 内容 | 用途 |
+|---|---|---|---|
+| takarakuji-kangen.com | A | 185.199.108.153 / 185.199.109.153 / 185.199.110.153 / 185.199.111.153（4行） | GitHub Pages |
+| takarakuji-kangen.com | AAAA | 2606:50c0:8000::153 / 2606:50c0:8001::153 / 2606:50c0:8002::153 / 2606:50c0:8003::153（4行） | GitHub Pages |
+| www.takarakuji-kangen.com | CNAME | yngambling.github.io | www 付きの URL を転送 |
+| _github-pages-challenge-yngambling.takarakuji-kangen.com | TXT | GitHub の確認コード | ドメインの乗っ取り防止（消すと確認が外れる） |
+| takarakuji-kangen.com | TXT | google-site-verification=… | Search Console の確認（消すと確認が外れる） |
+
+ドメインの更新料は年1,721円です（Xserverドメイン、2026年10月時点）。更新を忘れるとサイトが表示されなくなるので、XServerアカウントで自動更新を設定しておくと安心です。
+
 #### GitHub Pages の利用条件について
 
 GitHub Pages は「オンラインビジネスや商取引を主な目的とするサイト」の無料ホスティングとしての利用を認めていません。広告付きの情報サイトは一般に問題になりにくいものの、アフィリエイト中心の運営に不安があれば、商用利用できる **Cloudflare Pages**（無料プランは月500回までビルド可）で公開する方法もあります。
@@ -122,14 +134,16 @@ Google のポリシーでは、オンラインで宝くじを買えるページ�
 
 検索結果への表示状況が分かり、Google にページを早く見つけてもらえます。
 
-1. [Google Search Console](https://search.google.com/search-console) を開き、「今すぐ開始」を押します。
-2. プロパティ タイプは右側の「URL プレフィックス」を選び、`https://yngambling.github.io/takarakuji-payout-rate/` を入れて「続行」を押します（`github.io` のサイトでは、左側の「ドメイン」は使えません）。
-3. 所有権の確認で「HTML タグ」を開き、「コピー」を押します。
-4. GitHub で `config/google-site-verification.txt` を開いて鉛筆のマークを押し、5行目（空いている行）にそのまま貼り付けて保存（Commit changes）します。2〜3分でサイトの全ページにタグが入ります。タグは確認のあとも消さないでください。
-5. Search Console に戻って「確認」を押します。
-6. 左のメニューの「サイトマップ」を開き、「新しいサイトマップの追加」に `sitemap.xml` と入れて「送信」を押します。
+独自ドメイン（`takarakuji-kangen.com`）は「ドメイン」プロパティで登録します。
 
-独自ドメインに移ったら、新しいドメインも Search Console に登録します（そのときは「ドメイン」を選び、DNS で確認します）。なお、`robots.txt` はドメインの一番上（`https://ドメイン/robots.txt`）に置いたものしか読まれないため、`github.io` の間はサイトマップを Search Console から送信してください。
+1. [Google Search Console](https://search.google.com/search-console) を開き、左上のプロパティ名の右の「▼」から「プロパティを追加」を押します（初めてなら「今すぐ開始」）。
+2. プロパティ タイプは左側の「ドメイン」を選び、`takarakuji-kangen.com` を入れて「続行」を押します。
+3. 表示された TXT レコード（`google-site-verification=` から始まる文字）を「コピー」します。
+4. XServerアカウントの「DNSレコード設定」で、ホストは空欄、種別は「TXT」、内容にコピーした文字を貼って追加します。TTL と優先度はそのままです。
+5. Search Console に戻って「確認」を押します。失敗したら、しばらく待ってからもう一度押します（DNS の反映には最大24時間かかります）。
+6. 左のメニューの「サイトマップ」を開き、「新しいサイトマップの追加」に `https://takarakuji-kangen.com/sitemap.xml` と入れて「送信」を押します。
+
+`robots.txt`（`https://takarakuji-kangen.com/robots.txt`）にもサイトマップの場所を書いているので、Google 以外の検索エンジンもサイトマップを見つけられます。`config/google-site-verification.txt` のタグは、独自ドメインに移る前に `github.io` の URL で登録したときのものです。残しておいても問題ありません。
 
 ### サイトに取り入れたアフィリエイトサイトの作り方
 
