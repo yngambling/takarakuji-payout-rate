@@ -128,6 +128,9 @@ t('結果一覧の開催回', () => {
 /* ---------- 還元率 ---------- */
 
 const defs = resolveGames(JSON.parse(readFileSync(path.join(ROOT, 'data/games.json'), 'utf8')));
+// ジャンボの日付・賞金表・verify は、運営者が Issue の案内で直したり足したりする（verify の行を消す・次のジャンボを足す）。
+// 本物の data/games.json で確かめると、その操作でテストが失敗して自動更新が止まるので、2026年10月11日の時点の写しを使う
+const jumbo = resolveGames(JSON.parse(fx('jumbo.json').toString('utf8')));
 
 t('山分けの式（閉じた形）＝ポアソン分布で直接足したもの', () => {
   const direct = (pool, lam, cap) => {
@@ -146,8 +149,8 @@ t('固定・理論値のくじ', () => {
   near(evaluate(defs.numbers3).rate, 0.45, 1e-9, 'ナンバーズ3');
   near(evaluate(defs.bingo5).rate, 0.45, 1e-4, 'ビンゴ5');
   near(evaluate(defs.miniloto).rate, 0.4488, 1e-3, 'ミニロト');
-  near(evaluate(defs.halloween2026).rate, 0.47330, 1e-4, 'ハロウィンジャンボ');
-  near(evaluate(defs.nenmatsu2026).rate, 0.5, 1e-4, '年末ジャンボ');
+  near(evaluate(jumbo.halloween2026).rate, 0.47330, 1e-4, 'ハロウィンジャンボ');
+  near(evaluate(jumbo.nenmatsu2026).rate, 0.5, 1e-4, '年末ジャンボ');
 });
 
 t('BIG系（繰越が上限の何倍もある＝上限で頭打ち）', () => {
@@ -198,10 +201,10 @@ t('BIG系の販売状況', () => {
 });
 
 t('ジャンボの販売期間', () => {
-  assert.equal(computeGame(defs.halloween2026, null, at('2026-10-16T12:00')).status.kind, 'onsale');
-  assert.equal(computeGame(defs.halloween2026, null, at('2026-10-17T12:00')).status.kind, 'ended');
-  assert.equal(computeGame(defs.nenmatsu2026, null, at('2026-10-17T12:00')).status.kind, 'upcoming');
-  assert.equal(computeGame(defs.nenmatsu2026, null, at('2026-11-24T12:00')).status.kind, 'onsale');
+  assert.equal(computeGame(jumbo.halloween2026, null, at('2026-10-16T12:00')).status.kind, 'onsale');
+  assert.equal(computeGame(jumbo.halloween2026, null, at('2026-10-17T12:00')).status.kind, 'ended');
+  assert.equal(computeGame(jumbo.nenmatsu2026, null, at('2026-10-17T12:00')).status.kind, 'upcoming');
+  assert.equal(computeGame(jumbo.nenmatsu2026, null, at('2026-11-24T12:00')).status.kind, 'onsale');
 });
 
 /* ---------- リンク・ポイントの設定とページ ---------- */
@@ -309,7 +312,7 @@ t('見張る行の取り出し（日付・残り日数は無視）', () => {
 
 t('日付から分かるお願い（次のジャンボ・賞金表の確認・ポイントの見直し）', () => {
   const pts = { checkedOn: '2026-10-10' };
-  const kinds = (day) => Object.fromEntries(scheduleChecks(defs, pts, day).map((c) => [c.key, c.type]));
+  const kinds = (day) => Object.fromEntries(scheduleChecks(jumbo, pts, day).map((c) => [c.key, c.type]));
   let k = kinds('2026-10-11');
   assert.equal(k['jumbo-next'], 'clear', '年末ジャンボが発売前なので不要');
   assert.equal(k['verify-nenmatsu2026'], 'clear', '発売の30日より前');
@@ -328,10 +331,15 @@ const { verificationCode } = await import('./lib/util.mjs');
 
 t('Search Console の確認タグ（貼ったタグから取り出して全ページの head に入れる）', () => {
   const code = 'Ab3dEf_gH1jK-lMn0pQrStUvWxYz0123456789abcd';
-  const file = readFileSync(path.join(ROOT, 'config/google-site-verification.txt'), 'utf8');
+  // 本物のファイルは運営者がタグを貼ると中身が変わるので、説明の行（# で始まる行）だけを見本に使う
+  const real = readFileSync(path.join(ROOT, 'config/google-site-verification.txt'), 'utf8');
+  const file = `${real.split(/\r?\n/).filter((l) => l.trim().startsWith('#')).join('\n')}\n`;
   assert.equal(verificationCode(file), '', 'まだ貼っていないときは空');
   assert.equal(verificationCode(`${file}<meta name="google-site-verification" content="${code}" />\n`), code, 'タグをそのまま貼った');
+  assert.equal(verificationCode(`${file}<meta name="google-site-verification" content="${code}" />`), code, '最後に改行がない');
   assert.equal(verificationCode(`${file}  ${code}  \n`), code, 'コードだけを貼った');
+  const pasted = verificationCode(real);
+  assert.ok(pasted === '' || /^[A-Za-z0-9_-]{20,100}$/.test(pasted), 'いまのファイルから読めるコードは、空か正しい形');
   assert.equal(verificationCode(`<meta name='google-site-verification' content='${code}'>`), code, '一重引用符');
   assert.equal(verificationCode('<meta name="google-site-verification" content="abc"><script>'), '', '短すぎる・おかしな文字は使わない');
   assert.equal(verificationCode(`${code}"><script>alert(1)</script>`), '', 'タグ以外の文字が混ざったら使わない');
