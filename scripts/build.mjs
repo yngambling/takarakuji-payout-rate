@@ -65,7 +65,7 @@ if (RECORD) {
 }
 
 const render = createRenderer({
-  site, links, points, rows, byId, log, history, catalog, now, state, defs, order,
+  site, links, points, rows, byId, log, history, catalog, now, state, defs, order, overrides,
   preview: PREVIEW, placeholders: PLACEHOLDERS || PREVIEW, inlineCss: PREVIEW, css,
   cssVersion: createHash('md5').update(css).digest('hex').slice(0, 8),
 });
@@ -97,6 +97,6 @@ if (!PREVIEW) {
 const listed = rows.filter((r) => r.listed).sort((a, b) => b.rate - a.rate);
 console.log(`生成: ${pages.length}ページ → ${path.relative(ROOT, OUT) || '.'}（${now.iso} ${String(now.hh).padStart(2, '0')}:${String(now.mm).padStart(2, '0')} 時点）`);
 for (const r of listed) {
-  console.log(`  ${(r.rate * 100).toFixed(1).padStart(5)}%  ${r.def.name}${r.hasCO ? `  繰越 ${r.carryover.toLocaleString('ja-JP')}円` : ''}${r.provisional ? '（暫定）' : ''}  ${r.status.label} ${r.status.text}`);
+  console.log(`  ${(r.rate * 100).toFixed(1).padStart(5)}%  ${r.def.name}${r.hasCO ? `  繰越 ${r.carryover.toLocaleString('ja-JP')}円` : ''}${r.provisional ? '（暫定）' : ''}  ${r.status.label} ${r.status.text}${r.special?.on ? `  ★${r.special.name}（1等の上限${r.special.capText}）` : ''}`);
 }
 if (base.includes('example.com')) console.log('※ config/site.json の baseUrl がまだ example.com です。公開する前に自分のURLに変えてください。');

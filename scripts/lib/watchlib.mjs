@@ -2,6 +2,8 @@
 import { createHash } from 'node:crypto';
 import { htmlToText } from './parse.mjs';
 import { HOW_TO_FIX } from './alerts.mjs';
+import { fmtShort, yenJa } from './util.mjs';
+import { weekWith7, knownRounds, specialOf, payoutVerdict, ruleVerdict, addDaysIso } from './special.mjs';
 
 const DATE_RE = /(?:\d{4}\s*年\s*)?\d{1,2}\s*月\s*\d{1,2}\s*日(?:\s*[(（][^)）]{1,3}[)）])?|\d{4}[/.-]\d{1,2}[/.-]\d{1,2}|\d{1,2}:\d{2}/g;
 
@@ -160,5 +162,124 @@ export function scheduleChecks(defs, points, today) {
       ].join('\n'),
     });
   } else out.push({ type: 'clear', key: 'points-recheck' });
+  return out;
+}
+
+/* ---------------- BIG777（特別開催回）のお知らせ ---------------- */
+
+const WHY_TEXT = {
+  rule: '日付の決まりによる判定',
+  payout: '1等の当せん金による判定（確定）',
+  manual: '`data/overrides.json` の `big777` で指定',
+};
+
+function targetNotice(def, v, rounds, today) {
+  const sp = def.special;
+  const me = rounds.find((r) => r.round === v.round) || {};
+  const period = me.salesEnd ? `販売 ${me.salesStart ? fmtShort(me.salesStart) : ''}〜${fmtShort(me.salesEnd)}${me.salesEnd < today ? '・販売は終了' : ''}` : '';
+  return {
+    title: `【お知らせ】今月の${sp.name}は第${v.round}回として計算しています（1等の上限${sp.capText}）`,
+    body: [
+      `毎月7日を含む週は、BIG の1等の上限がキャリーオーバーの有無にかかわらず${sp.capText}に上がる「${sp.name}」の回があります。サイトは自動で判定して、次の回を${sp.name}として計算しています。`,
+      '',
+      `- 対象の回：第${v.round}回${period ? `（${period}）` : ''}`,
+      `- 判定の理由：${WHY_TEXT[v.why] || v.why}`,
+      `- 決め方：${sp.rule}`,
+      '',
+      '### やること',
+      `1. BIG を売っているサイト（[スポーツくじオフィシャルサイト](https://www.toto-dream.com/big/)や楽天totoなど）で、1等の最高額が「${sp.capText}」になっている回の番号を確認します。`,
+      `2. 第${v.round}回で合っていれば、何もしなくてかまいません。この Issue は、${sp.name}の週が終わって1週間たつと自動で閉じます（先に閉じてもかまいません）。`,
+      `3. 違っていたら、\`data/overrides.json\` の \`${sp.id}\` を直します。本当の${sp.name}の回の番号を \`add\` に、第${v.round}回を \`remove\` に入れます（例：本当は第${v.round + 1}回だったら \`"add": [${v.round + 1}], "remove": [${v.round}]\`）。保存すると、サイトが作り直されます。`,
+      '',
+      HOW_TO_FIX,
+    ].join('\n'),
+  };
+}
+
+function unknownNotice(def, w, pending) {
+  const sp = def.special;
+  return {
+    title: `【確認のお願い】今月の${sp.name}の回を判定できませんでした`,
+    body: [
+      `${fmtShort(w.from)}〜${fmtShort(w.to)}の週（毎月7日を含む週）に、${sp.name}として計算した BIG の回がありませんでした。`,
+      pending
+        ? `第${pending.round}回は、同じ週にあとから販売が終わる回があるかどうか分からなかったため、通常の回として計算しました。`
+        : 'この週に販売が終わる BIG の回が見つかりませんでした（データの取得が止まっていた可能性もあります）。',
+      '',
+      '### やること',
+      `1. BIG を売っているサイト（[スポーツくじオフィシャルサイト](https://www.toto-dream.com/big/)や楽天totoなど）で、今月の${sp.name}（1等の最高額${sp.capText}）の回の番号を確認します。`,
+      `2. ${sp.name}の回があったら、\`data/overrides.json\` の \`${sp.id}\` の \`add\` に、その回の番号を入れます（例：第${pending?.round || 1670}回なら \`"add": [${pending?.round || 1670}]\`）。保存すると、過去の還元率の推移が計算し直されます。`,
+      '3. 確認できたら、この Issue を閉じてください。',
+      '',
+      HOW_TO_FIX,
+    ].join('\n'),
+  };
+}
+
+function mismatchNotice(def, r, paid, rule) {
+  const sp = def.special;
+  const t1 = r.tiers.find((t) => t.tier === 1);
+  const capCO = def.tiers.find((t) => t.top).capCO;
+  return {
+    title: `【確認のお願い】第${r.round}回の${sp.name}の判定が、実際の当せん金と合いませんでした`,
+    body: [
+      `第${r.round}回の BIG の1等は、1口${yenJa(t1.prize)}（${t1.winners}口）でした。${paid
+        ? `通常の上限（${yenJa(capCO)}）を超えているので、この回は${sp.name}の回でした。`
+        : `通常の上限（${yenJa(capCO)}）ちょうどなので、この回は${sp.name}の回ではありませんでした。`}`,
+      `一方、サイトの日付の決まり（${sp.rule}）では、${rule.on ? `${sp.name}の回` : '通常の回'}と判定していました。`,
+      '',
+      '- この回の還元率の推移は、実際の当せん金に合わせて計算し直しています（何もしなくて大丈夫です）。',
+      '- ただし、日付の決まりが公式の決め方と違っている可能性があり、来月以降の判定がずれるおそれがあります。',
+      '',
+      '### やること',
+      `この Issue の題名と本文をそのままコピーして、Claude に「${sp.name}の決め方を直して」と頼んでください。直ったら、この Issue を閉じてください。`,
+    ].join('\n'),
+  };
+}
+
+/**
+ * BIG777 のお知らせ（watch.mjs から1日1回）。
+ *   ・今月の BIG777 の回が分かったら、1回だけお知らせする（その週が終わって1週間たつと自動で閉じる）
+ *   ・今月の週が終わっても BIG777 の回が分からなかったら、1回だけ確認をお願いする
+ *   ・実際の1等の当せん金が、日付の決まりと合わなかった回を、1回だけお知らせする
+ * memo は data/watch.json に残す記録（同じお知らせを何度も出さないため）。この関数が中身を書き換える。
+ * 戻り値：[{ type: 'raise', key, title, body } | { type: 'clear', key }]
+ */
+export function specialChecks(defs, state, overrides, today, memo = {}) {
+  const out = [];
+  for (const def of Object.values(defs)) {
+    const sp = def.special;
+    if (!sp) continue;
+    const st = state?.games?.[def.id] || {};
+    const manual = overrides?.[sp.id] || {};
+    const m = (memo[def.id] ??= {});
+    m.since ??= today;
+    m.notified ??= [];
+    m.mismatch ??= [];
+    const rounds = knownRounds(st);
+    const w = weekWith7(today);
+    const key = `special-${def.id}-${w.month}`;
+    const verdicts = rounds.filter((r) => r.salesEnd && r.salesEnd >= w.from && r.salesEnd <= w.to).map((r) => specialOf(def, r.round, st, manual));
+    const target = verdicts.filter((v) => v.on && v.sure).pop() || null;
+    if (!m.notified.includes(w.month)) {
+      if (w.to < m.since) m.notified.push(w.month); // 見張りを始める前に終わった週は、お知らせしない
+      else if (target) { out.push({ type: 'raise', key, ...targetNotice(def, target, rounds, today) }); m.notified.push(w.month); }
+      else if (today > w.to) { out.push({ type: 'raise', key: `${key}-unknown`, ...unknownNotice(def, w, verdicts.find((v) => !v.sure) || null) }); m.notified.push(w.month); }
+    }
+    if (today > addDaysIso(w.to, 7)) out.push({ type: 'clear', key });
+
+    for (const r of st.results || []) {
+      if (!r?.round || !r.resultDate || r.resultDate < m.since || m.mismatch.includes(r.round)) continue;
+      if ([...(manual.add || []), ...(manual.remove || [])].map(Number).includes(r.round)) continue;
+      const paid = payoutVerdict(def, r);
+      if (paid === null) continue;
+      const rule = ruleVerdict(rounds, r.round);
+      if (rule.on === paid) continue;
+      out.push({ type: 'raise', key: `special-${def.id}-mismatch-${r.round}`, ...mismatchNotice(def, r, paid, rule) });
+      m.mismatch.push(r.round);
+    }
+    m.notified = m.notified.slice(-24);
+    m.mismatch = m.mismatch.slice(-50);
+  }
   return out;
 }
