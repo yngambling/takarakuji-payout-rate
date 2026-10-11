@@ -21,6 +21,7 @@ config/site.json      サイト名・URL・連絡先・AdSense・GA4 の設定
 config/links.json     購入場所（shops）・登録や口座開設の申し込み先（signups）・くじごとのリンク。アフィリエイトに差し替える場所
 config/points.json    購入場所ごとのポイント還元率と出典（ポイント還元ランキングとポイント込みの計算に使う）
 config/watch.json     毎日変化をチェックする公式ページの一覧（ポイント・支払い方法・購入場所・ジャンボの発売予定）
+config/google-site-verification.txt  Google Search Console の確認タグを貼る場所（全ページの head に入る）
 data/games.json       くじの賞金体系・確率・上限（賞金体系が変わったらここを直す）
 data/state.json       自動取得したキャリーオーバー・販売額（fetch.mjs が更新）
 data/log.json         「最近の結果」の記録（fetch.mjs が追記）
@@ -114,8 +115,21 @@ Google のポリシーでは、オンラインで宝くじを買えるページ�
 
 ### C. アクセスを集める
 
-- Google Search Console にサイトを登録し、`sitemap.xml` を送信します。
+- Google Search Console にサイトを登録し、`sitemap.xml` を送信します（下の「Google Search Console に登録する」）。
 - キャリーオーバーが大きく増えた日や、還元率の順位が入れ替わった日に、各ページの「Xでポスト」ボタンから投稿すると、見に来る理由になります。
+
+### Google Search Console に登録する
+
+検索結果への表示状況が分かり、Google にページを早く見つけてもらえます。
+
+1. [Google Search Console](https://search.google.com/search-console) を開き、「今すぐ開始」を押します。
+2. プロパティ タイプは右側の「URL プレフィックス」を選び、`https://yngambling.github.io/takarakuji-payout-rate/` を入れて「続行」を押します（`github.io` のサイトでは、左側の「ドメイン」は使えません）。
+3. 所有権の確認で「HTML タグ」を開き、「コピー」を押します。
+4. GitHub で `config/google-site-verification.txt` を開いて鉛筆のマークを押し、5行目（空いている行）にそのまま貼り付けて保存（Commit changes）します。2〜3分でサイトの全ページにタグが入ります。タグは確認のあとも消さないでください。
+5. Search Console に戻って「確認」を押します。
+6. 左のメニューの「サイトマップ」を開き、「新しいサイトマップの追加」に `sitemap.xml` と入れて「送信」を押します。
+
+独自ドメインに移ったら、新しいドメインも Search Console に登録します（そのときは「ドメイン」を選び、DNS で確認します）。なお、`robots.txt` はドメインの一番上（`https://ドメイン/robots.txt`）に置いたものしか読まれないため、`github.io` の間はサイトマップを Search Console から送信してください。
 
 ### サイトに取り入れたアフィリエイトサイトの作り方
 

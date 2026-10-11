@@ -442,6 +442,7 @@ ${ad('sidebar')}
       '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
       fonts,
       ctx.inlineCss ? `<style>${ctx.css}</style>` : `<link rel="stylesheet" href="${rel}style.css?v=${ctx.cssVersion}">`,
+      !preview && ctx.verification ? `<meta name="google-site-verification" content="${esc(ctx.verification)}">` : '',
       !preview && a.client ? `<meta name="google-adsense-account" content="${esc(a.client)}">` : '',
       !preview && a.client ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${esc(a.client)}" crossorigin="anonymous"></script>` : '',
       !preview && site.ga4 ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${esc(site.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${esc(site.ga4)}');</script>` : '',

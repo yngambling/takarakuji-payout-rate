@@ -136,3 +136,15 @@ export function median(arr) {
 }
 
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/**
+ * Google Search Console の確認コードを取り出す。
+ * 「HTML タグ」の <meta name="google-site-verification" content="…" /> をそのまま貼っても、content の中身だけでもよい。
+ * # で始まる行は説明として読み飛ばす。コードとして正しくない文字が入っていたら '' を返す。
+ */
+export function verificationCode(text) {
+  const body = String(text || '').split(/\r?\n/).filter((l) => !l.trim().startsWith('#')).join(' ');
+  const m = body.match(/content\s*=\s*["']\s*([^"']+?)\s*["']/i);
+  const code = (m ? m[1] : body).trim();
+  return /^[A-Za-z0-9_-]{20,100}$/.test(code) ? code : '';
+}
