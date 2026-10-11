@@ -1,0 +1,96 @@
+name: 還元率を更新して公開
+
+on:
+  schedule:
+    # 時刻は UTC（日本時間 = UTC+9）。GitHub の都合で数分〜数十分遅れることがあります。
+    - cron: '7 22 * * *'   # 07:07 朝の更新
+    - cron: '7 3 * * *'    # 12:07 昼（BIG・DUNKの販売回の切り替わり）
+    - cron: '47 10 * * *'  # 19:47 ロト・ナンバーズの抽せん（18:45）のあと
+    - cron: '37 12 * * *'  # 21:37 取りこぼしの再取得
+    - cron: '47 14 * * *'  # 23:47 BIG・DUNKの結果発表のあと
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'data/state.json'
+      - 'data/history.json'
+      - 'data/log.json'
+      - 'data/watch.json'
+      - 'README.md'
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+  issues: write   # 確認が必要なことを Issue でお知らせするため
+
+concurrency:
+  group: update-site
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: 公式サイトから最新データを取得
+        if: github.event_name != 'push'
+        run: node scripts/fetch.mjs
+        env:
+          # 過去1年分を1回に何件さかのぼるか（空なら12件）。リポジトリの変数 BACKFILL_PER_RUN で変えられます
+          BACKFILL_PER_RUN: ${{ vars.BACKFILL_PER_RUN }}
+
+      - name: 公式ページの変化をチェック（朝の1回だけ）
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7 22 * * *'
+        run: node scripts/watch.mjs
+
+      - name: 計算の確認
+        run: node scripts/test.mjs
+
+      - name: サイトを生成
+        run: node scripts/build.mjs
+
+      - name: 取得したデータをリポジトリに保存
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          if ! git diff --cached --quiet; then
+            git commit -m "データ更新 $(TZ=Asia/Tokyo date '+%Y-%m-%d %H:%M')"
+            git pull --rebase --autostash || true
+            git push
+          fi
+
+      # 取得の失敗・公式ページの変化・自動更新の停止などを、Issue（GitHub の通知メール）でお知らせする。直ったら自動で閉じる
+      - name: 確認が必要なことを知らせる
+        if: always()
+        run: node scripts/notify.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JOB_STATUS: ${{ job.status }}
+
+      # Cloudflare Pages で公開する場合は、リポジトリの変数 DEPLOY_TARGET に cloudflare を入れると下の3つは動きません
+      - uses: actions/configure-pages@v6
+        if: vars.DEPLOY_TARGET != 'cloudflare'
+
+      - uses: actions/upload-pages-artifact@v5
+        if: vars.DEPLOY_TARGET != 'cloudflare'
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    if: vars.DEPLOY_TARGET != 'cloudflare'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v5
