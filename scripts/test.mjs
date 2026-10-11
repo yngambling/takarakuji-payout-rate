@@ -269,6 +269,29 @@ t('グラフの期間（推移は30日・くじ別は1年）と名前の変更',
   assert.ok(!all.includes('買える所'), '「買える所」は残さない');
 });
 
+t('404ページ（存在しない深い階層のURLでも、CSSとリンクがずれない）', () => {
+  // GitHub Pages は /kuji/abc/def.html のような存在しないURLでも 404.html の中身を返すので、相対パスを使わない
+  const base = 'https://yngambling.github.io/takarakuji-payout-rate';
+  const page404 = (preview) => createRenderer({
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: `${base}/`, adsense: {} },
+    links, points, rows: rowsT, byId: Object.fromEntries(rowsT.map((r) => [r.id, r])), log: [], history: { days: {} },
+    catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])),
+    preview, placeholders: false, inlineCss: preview, css: '', cssVersion: 'x',
+  }).notFound().html;
+  const html = page404(false);
+  const urls = [...html.matchAll(/\s(?:href|src)="([^"]*)"/g)].map((m) => m[1]);
+  assert.ok(urls.length > 20, 'メニューやサイドバーのリンクがある');
+  for (const u of urls) assert.match(u, /^(?:https?:\/\/|#|mailto:)/, `相対パスのリンクが残っている: ${u}`);
+  assert.ok(html.includes(`<a href="${base}/">トップページ</a>`), '「トップページ」はこのサイトの一番上へ（github.io の一番上ではない）');
+  assert.ok(html.includes(`<link rel="stylesheet" href="${base}/style.css?v=x">`), 'CSS');
+  assert.ok(html.includes(`<a class="logo" href="${base}/">`), 'ロゴ');
+  assert.ok(html.includes(`<a href="${base}/point.html">ポイント還元</a>`), 'メニュー');
+  assert.ok(html.includes(`href="${base}/kuji/`), 'くじ別ページへのリンク');
+  assert.ok(!html.includes('href="/"'), 'github.io の一番上へのリンクがない');
+  assert.ok(html.includes('<meta name="robots" content="noindex">'), '検索結果に出さない');
+  assert.ok(page404(true).includes('<a href="index.html">トップページ</a>'), '共有プレビューは相対パスのまま');
+});
+
 /* ---------- 公式ページの見張り・お知らせ ---------- */
 
 const { extractLines, diffLines, scheduleChecks, changeIssue } = await import('./lib/watchlib.mjs');
