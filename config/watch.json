@@ -11,7 +11,6 @@
     { "id": "pay-clubtoto", "kind": "pay", "name": "お支払方法の追加（スポーツくじオフィシャルサイト）", "url": "https://www.toto-dream.com/club/add_info.html", "keywords": ["カード", "口座"], "digit": false, "file": "config/links.json", "what": "スポーツくじ公式サイトで使えるカード（購入場所の説明文）" },
     { "id": "shop-toto", "kind": "shop", "name": "提携サイトで購入（スポーツくじオフィシャルサイト）", "url": "https://www.toto-dream.com/big/buy/teikei/", "keywords": ["サイト"], "digit": false, "file": "config/links.json", "what": "スポーツくじの購入場所（提携サイト）" },
     { "id": "shop-takarakuji", "kind": "shop", "name": "インターネット販売金融機関の販売サイト（宝くじ公式サイト）", "url": "https://www.takarakuji-official.jp/kuji/mail-order-site.html", "keywords": ["銀行"], "digit": false, "file": "config/links.json", "what": "宝くじの購入場所（ネットで売っている銀行）" },
-    { "id": "jumbo-takarakuji", "kind": "jumbo", "name": "宝くじ商品のご案内（宝くじ公式サイト）", "url": "https://www.takarakuji-official.jp/kuji/top.html", "keywords": ["ジャンボ"], "digit": false, "file": "data/games.json", "what": "ジャンボ宝くじの賞金表と発売期間" },
-    { "id": "jumbo-mizuho", "kind": "jumbo", "name": "宝くじの販売予定（みずほ銀行）", "url": "https://www.mizuhobank.co.jp/takarakuji/yotei/index.html", "keywords": ["ジャンボ"], "digit": false, "file": "data/games.json", "what": "ジャンボ宝くじの賞金表と発売期間" }
+    { "id": "jumbo-takarakuji", "kind": "jumbo", "name": "宝くじ商品のご案内（宝くじ公式サイト）", "url": "https://www.takarakuji-official.jp/kuji/top.html", "keywords": ["ジャンボ"], "digit": false, "file": "data/games.json", "what": "ジャンボ宝くじの賞金表と発売期間" }
   ]
 }
