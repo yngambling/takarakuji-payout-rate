@@ -6,6 +6,7 @@
 //   ・新しいジャンボ宝くじは、宝くじ公式サイトの発表（宝ニュース）から賞金表を読み取り、検算に通れば data/games.json に自動で登録する
 //     （ページには「確認待ち」の注記を出し、Issue で見比べをお願いする。Issue が閉じられたら注記を外す）
 //   ・宝くじ・スポーツくじに、このサイトが知らない新しいくじが出ていないか確かめる
+//   ・Search Console（設定したときだけ）：サイトマップの送信・エラーと、各ページが Google に登録できているか
 //   ・報道ベースの賞金表の発売が近い、ポイントの確認から90日、なども知らせる
 //   ・BIG777（毎月7日を含む週の BIG）の回を月に1回知らせ、判定が当せん金と合わないときも知らせる
 // どこかで失敗しても終了コードは 0（サイトの更新は止めない）。
@@ -26,6 +27,7 @@ import {
 } from './lib/jumbo.mjs';
 import { takarakujiMenu, unknownTakarakuji, takarakujiKey, takarakujiIssue, unknownSports, sportsKey, sportsIssue } from './lib/products.mjs';
 import { closedAlertKeys } from './lib/github.mjs';
+import { readCredentials, gscClient, sitemapUrls, judgePage, gscChecks, needSubmit } from './lib/gsc.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const P = (...a) => path.join(ROOT, ...a);
@@ -248,6 +250,38 @@ try {
   lines.push(`⚠ 新しいくじの確認に失敗: ${e.message || e}`);
 }
 
+/* ---------------- Search Console の自動チェック（GSC_CREDENTIALS を設定したときだけ） ---------------- */
+
+const gscCred = readCredentials(process.env.GSC_CREDENTIALS);
+if (process.env.GSC_CREDENTIALS && !gscCred) lines.push('⚠ GitHub の Secrets の GSC_CREDENTIALS が、サービス アカウントの JSON キーの形になっていません（README「Search Console の自動チェック」）');
+if (gscCred && String(site.baseUrl || '').startsWith('https://')) {
+  const base = String(site.baseUrl).replace(/\/$/, '');
+  const gsite = site.searchConsoleSite || `sc-domain:${new URL(base).host}`;
+  const feed = `${base}/sitemap.xml`;
+  let result;
+  try {
+    const gc = gscClient(gscCred);
+    const sm = (await gc.sitemaps(gsite)).find((s) => s.path === feed) || null;
+    if (needSubmit(sm, today)) {
+      await gc.submit(gsite, feed);
+      lines.push(`Search Console：サイトマップを${sm ? '送り直しました（7日以上読み込まれていないため）' : '送信しました'}`);
+    }
+    const urls = sitemapUrls(await getText(feed));
+    const pages = [];
+    for (const u of urls.slice(0, 80)) pages.push({ url: u, ...judgePage(await gc.inspect(gsite, u)) });
+    result = { base, site: gsite, sitemap: sm, pages };
+    const indexed = pages.filter((x) => x.status === 'indexed').length;
+    saved.gsc = { checkedAt: today, indexed, total: pages.length };
+    lines.push(`Search Console：Google に登録済み ${indexed}/${pages.length}ページ${sm ? `・サイトマップのエラー ${Number(sm.errors || 0)}件` : ''}`);
+  } catch (e) {
+    result = { base, site: gsite, error: { message: String(e.message || e), auth: !!e.auth } };
+    lines.push(`⚠ Search Console のチェックに失敗しました：${e.message || e}`);
+  }
+  for (const c of gscChecks(result)) {
+    if (c.type === 'raise') { raise(alerts, c.key, c.title, c.body); lines.push(`⚠ ${c.title}`); } else clear(alerts, c.key);
+  }
+}
+
 /* ---------------- 日付から分かるお願い・BIG777 ---------------- */
 
 // 日付から分かるお願い（次のジャンボ・賞金表の確認・ポイントの見直し）
@@ -276,7 +310,7 @@ try {
 
 saved.lastRun = today;
 saved.acked = [...acked].slice(-300);
-saved._note = '公式ページの見張りの記録（scripts/watch.mjs が毎日更新）。前の日と比べるために使います。lastRun は最後に見張った日（1日1回にするため）。acked は運営者が閉じた Issue（確認済み・もう知らせない）。jumbo はジャンボの自動登録、newProducts は新しいくじの記録です。';
+saved._note = '公式ページの見張りの記録（scripts/watch.mjs が毎日更新）。前の日と比べるために使います。lastRun は最後に見張った日（1日1回にするため）。acked は運営者が閉じた Issue（確認済み・もう知らせない）。jumbo はジャンボの自動登録、newProducts は新しいくじ、gsc は Search Console で Google に登録済みのページ数の記録です。';
 await writeFile(P('data/watch.json'), JSON.stringify(saved, null, 1) + '\n', 'utf8');
 await saveAlerts(alerts);
 for (const l of lines) console.log(l);

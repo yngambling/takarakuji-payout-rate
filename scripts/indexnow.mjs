@@ -11,7 +11,8 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { jstParts, sleep } from './lib/util.mjs';
-import { ENDPOINT, validKey, changedSince, dueToday, pageUrl, payload, statusText } from './lib/indexnow.mjs';
+import { ENDPOINT, validKey, changedSince, dueToday, pageUrl, payload, statusText, isConfigError, indexNowIssue } from './lib/indexnow.mjs';
+import { loadAlerts, saveAlerts, raise, clear } from './lib/alerts.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const P = (...a) => path.join(ROOT, ...a);
@@ -67,8 +68,20 @@ async function send() {
       signal: AbortSignal.timeout(30000),
     });
     const msg = `${statusText(res.status)}（HTTP ${res.status}・${urls.length}件）`;
-    if (res.status === 200 || res.status === 202) log(`IndexNow：${msg}`);
-    else log(`::warning::IndexNow：${msg} ${(await res.text()).slice(0, 200)}`);
+    const alerts = await loadAlerts();
+    if (res.status === 200 || res.status === 202) {
+      log(`IndexNow：${msg}`);
+      clear(alerts, 'indexnow-failed');
+    } else {
+      const detail = (await res.text()).slice(0, 200);
+      log(`::warning::IndexNow：${msg} ${detail}`);
+      // 設定の誤り（形式・キー・URL）は、直すまで続くので Issue で知らせる（公開のジョブの最後の notify.mjs が Issue にする）
+      if (isConfigError(res.status)) {
+        const issue = indexNowIssue(res.status, detail, base, key);
+        raise(alerts, 'indexnow-failed', issue.title, issue.body);
+      }
+    }
+    await saveAlerts(alerts);
   } catch (e) {
     log(`::warning::IndexNow に送れませんでした：${e.message || e}`);
   }

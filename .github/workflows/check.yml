@@ -1,0 +1,27 @@
+name: 変更の確認（プルリクエスト）
+
+# プルリクエスト（変更の提案）を出したときに、計算の確認とサイトの生成を試します。
+# 緑のチェック（✓）が付けば、マージしても自動更新は止まりません。赤い × なら、マージする前に直します。
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: 計算の確認
+        run: node scripts/test.mjs
+
+      - name: サイトを生成できるか
+        run: node scripts/build.mjs --no-history --out "$RUNNER_TEMP/site"

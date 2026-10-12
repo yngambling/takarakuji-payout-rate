@@ -20,6 +20,7 @@ const fx = (f) => readFileSync(path.join(ROOT, 'test/fixtures', f));
 const near = (a, b, tol, msg) => assert.ok(Math.abs(a - b) <= tol, `${msg}: ${a} ≠ ${b}（許容 ${tol}）`);
 let n = 0;
 const t = (name, fn) => { fn(); n++; console.log(`ok  ${name}`); };
+const ta = async (name, fn) => { await fn(); n++; console.log(`ok  ${name}`); }; // 通信をまねる確認（await で呼ぶ）
 
 /* ---------- パーサー ---------- */
 
@@ -214,9 +215,11 @@ const points = JSON.parse(readFileSync(path.join(ROOT, 'config/points.json'), 'u
 
 t('リンク集の整合性（店・登録先・くじ）', () => {
   for (const [gid, list] of Object.entries(links.games)) {
-    assert.ok(defs[gid], `games.json にない ${gid}`);
+    // 終わったくじを data/games.json から消しても自動更新が止まらないよう、ないくじのリンクは止めずに知らせるだけにする
+    if (!defs[gid]) console.log(`  ※ config/links.json の games の ${gid} は data/games.json にないため使われません（消してかまいません）`);
     for (const l of list) assert.ok(links.shops[l.shop], `${gid} の店 ${l.shop} が shops にない`);
   }
+  for (const l of links.jumboDefault || []) assert.ok(links.shops[l.shop], `jumboDefault の店 ${l.shop} が shops にない`);
   for (const [sid, s] of Object.entries(links.shops)) {
     assert.match(s.url, /^https:\/\//, `${sid} の url`);
     if (s.signup) assert.ok(links.signups[s.signup], `${sid} の signup ${s.signup}`);
@@ -896,6 +899,143 @@ t('くじのルールの見張り（値段・賞金・確率・上限の公式�
   const wf = readFileSync(path.join(ROOT, '.github/workflows/update.yml'), 'utf8');
   assert.ok(/run: node scripts\/watch\.mjs\n\s+env:\n\s+WATCH_FORCE: \$\{\{ inputs\.watch \}\}\n\s+GITHUB_TOKEN: \$\{\{ secrets\.GITHUB_TOKEN \}\}/.test(wf));
   assert.ok(Array.isArray(links.jumboDefault) && links.jumboDefault.every((l) => links.shops[l.shop]), 'config/links.json の jumboDefault');
+});
+
+/* ---------- 終わったジャンボの整理・健康診断・Search Console・公開の見張り ---------- */
+
+t('終わったジャンボ（ページは残し、一覧とサイドバーでは「終わったジャンボ宝くじ」に。買うボタンは出さない）', () => {
+  const raw = Object.fromEntries(Object.entries(JSON.parse(readFileSync(path.join(ROOT, 'data/games.json'), 'utf8'))).filter(([, g]) => !(g?.model === 'fixed' && g.group === 'takarakuji')));
+  const defsP = resolveGames(J.insertGame(J.insertGame(J.insertGame(raw, 'halloween2026', structuredClone(jumboRaw.halloween2026)), 'halloweenmini2026', structuredClone(jumboRaw.halloweenmini2026)), 'nenmatsu2026', structuredClone(jumboRaw.nenmatsu2026)));
+  const mk = (s) => {
+    const nowP = { ...at(s), y: +s.slice(0, 4) };
+    const rowsP = computeAll(defsP, state, nowP, {});
+    return { rowsP, rd: createRenderer({
+      site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} },
+      links, points, rows: rowsP, byId: Object.fromEntries(rowsP.map((r) => [r.id, r])), log: [], history: { days: {} },
+      catalog: { order: [], items: {} }, now: nowP, state, defs: defsP, order: Object.fromEntries(Object.keys(defsP).map((k, i) => [k, i])),
+      preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
+    }) };
+  };
+  // 11月30日：ハロウィンは抽せんも終わった。年末ジャンボは発売中
+  const { rowsP, rd } = mk('2026-11-30T12:00');
+  const hw = rd.game(rowsP.find((r) => r.id === 'halloween2026')).html;
+  assert.ok(hw.includes('ハロウィンジャンボ宝くじの発売は2026年10月16日（金）で終わりました。抽せん日は2026年10月26日（月）で、抽せんも終わっています。'), '終わったお知らせ');
+  assert.ok(hw.includes('いま発売中・発売予定のジャンボ宝くじ：<a href="../kuji/nenmatsu2026.html">年末ジャンボ宝くじ</a>（12月25日（金）まで発売中）'), '発売中のジャンボへの案内');
+  assert.ok(!hw.includes('class="cta-box"'), '買うボタンは出さない');
+  const ich = rd.ichiran().html;
+  assert.ok(!ich.includes('id="k-halloween2026"') && ich.includes('<h2 id="past">終わったジャンボ宝くじ</h2>') && ich.includes('href="kuji/halloween2026.html">ハロウィンジャンボ宝くじ（第1126回全国自治宝くじ）</a>'), '宝くじ一覧は終わったジャンボを下にまとめる');
+  assert.ok(ich.includes('id="k-nenmatsu2026"') && ich.includes('<a href="#past">終わったジャンボ宝くじ</a>'));
+  const side = rd.index().html.split('<aside class="side"')[1] || '';
+  assert.ok(!side.includes('kuji/halloween2026.html') && side.includes('kuji/nenmatsu2026.html'), 'サイドバーのくじ別には出さない');
+  // 10月20日：ハロウィンは発売が終わったが、抽せん前（一覧にはまだ出す）。年末ジャンボは発売前で「〇月〇日から買えます」
+  const b = mk('2026-10-20T12:00');
+  const hw2 = b.rd.game(b.rowsP.find((r) => r.id === 'halloween2026')).html;
+  assert.ok(hw2.includes('抽せん日は2026年10月26日（月）です。') && hw2.includes('11月24日（火）から発売'));
+  assert.ok(b.rd.ichiran().html.includes('id="k-halloween2026"'));
+  assert.ok(b.rd.game(b.rowsP.find((r) => r.id === 'nenmatsu2026')).html.includes('<p class="cta-title">年末ジャンボ宝くじは11月24日（火）から買えます</p>'));
+  // 購入先は config/links.json の jumboDefault（ジャンボごとに書かなくてよい）
+  assert.ok(Object.keys(links.games).every((id) => !/(jumbo|nenmatsu|halloween|valentine|dream|summer)/.test(id)), 'links.json の games にジャンボを書かない');
+});
+
+const H = await import('./lib/health.mjs');
+
+t('サイトと自動更新の健康診断（公開中のサイト・証明書・ドメイン・外部タイマー・トークン）', () => {
+  assert.equal(H.parseUpdated('<p class="updated"><span class="badge">毎日更新</span><span>最終更新：2026年10月12日（月） 7:47</span></p>'), '2026-10-12T07:47:00+09:00');
+  assert.equal(H.parseUpdated('<p>なし</p>'), null);
+  assert.equal(H.rdapExpiry({ events: [{ eventAction: 'registration', eventDate: '2026-10-11T03:00:00Z' }, { eventAction: 'expiration', eventDate: '2027-10-11T03:00:00Z' }] }), '2027-10-11');
+  const base = 'https://takarakuji-kangen.com';
+  const run = (o) => Object.fromEntries(H.healthChecks({ now: '2026-10-12T04:00:00Z', today: '2026-10-12', base, ...o }).map((c) => [c.key, c]));
+  // ふだん：何も知らせない（閉じるだけ）
+  let k = run({ site: { ok: true, updated: '2026-10-12T12:47:00+09:00' }, cert: { validTo: '2026-12-30' }, domain: { expires: '2027-10-11' }, timer: { count: 20, last: '2026-10-12T03:47:08Z' }, tokenExpires: '2027-10-13' });
+  assert.ok(Object.values(k).every((c) => c.type === 'clear'), JSON.stringify(Object.keys(k)));
+  // 開けない／20時間以上更新されていない
+  assert.equal(run({ site: { ok: false, error: 'HTTP 404' } })['site-down'].type, 'raise');
+  k = run({ site: { ok: true, updated: '2026-10-11T07:47:00+09:00' } });
+  assert.equal(k['site-stale'].type, 'raise');
+  assert.ok(k['site-stale'].title.includes('29時間'));
+  assert.equal(run({ site: { ok: true, updated: null } })['site-stale'], undefined, '最終更新が読めないときは判断しない');
+  // 証明書は14日前から、ドメインとトークンは30日前から（期限ごとに別の Issue）
+  assert.equal(run({ cert: { validTo: '2026-10-26' } })['cert-expiry-2026-10-26'].type, 'raise');
+  assert.equal(run({ cert: { validTo: '2026-10-27' } })['cert-expiry-2026-10-27'].type, 'clear');
+  assert.ok(run({ domain: { expires: '2026-11-11' } })['domain-expiry-2026-11-11'].title.includes('あと30日'));
+  assert.equal(run({ tokenExpires: '2026-11-10' })['timer-token-2026-11-10'].type, 'raise');
+  assert.equal(run({ tokenExpires: '' })['timer-token-'], undefined);
+  // 外部タイマー：13時間より長く来ていなければ知らせる。一度も使っていなければ知らせない
+  assert.equal(run({ timer: { count: 20, last: '2026-10-11T14:47:00Z' } })['timer-stopped'].type, 'raise');
+  assert.equal(run({ timer: { count: 20, last: '2026-10-11T15:47:00Z' } })['timer-stopped'].type, 'clear', '1回抜けただけ（12時間）は知らせない');
+  assert.equal(run({ timer: { count: 0, last: null } })['timer-stopped'], undefined);
+  // ワークフロー：毎回の健康診断・公開の失敗のお知らせ・プルリクエストの確認・部品の更新
+  const wf = readFileSync(path.join(ROOT, '.github/workflows/update.yml'), 'utf8');
+  assert.ok(/name: サイトと自動更新の健康診断\n\s+if: github\.event_name != 'push'\n\s+run: node scripts\/health\.mjs\n\s+env:\n\s+GITHUB_TOKEN:/.test(wf), '健康診断の手順');
+  assert.ok(wf.includes('actions: read'), '実行の一覧を読む権限');
+  assert.ok(/name: 公開の結果を知らせる\n\s+if: always\(\)\n\s+run: node scripts\/notify\.mjs\n\s+env:\n\s+GITHUB_TOKEN: \$\{\{ secrets\.GITHUB_TOKEN \}\}\n\s+DEPLOY_STATUS: \$\{\{ steps\.deployment\.outcome \}\}/.test(wf), '公開の失敗を知らせる');
+  assert.ok(wf.includes("if: github.event_name != 'push' && steps.deployment.outcome == 'success'"), '公開できたときだけ IndexNow に送る');
+  assert.ok(wf.includes('GSC_CREDENTIALS: ${{ secrets.GSC_CREDENTIALS }}'));
+  const check = readFileSync(path.join(ROOT, '.github/workflows/check.yml'), 'utf8');
+  assert.ok(check.includes('pull_request:') && check.includes('node scripts/test.mjs') && check.includes('node scripts/build.mjs --no-history'), 'プルリクエストの確認');
+  assert.ok(readFileSync(path.join(ROOT, '.github/dependabot.yml'), 'utf8').includes('package-ecosystem: github-actions'), 'GitHub Actions の部品の更新');
+  const siteConf = JSON.parse(readFileSync(path.join(ROOT, 'config/site.json'), 'utf8'));
+  assert.ok(!siteConf.timerTokenExpires || /^\d{4}-\d{2}-\d{2}$/.test(siteConf.timerTokenExpires), 'timerTokenExpires は YYYY-MM-DD');
+  // IndexNow：設定の誤り（形式・キー・URL）だけ Issue にする
+  assert.deepEqual([400, 403, 422, 429, 500, 200].map(ix.isConfigError), [true, true, true, false, false, false]);
+  assert.ok(ix.indexNowIssue(403, '', base, 'abcdef12').body.includes(`${base}/abcdef12.txt`));
+});
+
+const G = await import('./lib/gsc.mjs');
+const { generateKeyPairSync, createVerify } = await import('node:crypto');
+
+await ta('Search Console の自動チェック（ログイン・サイトマップ・ページの登録状況）', async () => {
+  // サービス アカウントのキー（見本）で JWT を作り、署名を確かめる
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048, privateKeyEncoding: { type: 'pkcs8', format: 'pem' }, publicKeyEncoding: { type: 'spki', format: 'pem' } });
+  const cred = G.readCredentials(JSON.stringify({ type: 'service_account', client_email: 'kt@example.iam.gserviceaccount.com', private_key: privateKey, token_uri: 'https://oauth2.googleapis.com/token' }));
+  assert.ok(cred && !G.readCredentials('{"a":1}') && !G.readCredentials('こわれた'));
+  const jwt = G.signedJwt(cred, Date.parse('2026-10-12T00:00:00Z'));
+  const [h, p, s] = jwt.split('.');
+  assert.deepEqual(JSON.parse(Buffer.from(p, 'base64url')), { iss: 'kt@example.iam.gserviceaccount.com', scope: G.SCOPE, aud: 'https://oauth2.googleapis.com/token', iat: 1791763200, exp: 1791766800 });
+  assert.ok(createVerify('RSA-SHA256').update(`${h}.${p}`).verify(publicKey, Buffer.from(s, 'base64url')), '署名');
+  // 判定：登録済み・待ち・直す必要がある
+  assert.equal(G.judgePage({ verdict: 'PASS', coverageState: '送信して登録されました' }).status, 'indexed');
+  assert.equal(G.judgePage({ verdict: 'NEUTRAL', coverageState: 'URL が Google に認識されていません' }).status, 'waiting');
+  assert.equal(G.judgePage({ verdict: 'FAIL', indexingState: 'BLOCKED_BY_META_TAG' }).reason, 'noindex のタグで登録が止められています');
+  assert.equal(G.judgePage({ verdict: 'FAIL', pageFetchState: 'NOT_FOUND' }).status, 'problem');
+  assert.equal(G.judgePage({ robotsTxtState: 'DISALLOWED' }).status, 'problem');
+  assert.deepEqual(G.sitemapUrls('<url><loc>https://a.jp/</loc></url><url><loc> https://a.jp/b.html </loc></url>'), ['https://a.jp/', 'https://a.jp/b.html']);
+  assert.equal(G.needSubmit(null, '2026-10-12'), true);
+  assert.equal(G.needSubmit({ lastDownloaded: '2026-10-10T01:00:00Z' }, '2026-10-12'), false);
+  assert.equal(G.needSubmit({ lastDownloaded: '2026-10-01T01:00:00Z' }, '2026-10-12'), true, '7日より前なら送り直す');
+  assert.equal(G.needSubmit({ isPending: true }, '2026-10-12'), false);
+  // API の呼び方（見本の応答）
+  const calls = [];
+  const fake = async (url, opt = {}) => {
+    calls.push(`${opt.method || 'GET'} ${url}`);
+    const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } });
+    if (url.startsWith('https://oauth2')) return json({ access_token: 'T' });
+    if (url.includes('/sitemaps/')) return new Response(null, { status: 204 });
+    if (url.endsWith('/sitemaps')) return json({ sitemap: [{ path: 'https://takarakuji-kangen.com/sitemap.xml', errors: '0', warnings: '0', lastDownloaded: '2026-10-11T00:00:00Z' }] });
+    if (url.includes('urlInspection')) return json({ inspectionResult: { indexStatusResult: { verdict: 'PASS', coverageState: '送信して登録されました' } } });
+    return json({}, 404);
+  };
+  const gc = G.gscClient(cred, { fetchImpl: fake });
+  const sms = await gc.sitemaps('sc-domain:takarakuji-kangen.com');
+  await gc.submit('sc-domain:takarakuji-kangen.com', 'https://takarakuji-kangen.com/sitemap.xml');
+  const r = await gc.inspect('sc-domain:takarakuji-kangen.com', 'https://takarakuji-kangen.com/');
+  assert.equal(sms.length, 1);
+  assert.equal(r.verdict, 'PASS');
+  assert.deepEqual(calls, [
+    'POST https://oauth2.googleapis.com/token',
+    'GET https://www.googleapis.com/webmasters/v3/sites/sc-domain%3Atakarakuji-kangen.com/sitemaps',
+    'PUT https://www.googleapis.com/webmasters/v3/sites/sc-domain%3Atakarakuji-kangen.com/sitemaps/https%3A%2F%2Ftakarakuji-kangen.com%2Fsitemap.xml',
+    'POST https://searchconsole.googleapis.com/v1/urlInspection/index:inspect',
+  ], 'ログインは1回だけ');
+  // 知らせること：ログインできない・サイトマップのエラー・登録できないページ（待ちのページは知らせない）
+  const base = 'https://takarakuji-kangen.com';
+  const keys = (o) => Object.fromEntries(G.gscChecks({ base, site: 'sc-domain:takarakuji-kangen.com', ...o }).map((c) => [c.key, c.type]));
+  assert.deepEqual(keys({ error: { message: 'HTTP 403', auth: true } }), { 'gsc-auth': 'raise' });
+  assert.deepEqual(keys({ error: { message: 'timeout', auth: false } }), {}, '一時的な失敗は知らせない');
+  assert.deepEqual(keys({ sitemap: sms[0], pages: [{ url: `${base}/`, status: 'indexed' }, { url: `${base}/a.html`, status: 'waiting' }] }), { 'gsc-auth': 'clear', 'gsc-sitemap': 'clear', 'gsc-pages': 'clear' });
+  const bad = G.gscChecks({ base, site: 'x', sitemap: { ...sms[0], errors: '2' }, pages: [{ url: `${base}/kuji/x.html`, status: 'problem', reason: 'ページが見つかりません（404）' }] });
+  assert.ok(bad.find((c) => c.key === 'gsc-sitemap').title.includes('2件'));
+  assert.ok(bad.find((c) => c.key === 'gsc-pages').body.includes('/kuji/x.html：ページが見つかりません（404）'));
 });
 
 console.log(`\n${n}件すべて成功`);

@@ -1,5 +1,5 @@
 {
-  "_note": "公開前に baseUrl・operatorName・contactEmail（または contactFormUrl）を自分のものに変えてください。AdSense の審査に通ったら adsense.client（ca-pub-から始まるID）と各広告ユニットのIDを入れます。スロットIDが空でも client だけ入れれば自動広告が使えます。ga4 は G- から始まる測定ID。indexNowKey は検索エンジン（Bing など）に更新を知らせる IndexNow のキー（英数字32文字。空にすると通知しない）。",
+  "_note": "公開前に baseUrl・operatorName・contactEmail（または contactFormUrl）を自分のものに変えてください。AdSense の審査に通ったら adsense.client（ca-pub-から始まるID）と各広告ユニットのIDを入れます。スロットIDが空でも client だけ入れれば自動広告が使えます。ga4 は G- から始まる測定ID。indexNowKey は検索エンジン（Bing など）に更新を知らせる IndexNow のキー（英数字32文字。空にすると通知しない）。timerTokenExpires は外部タイマー（cron-job.org）のトークンの期限（30日前から Issue でお知らせ。作り直したら新しい期限に書き換える）。",
   "siteName": "宝くじ還元率ランキング",
   "tagline": "どの宝くじが狙い目か一目で分かるサイト",
   "baseUrl": "https://takarakuji-kangen.com",
@@ -20,5 +20,6 @@
   },
   "ga4": "G-TZBPZ0FZZW",
   "indexNowKey": "47c9e6fd734f2d6f986c6345f4d447b4",
+  "timerTokenExpires": "2027-10-13",
   "showAdPlaceholders": false
 }

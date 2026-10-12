@@ -7,6 +7,8 @@ const GROUP_LABEL = { takarakuji: '宝くじ', sports: 'スポーツくじ' };
 
 /** 宝くじのジャンボ（賞金が決まっているくじ）か */
 const isJumbo = (d) => d?.model === 'fixed' && d.group === 'takarakuji';
+/** 抽せんが終わったジャンボか（ページは残し、宝くじ一覧とサイドバーでは「終わったジャンボ宝くじ」にまとめる） */
+export const isPastJumbo = (d, today) => isJumbo(d) && !!d.drawDate && d.drawDate < today;
 
 /**
  * 「宝くじ一覧」の並び：data/catalog.json の order のとおり。order にないくじ（自動で登録したジャンボなど）は、
@@ -249,9 +251,24 @@ export function createRenderer(ctx) {
 
   function ctaBox(id, r) {
     const d = ctx.defs[id];
+    // 発売が終わったジャンボは買えないので、購入ボタンを出さない。発売前のジャンボは、いつから買えるかを書く
+    const kind = byId[id]?.status?.kind;
+    if (isJumbo(d) && kind === 'ended') return '';
     const b = bigButtons(id, { max: 3, self: true });
     if (!b) return '';
-    return `<div class="cta-box"${r ? ' data-sticky-anchor' : ''}><p class="cta-title">${esc(d.name)}をネットで買う</p>${r ? cdHtml(r) : ''}${b}${MICRO}</div>`;
+    const title = isJumbo(d) && kind === 'upcoming' ? `${esc(d.name)}は${fmtMd(d.salesStart)}から買えます` : `${esc(d.name)}をネットで買う`;
+    return `<div class="cta-box"${r ? ' data-sticky-anchor' : ''}><p class="cta-title">${title}</p>${r ? cdHtml(r) : ''}${b}${MICRO}</div>`;
+  }
+
+  /** 発売が終わったジャンボのページの上に出すお知らせ（いま買えるジャンボへの案内つき） */
+  function endedNotice(r, rel) {
+    const d = r.def;
+    if (!isJumbo(d) || r.status.kind !== 'ended') return '';
+    const drawn = d.drawDate < now.iso;
+    const others = rows.filter((x) => x.id !== r.id && isJumbo(x.def) && ['onsale', 'upcoming'].includes(x.status.kind))
+      .sort((a, b) => ctx.order[a.id] - ctx.order[b.id])
+      .map((x) => `<a href="${rel}kuji/${x.id}.html">${esc(x.def.name)}</a>（${x.status.kind === 'onsale' ? `${fmtMd(x.def.salesEnd)}まで発売中` : `${fmtMd(x.def.salesStart)}から発売`}）`);
+    return `<p class="notice">${esc(d.name)}の発売は${fmtYmd(d.salesEnd)}で終わりました。抽せん日は${fmtYmd(d.drawDate)}${drawn ? 'で、抽せんも終わっています' : 'です'}。${others.length ? `いま発売中・発売予定のジャンボ宝くじ：${others.join('、')}` : '次のジャンボ宝くじは、発表されしだいこのサイトに載せます。'}</p>`;
   }
 
   function rankMark(rank) {
@@ -442,7 +459,7 @@ ${compact ? '' : `<ul class="parts">${(rt.parts || []).map((p) => { const v = pa
     const top5 = listed.slice(0, 5).map((r) => `<li><a href="${rel}kuji/${r.id}.html">${rankMark(rankOf[r.id])}<span>${esc(r.def.name)}</span><span class="val">${pct(r.rate)}</span></a></li>`).join('');
     const cos = coList.map((r) => `<li><a href="${rel}kuji/${r.id}.html"><span>${esc(r.def.name)}</span><span class="val small">${yen(r.carryover)}</span></a></li>`).join('');
     const pts = topRoutes.slice(0, 3).map((x) => `<li><a href="${rel}point.html">${rankMark(routeRank(x))}<span>${esc(shops[x.rt.shop].name)}<span class="sub">${esc(x.rt.how || '')}</span></span><span class="val">${fmtPt(x.rate)}</span></a></li>`).join('');
-    const all = rows.filter((r) => r.computable).sort((a, b) => ctx.order[a.id] - ctx.order[b.id])
+    const all = rows.filter((r) => r.computable && !isPastJumbo(r.def, now.iso)).sort((a, b) => ctx.order[a.id] - ctx.order[b.id])
       .map((r) => `<li><a href="${rel}kuji/${r.id}.html"><span>${esc(r.def.name)}</span><span class="val">${pct(r.rate)}</span></a></li>`).join('');
     return `<aside class="side" aria-label="サイドバー">
 <section class="widget"><h2 class="widget-title red">今日の還元率TOP5</h2><ol>${top5}</ol></section>
@@ -965,7 +982,7 @@ ${crumbs(rel, [{ name: d.name }])}
 <h1 class="page-title">${esc(d.name)}の還元率</h1>
 ${updatedLine()}
 ${d.verify ? `<p class="notice">${esc(d.verify)}</p>` : ''}
-${specialNotice(r)}
+${endedNotice(r, rel)}${specialNotice(r)}
 ${ev.computable ? `<div class="score">
 <div class="score-top"><span class="lbl">還元率</span><span class="num">${cuPct(r.rate)}<small>%</small></span>${delta(r)}<span class="sub">1口${yen(d.price)}で、平均約${Math.round(ev.ev)}円が戻る計算${rankOf[r.id] ? `・全${listed.length}くじ中${rankOf[r.id]}位` : ''}</span></div>
 <dl class="score-grid">${tiles.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
@@ -1046,7 +1063,18 @@ ${related(rel, r.id)}
   function ichiran() {
     const path = 'ichiran.html';
     const rel = '';
-    const ids = mergeOrder(catalog.order || [], Object.keys(ctx.defs));
+    const allIds = mergeOrder(catalog.order || [], Object.keys(ctx.defs));
+    // 抽せんが終わったジャンボは、くわしい説明ではなく、いちばん下の「終わったジャンボ宝くじ」にまとめる
+    const ids = allIds.filter((id) => !isPastJumbo(ctx.defs[id], now.iso));
+    const pastIds = allIds.filter((id) => isPastJumbo(ctx.defs[id], now.iso))
+      .sort((a, b) => String(ctx.defs[b].drawDate).localeCompare(String(ctx.defs[a].drawDate)) || (ctx.order[a] ?? 0) - (ctx.order[b] ?? 0));
+    const pastHtml = pastIds.length ? `<h2 id="past">終わったジャンボ宝くじ</h2>
+<p>抽せんが終わったジャンボ宝くじです。くじ別のページで、賞金と本数、還元率を見られます。</p>
+<ul class="past-list">${pastIds.map((id) => {
+    const d = ctx.defs[id];
+    const r = byId[id];
+    return `<li><a href="${rel}kuji/${id}.html">${esc(d.name)}（${esc(d.round || '')}）</a><span class="sub">${fmtYmd(d.salesStart)}〜${fmtYmd(d.salesEnd)}発売・${fmtYmd(d.drawDate)}抽せん${r?.computable ? `・還元率${pct(r.rate)}` : ''}</span></li>`;
+  }).join('')}</ul>` : '';
     const sections = ids.map((id, i) => {
       const d = ctx.defs[id];
       // data/catalog.json に説明がないジャンボ（自動で登録したもの）は、賞金表から説明を作る
@@ -1080,11 +1108,11 @@ ${crumbs(rel, [{ name: '宝くじ一覧' }])}
 <h1 class="page-title">宝くじ一覧</h1>
 ${updatedLine()}
 <p class="lead">当サイトで扱っている宝くじとスポーツくじのしくみを、くじごとにまとめました。名前を押すと、くじ別のページに移動します。</p>
-${toc(ids.map((id) => [`k-${id}`, ctx.defs[id].name]))}
+${toc([...ids.map((id) => [`k-${id}`, ctx.defs[id].name]), ...(pastIds.length ? [['past', '終わったジャンボ宝くじ']] : [])])}
 ${ad('top')}
 <h2 id="list">くじごとのしくみ</h2>
 ${sections}
-${ad('bottom')}
+${pastHtml}${ad('bottom')}
 `;
     return {
       path,
