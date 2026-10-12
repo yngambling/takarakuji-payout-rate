@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// 公式ページの見張り（1日1回）。
+// 公式ページの見張り（1日1回。日本時間の朝6時以降の最初の更新で行い、同じ日の2回目からは何もしない）。
+//   node scripts/watch.mjs --force … 今日すでに見張っていても、もう一度行う
 //   ・ポイントの率、支払い方法、購入場所、ジャンボの発売予定が書かれた公式ページを開き、前の日と比べる
 //   ・変わっていたら「確認のお願い」を出す（notify.mjs が GitHub の Issue にする）。サイトの数値は自動では変えない
 //   ・次のジャンボが未登録、報道ベースの賞金表の発売が近い、ポイントの確認から90日、なども知らせる
@@ -13,7 +14,7 @@ import { fetchBytes, decodeBytes } from './lib/http.mjs';
 import { jstParts, sleep } from './lib/util.mjs';
 import { resolveGames } from './lib/model.mjs';
 import { loadAlerts, saveAlerts, raise, clear } from './lib/alerts.mjs';
-import { extractLines, hashLines, changeIssue, downIssue, scheduleChecks, specialChecks } from './lib/watchlib.mjs';
+import { extractLines, hashLines, changeIssue, downIssue, scheduleChecks, specialChecks, watchGate } from './lib/watchlib.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const P = (...a) => path.join(ROOT, ...a);
@@ -23,9 +24,21 @@ const readJson = async (f, fb) => {
 
 const now = jstParts();
 const today = now.iso;
-const watch = await readJson('config/watch.json', { pages: [] });
 const saved = await readJson('data/watch.json', { pages: {} });
 saved.pages ??= {};
+
+// 1日1回だけ行う（手動の実行で「公式ページの見張りも今すぐ行う」を選んだときと --force のときは必ず行う）
+const gate = watchGate({ today, hh: now.hh, lastRun: saved.lastRun, force: process.env.WATCH_FORCE === 'true' || process.argv.includes('--force') });
+if (!gate.run) {
+  console.log(gate.reason);
+  if (process.env.GITHUB_STEP_SUMMARY) {
+    await writeFile(process.env.GITHUB_STEP_SUMMARY, `### 公式ページの見張り\n\n- ${gate.reason}\n`, { flag: 'a' });
+  }
+  process.exit(0);
+}
+if (gate.reason) console.log(gate.reason);
+
+const watch = await readJson('config/watch.json', { pages: [] });
 const alerts = await loadAlerts();
 const lines = [];
 
@@ -89,7 +102,8 @@ try {
   lines.push(`⚠ BIG777 のチェックに失敗: ${e.message || e}`);
 }
 
-saved._note = '公式ページの見張りの記録（scripts/watch.mjs が毎日更新）。前の日と比べるために使います。';
+saved.lastRun = today;
+saved._note = '公式ページの見張りの記録（scripts/watch.mjs が毎日更新）。前の日と比べるために使います。lastRun は最後に見張った日（1日1回にするため）。';
 await writeFile(P('data/watch.json'), JSON.stringify(saved, null, 1) + '\n', 'utf8');
 await saveAlerts(alerts);
 for (const l of lines) console.log(l);
