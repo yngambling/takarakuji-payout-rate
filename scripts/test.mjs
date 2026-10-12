@@ -276,7 +276,8 @@ t('くじ別ページの解説とよくある質問（data/guides.json）', () =
   const guides = JSON.parse(readFileSync(path.join(ROOT, 'data/guides.json'), 'utf8'));
   // 書き方の確認：あるくじだけ・確認日・段落と質問が空でない・出典は https・使わない言い回しがない
   for (const [id, g] of Object.entries(guides.games || {})) {
-    assert.ok(defs[id], `data/guides.json の ${id} が data/games.json にありません`);
+    // 終わったジャンボを data/games.json から消したときに自動更新が止まらないよう、ないくじの解説は止めずに知らせるだけにする
+    if (!defs[id]) { console.log(`  ※ data/guides.json の ${id} は data/games.json にないため使われません（消してかまいません）`); continue; }
     assert.match(g.checkedOn || '', /^\d{4}-\d{2}-\d{2}$/, `${id} の checkedOn（確認日）`);
     assert.ok((g.about || []).length >= 1, `${id} の about（解説）`);
     for (const a of g.about) {
