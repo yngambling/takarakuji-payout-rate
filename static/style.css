@@ -271,6 +271,12 @@ table.t { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 
 .t .rate.hi { color: var(--red); }
 .t .gname { font-weight: 700; font-size: 15px; }
 .t tfoot th, .t tfoot td { background: var(--gold-soft); font-weight: 700; }
+/* ジャンボ：何枚買うと当たる？・ミニとの比較 */
+.t.buy-chance { min-width: 560px; }
+.t.buy-chance td { font-weight: 700; }
+.t.compare { min-width: 480px; }
+.t.compare thead th .sub { color: #dfe5ef; }
+.t.compare thead th a { color: var(--white); }
 .t.rank { table-layout: fixed; min-width: 808px; }
 .t.rank tr.first td { background: var(--gold-soft); }
 .t.rank td { font-size: 13.5px; }
@@ -406,6 +412,19 @@ table.t { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 
 .related a { display: flex; justify-content: space-between; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; text-decoration: none; color: var(--ink); font-weight: 700; font-size: 14.5px; transition: border-color .2s, color .2s, transform .2s var(--ease); }
 .related a:hover { border-color: var(--red); color: var(--red); transform: translateY(-1px); }
 .related .num { color: var(--red); font-size: 17px; }
+/* トップページ：ジャンボ宝くじ（発売中・発売予定） */
+.jumbo-box { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; margin: 0 0 18px; }
+.jb-card { display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--line); border-top: 4px solid var(--gold); border-radius: 8px; padding: 12px 14px; text-decoration: none; color: var(--ink); background: var(--white); transition: border-color .2s, transform .2s var(--ease); }
+.jb-card.on { border-top-color: var(--red); }
+.jb-card:hover { border-color: var(--red); transform: translateY(-1px); }
+.jb-state { align-self: flex-start; font-size: 12px; font-weight: 700; color: #8a6200; background: var(--gold-soft); border-radius: 999px; padding: 2px 10px; }
+.jb-card.on .jb-state { color: var(--red-dk); background: var(--red-soft); }
+.jb-name { font-size: 18px; line-height: 1.4; }
+.jb-prize { font-size: 13.5px; }
+.jb-prize b { color: var(--red); font-size: 17px; margin-left: 4px; }
+.jb-meta { font-size: 13px; color: var(--sub); }
+.jb-meta b { color: var(--ink); }
+.jb-more { font-size: 13px; font-weight: 700; color: var(--blue); margin-top: 2px; }
 /* 宝くじ一覧：抽せんが終わったジャンボ宝くじ */
 .past-list { list-style: none; margin: 0 0 24px; padding: 0; border-top: 1px solid var(--line); }
 .past-list li { padding: 10px 2px; border-bottom: 1px solid var(--line); }

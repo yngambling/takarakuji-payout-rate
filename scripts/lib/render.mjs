@@ -1,7 +1,7 @@
 // ページの HTML をつくる
 import { esc, num, yenJa, pct, odds, fmtMd, fmtMdPlain, fmtYmd, fmtShort } from './util.mjs';
 import { carryoverTable, rateSeries } from './model.mjs';
-import { autoGuide, autoLead, autoSourceNote } from './jumbo.mjs';
+import { autoGuide, autoLead, autoSourceNote, buyChances, jumboSibling, compareSentence, chanceText, chanceAtLeast, chanceOfN, oddsJa, dynamicFaq } from './jumbo.mjs';
 
 const GROUP_LABEL = { takarakuji: '宝くじ', sports: 'スポーツくじ' };
 
@@ -9,6 +9,8 @@ const GROUP_LABEL = { takarakuji: '宝くじ', sports: 'スポーツくじ' };
 const isJumbo = (d) => d?.model === 'fixed' && d.group === 'takarakuji';
 /** 抽せんが終わったジャンボか（ページは残し、宝くじ一覧とサイドバーでは「終わったジャンボ宝くじ」にまとめる） */
 export const isPastJumbo = (d, today) => isJumbo(d) && !!d.drawDate && d.drawDate < today;
+/** ジャンボは年を付けた名前で呼ぶ（「年末ジャンボ 2026」のように年を付けて探す人が多いため）：年末ジャンボ宝くじ2026 */
+export const yearName = (d) => (isJumbo(d) && /^\d{4}-/.test(d.salesStart || '') && !/\d{4}/.test(d.name) ? `${d.name}${d.salesStart.slice(0, 4)}` : d.name);
 
 /**
  * 「宝くじ一覧」の並び：data/catalog.json の order のとおり。order にないくじ（自動で登録したジャンボなど）は、
@@ -791,9 +793,24 @@ ${sparse ? `<p class="note">記録があるのは${fmtShort(pts[0].d)}以降で�
     ];
   }
 
+  /** トップページの「ジャンボ宝くじ（発売中・発売予定）」：発売中と、45日以内に発売されるジャンボ */
+  function jumboBox(rel) {
+    const js = rows.filter((r) => isJumbo(r.def) && r.ev?.computable && (r.status.kind === 'onsale' || (r.status.kind === 'upcoming' && r.def.salesStart <= addDays(now.iso, 45))))
+      .sort((a, b) => String(a.def.salesStart).localeCompare(String(b.def.salesStart)) || ctx.order[a.id] - ctx.order[b.id]);
+    if (!js.length) return '';
+    return `<div class="jumbo-box">${js.map((r) => {
+      const d = r.def;
+      const first = d.tiers[0];
+      const z = d.tiers.find((t) => /前後賞/.test(t.name));
+      const state = r.status.kind === 'onsale' ? `${fmtMd(d.salesEnd)}まで発売中` : `${fmtMd(d.salesStart)}から発売`;
+      return `<a class="jb-card${r.status.kind === 'onsale' ? ' on' : ''}" href="${rel}kuji/${r.id}.html"><span class="jb-state">${state}</span><b class="jb-name">${esc(yearName(d))}</b><span class="jb-prize">${z ? `1等・前後賞合わせて<b>${yen(first.prize + z.prize * 2)}</b>` : `1等<b>${yen(first.prize)}</b>`}</span><span class="jb-meta">還元率 <b>${pct(r.rate)}</b>・1等 ${oddsJa(d.totalTickets / first.count)}</span><span class="jb-more">何枚買うと当たる？ ›</span></a>`;
+    }).join('')}</div>`;
+  }
+
   function index() {
     const rel = '';
     const best = listed[0];
+    const jbox = jumboBox(rel);
     const runners = listed.slice(1, 3);
     const title = `宝くじ還元率ランキング｜今日の狙い目が一目で分かる（${fmtMdPlain(now.iso)}更新）`;
     const desc = best
@@ -830,10 +847,10 @@ ${updatedLine()}
 <p class="lead">ネットで買える宝くじとスポーツくじの還元率を、キャリーオーバーと売上から毎日計算しています。今日いちばん得なくじと、各くじの当せん金・当せん確率、ポイントが付く買い方が分かります。</p>
 ${conclusion}
 ${share('index.html', best ? `今日の宝くじ還元率1位は${best.def.name}（${pct(best.rate)}）` : site.siteName)}
-${toc([['top3', '還元率ランキングTOP3'], ['ranking', '全くじの還元率ランキング'], ['otoku', 'ポイントでもっとお得に買う'], ['tiers', '等級ごとの当せん金と確率'], ['results', '最近の結果とキャリーオーバーの動き'], ['faq', 'よくある質問']])}
+${toc([['top3', '還元率ランキングTOP3'], ...(jbox ? [['jumbo', 'ジャンボ宝くじ（発売中・発売予定）']] : []), ['ranking', '全くじの還元率ランキング'], ['otoku', 'ポイントでもっとお得に買う'], ['tiers', '等級ごとの当せん金と確率'], ['results', '最近の結果とキャリーオーバーの動き'], ['faq', 'よくある質問']])}
 ${ad('top')}
 <h2 id="top3">還元率ランキングTOP3</h2>
-${top3Cards(rel)}
+${top3Cards(rel)}${jbox ? `\n<h2 id="jumbo">ジャンボ宝くじ（発売中・発売予定）</h2>\n${jbox}` : ''}
 <h2 id="ranking">全くじの還元率ランキング</h2>
 ${rankTable(rel)}
 ${ad('middle')}
@@ -927,12 +944,48 @@ ${trs}
     const coHtml = coTableHtml(r);
     const br = ev.computable ? bestRoute(r.id) : null;
     const showTrend = r.status.kind !== 'upcoming' && ev.computable;
+    // ジャンボ：何枚買うと当たる？（買う枚数ごとの確率）と、同じ日に発売・抽せんのジャンボ（ミニなど）との比較
+    const jb = isJumbo(d) && ev.computable ? buyChances(d, r.rate) : null;
+    const sib = isJumbo(d) ? jumboSibling(d, ctx.defs) : null;
+    const sibRow = sib ? byId[sib.id] : null;
+    const countHtml = jb ? `<h2 id="count">何枚買うと当たる？（買う枚数ごとの確率）</h2>
+<p>${esc(d.name)}を何枚買うと、どのくらいの確率で当たるかの目安です。${jb.lowest ? `連番やバラで10枚買うと、下1けたの${esc(jb.lowest.name)}（${yen(jb.lowest.prize)}）が1枚当たります。` : ''}</p>
+<p class="scroll-hint">表は横にスクロールできます →</p>
+<div class="tbl-wrap"><table class="t buy-chance">
+<thead><tr><th>買う枚数</th>${jb.levels.map((l) => `<th>${esc(l.label)}が<br>当たる確率</th>`).join('')}${jb.rows[0].back != null ? '<th>平均で戻る金額</th>' : ''}</tr></thead>
+<tbody>
+${jb.rows.map((x) => `<tr><th scope="row">${num(x.n)}枚<span class="sub">${yen(x.cost)}</span></th>${x.chances.map((c) => `<td class="r">${chanceText(c)}</td>`).join('')}${x.back != null ? `<td class="r">約${yen(Math.round(x.back / 10) * 10)}</td>` : ''}</tr>`).join('\n')}
+</tbody>
+</table></div>
+<p class="note">※「当たる確率」は、その金額以上の賞が1枚以上当たる確率で、1枚ずつ別々に当たると考えた目安です。${esc(jb.levels[0].label)}の賞は、平均すると${num(Math.round(1 / jb.levels[0].p))}枚に1枚の割合で当たります。平均で戻る金額は還元率（${pct(r.rate)}）から計算した値で、実際に当たる額は運しだいです。</p>` : '';
+    const cmpHtml = sib && sibRow?.ev?.computable && ev.computable ? (() => {
+      const row = (label, a, b) => `<tr><th scope="row">${label}</th><td class="r">${a}</td><td class="r">${b}</td></tr>`;
+      const both = (fn) => [fn(d, r), fn(sib, sibRow)];
+      const zengo = (x) => { const z = x.tiers.find((t) => /前後賞/.test(t.name)); return z ? yen(x.tiers[0].prize + z.prize * 2) : '—'; };
+      const m1 = (x) => chanceAtLeast(x, 10000);
+      return `<h2 id="compare">${esc(sib.name)}との比較</h2>
+<p>${esc(d.name)}と同じ日に発売・抽せんされる${esc(sib.name)}と比べました。${esc(compareSentence(d, sib))}</p>
+<p class="scroll-hint">表は横にスクロールできます →</p>
+<div class="tbl-wrap"><table class="t compare">
+<thead><tr><th></th><th>${esc(d.name)}<span class="sub">このページ</span></th><th><a href="${rel}kuji/${sib.id}.html">${esc(sib.name)}</a></th></tr></thead>
+<tbody>
+${row('1枚の値段', ...both((x) => yen(x.price)))}
+${row('1等の金額', ...both((x) => `${yen(x.tiers[0].prize)}<span class="sub">全${num(x.tiers[0].count)}本</span>`))}
+${row('1等・前後賞合わせて', ...both(zengo))}
+${row('1等の当せん確率', ...both((x) => oddsJa(x.totalTickets / x.tiers[0].count)))}
+${row('1万円以上が当たる確率（1枚）', ...both((x) => chanceText(m1(x))))}
+${row('10枚で1万円以上が当たる確率', ...both((x) => chanceText(chanceOfN(m1(x), 10))))}
+${row('還元率', ...both((x, xr) => `<b>${pct(xr.rate)}</b>`))}
+${row('発売総数', ...both((x) => `${yen(x.totalTickets).replace(/円$/, '')}枚`))}
+</tbody>
+</table></div>` ;
+    })() : '';
     // くじごとの解説とよくある質問（data/guides.json。書いてあるくじだけ出す。書いていないジャンボは賞金表から作る）
     let gd = guides[r.id];
     if (!gd && isJumbo(d)) {
       const pr = bestRoute(r.id);
       const pointText = pr ? `${shops[pr.route.shop]?.name || pr.route.shop}${pr.route.how ? `を${pr.route.how}方法` : 'で買う方法'}（${fmtPt(pr.rate)}）` : '';
-      gd = autoGuide(d, { rate: ev.computable ? r.rate : null, point: pointText });
+      gd = autoGuide(d, { rate: ev.computable ? r.rate : null, point: pointText, sibling: sib });
     }
     gd ||= {};
     // 公式発表から自動で登録・更新したジャンボは、手で書いた解説でも、公式発表の日を出す
@@ -942,10 +995,14 @@ ${trs}
         : gd.note || (gd.checkedOn ? `※しくみと数値は、${fmtYmd(gd.checkedOn)}に公式の発表で確認したものです。` : '');
     const about = (gd.about || []).map((a) => (typeof a === 'string' ? { text: a } : a)).filter((a) => typeof a?.text === 'string' && a.text.trim());
     const faq = (gd.faq || []).filter((x) => x?.q && x?.a).map((x) => [x.q, x.a]);
+    // 手で書いた解説のジャンボにも、賞金表から計算する質問（何枚買えば当たるか・ミニとどちらが当たりやすいか）を足す
+    if (isJumbo(d) && !gd.auto && faq.length) for (const f of dynamicFaq(d, { sibling: sib })) if (!faq.some(([q]) => q === f.q)) faq.push([f.q, f.a]);
     const sources = [...(d.sources || []), ...(gd.sources || [])].filter((s, i, a) => s?.url && a.findIndex((x) => x.url === s.url) === i);
     const sections = [];
     if (about.length) sections.push(['about', `${d.name}の特徴と還元率`]);
     sections.push(['buy', `${d.name}の購入場所`], ['tiers', '等級ごとの当せん金と確率']);
+    if (jb) sections.push(['count', '何枚買うと当たる？（買う枚数ごとの確率）']);
+    if (cmpHtml) sections.push(['compare', `${sib.name}との比較`]);
     if (coHtml) sections.push(['co', 'キャリーオーバーの額ごとの還元率']);
     if (recent) sections.push(['recent', '最近の結果']);
     if (showTrend) sections.push(['trend', '還元率の推移（過去1年）']);
@@ -979,7 +1036,7 @@ ${trs}
 
     const body = `
 ${crumbs(rel, [{ name: d.name }])}
-<h1 class="page-title">${esc(d.name)}の還元率</h1>
+<h1 class="page-title">${esc(isJumbo(d) ? `${yearName(d)}の還元率と当たる確率` : `${d.name}の還元率`)}</h1>
 ${updatedLine()}
 ${d.verify ? `<p class="notice">${esc(d.verify)}</p>` : ''}
 ${endedNotice(r, rel)}${specialNotice(r)}
@@ -1005,7 +1062,7 @@ ${lines.map((l) => `<tr><th scope="row">${esc(l.name)}</th><td>${esc(l.cond || '
 </tbody>
 <tfoot><tr><th scope="row" colspan="4" style="text-align:right">合計（還元率）</th><td class="r">${pct(r.rate)}</td></tr></tfoot>
 </table></div>
-${d.model === 'numbers' ? '<p class="note">※ナンバーズは申込タイプごとの値です。どのタイプを選んでも還元率はほぼ同じです。</p>' : ''}` : ''}
+${d.model === 'numbers' ? '<p class="note">※ナンバーズは申込タイプごとの値です。どのタイプを選んでも還元率はほぼ同じです。</p>' : ''}` : ''}${countHtml ? `\n${countHtml}` : ''}${cmpHtml ? `\n${cmpHtml}` : ''}
 ${ad('middle')}
 ${coHtml}
 ${recent ? `<h2 id="recent">最近の結果</h2>${recent}` : ''}
@@ -1029,10 +1086,13 @@ ${ad('bottom')}
 <h2 id="others">ほかのくじの還元率</h2>
 ${related(rel, r.id)}
 `;
-    const title = `${d.name}の還元率（${fmtMdPlain(now.iso)}更新）｜${site.siteName}`;
-    const desc = ev.computable
-      ? `${d.name}の還元率は${pct(r.rate)}（${fmtMd(now.iso)}時点）。${r.hasCO ? `キャリーオーバー${yen(r.carryover)}を含めて計算。` : ''}等級ごとの当せん金と当せん確率、ポイントが付く購入場所をまとめています。`
-      : `${d.name}のしくみと購入場所。`;
+    const title = isJumbo(d)
+      ? `${yearName(d)}の還元率と当たる確率（${fmtMdPlain(now.iso)}更新）｜${site.siteName}`
+      : `${d.name}の還元率（${fmtMdPlain(now.iso)}更新）｜${site.siteName}`;
+    const desc = !ev.computable ? `${d.name}のしくみと購入場所。`
+      : isJumbo(d)
+        ? `${yearName(d)}の還元率は${pct(r.rate)}。賞金と本数、10枚・30枚・100枚買ったときに当たる確率${cmpHtml ? `、${sib.name}との比較` : ''}、ポイントが付く購入場所をまとめています。`
+        : `${d.name}の還元率は${pct(r.rate)}（${fmtMd(now.iso)}時点）。${r.hasCO ? `キャリーオーバー${yen(r.carryover)}を含めて計算。` : ''}等級ごとの当せん金と当せん確率、ポイントが付く購入場所をまとめています。`;
     return {
       path,
       html: layout({ path, title, description: desc, body, jsonld: [breadcrumbLd(path, d.name), ...(faq.length ? [faqLd(faq)] : [])], scripts: showTrend ? CHART_JS : '', stickyHtml: ev.computable && r.listed ? sticky(r) : '' }),

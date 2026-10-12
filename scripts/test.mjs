@@ -937,6 +937,63 @@ t('終わったジャンボ（ページは残し、一覧とサイドバーで�
   assert.ok(Object.keys(links.games).every((id) => !/(jumbo|nenmatsu|halloween|valentine|dream|summer)/.test(id)), 'links.json の games にジャンボを書かない');
 });
 
+t('ジャンボの「何枚買うと当たる？」とミニとの比較（賞金表から自動で作る）', () => {
+  const hw = { ...jumboRaw.halloween2026, id: 'halloween2026' };
+  const mini = { ...jumboRaw.halloweenmini2026, id: 'halloweenmini2026' };
+  // 1枚で1万円以上：(12+24+1188+24+120+240,000)本 ÷ 1億2,000万枚
+  near(J.chanceAtLeast(hw, 10000), 241368 / 120000000, 1e-15, '1万円以上');
+  near(J.chanceOfN(0.01, 10), 1 - 0.99 ** 10, 1e-15, '10枚');
+  assert.deepEqual([0.0297, 0.0033, 0.00011, 1 / 66667, 5e-7, 1e-7, 5e-9].map(J.chanceText), ['3.0%', '0.33%', '0.011%', '約6.7万分の1', '約200万分の1', '約1,000万分の1', '約2億分の1']);
+  const bc = J.buyChances(hw, 0.4733);
+  assert.deepEqual(bc.levels.map((l) => l.label), ['1万円以上', '10万円以上', '100万円以上', '1等（2億円）']);
+  assert.deepEqual(bc.rows.map((x) => [x.n, x.cost, J.chanceText(x.chances[0])]), [[10, 3000, '2.0%'], [30, 9000, '5.9%'], [100, 30000, '18.2%']]);
+  near(bc.rows[0].back, 3000 * 0.4733, 1e-9, '10枚で平均で戻る金額');
+  assert.equal(bc.lowest.name, '6等');
+  // ミニは10万円以上と100万円以上の確率が同じ（間の賞がない）ので、100万円以上だけ残す
+  assert.deepEqual(J.buyChances(mini, 0.47).levels.map((l) => l.label), ['1万円以上', '100万円以上', '1等（2,000万円）']);
+  // 同じ日に発売・抽せんのジャンボ
+  const defsJ = { halloween2026: hw, halloweenmini2026: mini, nenmatsu2026: { ...jumboRaw.nenmatsu2026, id: 'nenmatsu2026' } };
+  assert.equal(J.jumboSibling(hw, defsJ).id, 'halloweenmini2026');
+  assert.equal(J.jumboSibling(defsJ.nenmatsu2026, defsJ), null);
+  assert.equal(J.compareSentence(hw, mini), '1等の金額はハロウィンジャンボ宝くじが10倍、1等の当せん確率はハロウィンジャンボミニが10倍高い計算です。1万円以上が当たる確率はハロウィンジャンボミニのほうが2倍高くなります。');
+  // 自動の解説のよくある質問にも入る
+  const g = J.autoGuide(hw, { rate: 0.4733, sibling: mini });
+  assert.ok(g.faq.some((f) => f.q === 'ハロウィンジャンボ宝くじを何枚買えば、1万円以上が当たりますか？' && f.a.includes('平均すると497枚に1枚')));
+  assert.ok(g.faq.some((f) => f.q.includes('どちらが当たりやすいですか？')));
+  // ページ：年の付いた題名・目次・表。ジャンボ以外のページは今までどおり
+  const nowJ = { ...at('2026-10-12T19:47'), y: 2026 };
+  const defsP = resolveGames({ ...Object.fromEntries(Object.entries(JSON.parse(readFileSync(path.join(ROOT, 'data/games.json'), 'utf8'))).filter(([, x]) => !(x?.model === 'fixed' && x.group === 'takarakuji'))), ...jumboRaw });
+  const rowsJ = computeAll(defsP, state, nowJ, {});
+  const rdJ = createRenderer({
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} },
+    links, points, rows: rowsJ, byId: Object.fromEntries(rowsJ.map((r) => [r.id, r])), log: [], history: { days: {} },
+    catalog: { order: [], items: {} }, now: nowJ, state, defs: defsP, order: Object.fromEntries(Object.keys(defsP).map((k, i) => [k, i])),
+    preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
+  });
+  const page = rdJ.game(rowsJ.find((r) => r.id === 'halloween2026')).html;
+  assert.ok(page.includes('<title>ハロウィンジャンボ宝くじ2026の還元率と当たる確率（10月12日更新）｜宝くじ還元率ランキング</title>'));
+  assert.ok(page.includes('<h1 class="page-title">ハロウィンジャンボ宝くじ2026の還元率と当たる確率</h1>'));
+  assert.ok(page.includes('<a href="#count">何枚買うと当たる？（買う枚数ごとの確率）</a>') && page.includes('<a href="#compare">ハロウィンジャンボミニとの比較</a>'));
+  assert.ok(page.includes('<td class="r">2.0%</td>') && page.includes('約1,420円') && page.includes('href="../kuji/halloweenmini2026.html">ハロウィンジャンボミニ</a>'));
+  assert.ok(page.indexOf('id="tiers"') < page.indexOf('id="count"') && page.indexOf('id="count"') < page.indexOf('id="compare"'));
+  const nen = rdJ.game(rowsJ.find((r) => r.id === 'nenmatsu2026')).html;
+  assert.ok(nen.includes('id="count"') && !nen.includes('id="compare"'), 'ミニが登録されるまでは比較なし');
+  const l6 = rdJ.game(rowsJ.find((r) => r.id === 'loto6')).html;
+  assert.ok(!l6.includes('id="count"') && l6.includes('<h1 class="page-title">ロト6の還元率</h1>'), 'ジャンボ以外は今までどおり');
+  // トップページ：発売中・45日以内に発売のジャンボ
+  const top = rdJ.index().html;
+  assert.ok(top.includes('<h2 id="jumbo">ジャンボ宝くじ（発売中・発売予定）</h2>') && top.includes('<a href="#jumbo">'));
+  assert.equal((top.match(/class="jb-card/g) || []).length, 3, 'ハロウィン・ミニ・年末');
+  assert.ok(top.includes('11月24日（火）から発売') && top.includes('10月16日（金）まで発売中'));
+  const late = { ...at('2026-12-28T12:00'), y: 2026 };
+  const rowsL = computeAll(defsP, state, late, {});
+  const topL = createRenderer({
+    site: { siteName: 's', tagline: 't', baseUrl: 'https://example.com', adsense: {} }, links, points, rows: rowsL, byId: Object.fromEntries(rowsL.map((r) => [r.id, r])), log: [], history: { days: {} },
+    catalog: { order: [], items: {} }, now: late, state, defs: defsP, order: Object.fromEntries(Object.keys(defsP).map((k, i) => [k, i])), preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
+  }).index().html;
+  assert.ok(!topL.includes('id="jumbo"'), '発売中・発売予定のジャンボがなければ出さない');
+});
+
 const H = await import('./lib/health.mjs');
 
 t('サイトと自動更新の健康診断（公開中のサイト・証明書・ドメイン・外部タイマー・トークン）', () => {
