@@ -2,8 +2,8 @@
  "_note": "ページごとの内容のハッシュと、内容が最後に変わった日時（build.mjs が更新）。sitemap.xml の lastmod と、検索エンジンへの通知（scripts/indexnow.mjs）に使います。",
  "pages": {
   "index.html": {
-   "hash": "88ab2311a001bfc4",
-   "changed": "2026-10-12T10:59+09:00"
+   "hash": "085b5a63d66accaa",
+   "changed": "2026-10-12T12:47+09:00"
   },
   "kuji/loto6.html": {
    "hash": "916136774d9fc409",
@@ -42,24 +42,24 @@
    "changed": "2026-10-12T10:59+09:00"
   },
   "kuji/megabig.html": {
-   "hash": "7171d63178306c3b",
-   "changed": "2026-10-12T10:59+09:00"
+   "hash": "90fe0b96a1d3ae29",
+   "changed": "2026-10-12T12:47+09:00"
   },
   "kuji/big.html": {
-   "hash": "db1443b48be75d12",
-   "changed": "2026-10-12T10:59+09:00"
+   "hash": "15f2e5a052e6634d",
+   "changed": "2026-10-12T12:47+09:00"
   },
   "kuji/big100.html": {
-   "hash": "87847e68c9671bf7",
-   "changed": "2026-10-12T10:59+09:00"
+   "hash": "ce6c0c71bba296c4",
+   "changed": "2026-10-12T12:47+09:00"
   },
   "kuji/big1000.html": {
-   "hash": "6b5db888b79bb5e5",
-   "changed": "2026-10-12T10:59+09:00"
+   "hash": "50704ab6c84fafd6",
+   "changed": "2026-10-12T12:47+09:00"
   },
   "kuji/minibig.html": {
-   "hash": "2ad0ae77b4fda57c",
-   "changed": "2026-10-12T10:59+09:00"
+   "hash": "3be1fe76743dc9f6",
+   "changed": "2026-10-12T12:47+09:00"
   },
   "kuji/dunk10.html": {
    "hash": "3d7cef4257dbcb95",
