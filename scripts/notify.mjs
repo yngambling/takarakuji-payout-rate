@@ -6,16 +6,14 @@
 // GitHub の外（手元）で動かしたときは、内容を表示するだけ。失敗しても終了コードは 0。
 
 import { appendFile } from 'node:fs/promises';
-import { loadAlerts, clearAlertFile, raise, clear } from './lib/alerts.mjs';
+import { loadAlerts, clearAlertFile, raise, clear, LABEL, marker } from './lib/alerts.mjs';
 
-const LABEL = '自動チェック';
 const token = process.env.GITHUB_TOKEN;
 const repo = process.env.GITHUB_REPOSITORY;
 const api = (process.env.GITHUB_API_URL || 'https://api.github.com').replace(/\/$/, '');
 const owner = process.env.GITHUB_REPOSITORY_OWNER || String(repo || '').split('/')[0];
 const runUrl = process.env.GITHUB_SERVER_URL && repo && process.env.GITHUB_RUN_ID
   ? `${process.env.GITHUB_SERVER_URL}/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}` : '';
-const marker = (key) => `<!-- kt-key:${key} -->`;
 
 const alerts = await loadAlerts();
 
@@ -91,7 +89,7 @@ try {
     for (const key of alerts.ok) {
       const have = find(key);
       if (!have) continue;
-      await gh('POST', `/repos/${repo}/issues/${have.number}/comments`, { body: '自動チェックで、問題が解消したことを確認しました。この Issue を閉じます。' });
+      await gh('POST', `/repos/${repo}/issues/${have.number}/comments`, { body: alerts.notes?.[key] || '自動チェックで、問題が解消したことを確認しました。この Issue を閉じます。' });
       await gh('PATCH', `/repos/${repo}/issues/${have.number}`, { state: 'closed', state_reason: 'completed' });
       log(`解消したので閉じました（#${have.number}）：${have.title}`);
     }

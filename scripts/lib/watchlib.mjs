@@ -10,21 +10,28 @@ const DATE_RE = /(?:\d{4}\s*年\s*)?\d{1,2}\s*月\s*\d{1,2}\s*日(?:\s*[(（][^)
 /**
  * ページの中から、見張る行だけを取り出す。
  *   keywords のどれかを含む行（digit が true なら、さらに数字を含む行）
- *   ポイント・支払い・購入場所のページは、日付や時刻を消してから比べる（「更新日」だけの変化で知らせないため）
+ *   ポイント・支払い・購入場所・ルールのページは、日付や時刻を消してから比べる（「更新日」だけの変化で知らせないため）
+ *   ルールのページ（kind: rule）は、長い注意書きを「※」ごとに分け、年（「2026年に発生した…」）も消す。
+ *   同じ行が何度出てきても残す（BIG と 100円BIG の確率のように、同じ行が別のくじにあるため）
  */
 export function extractLines(html, page) {
   const text = htmlToText(html);
+  const rule = page.kind === 'rule';
+  const max = rule ? 250 : 80;
   const keep = [];
-  for (let line of text.split('\n')) {
-    line = line.replace(/\s+/g, ' ').trim();
-    if (!line || line.length > 300) continue;
-    if (!(page.keywords || []).some((k) => line.includes(k))) continue;
-    if (page.digit && !/\d/.test(line)) continue;
-    line = line.replace(/(?:あと|残り)\s*\d+\s*(?:日|時間|分)/g, '');
-    if (page.kind !== 'jumbo') line = line.replace(DATE_RE, '');
-    line = line.replace(/\s+/g, ' ').trim();
-    if (line && !keep.includes(line)) keep.push(line);
-    if (keep.length >= 80) break;
+  for (const raw of text.split('\n')) {
+    for (let line of rule ? raw.split(/(?=※)/) : [raw]) {
+      line = line.replace(/\s+/g, ' ').trim();
+      if (!line || line.length > 300) continue;
+      if (!(page.keywords || []).some((k) => line.includes(k))) continue;
+      if (page.digit && !/\d/.test(line)) continue;
+      line = line.replace(/(?:あと|残り)\s*\d+\s*(?:日|時間|分)/g, '');
+      if (page.kind !== 'jumbo') line = line.replace(DATE_RE, '');
+      if (rule) line = line.replace(/\d{4}\s*年(?!\s*\d{1,2}\s*月)/g, '');
+      line = line.replace(/\s+/g, ' ').trim();
+      if (line && (rule || !keep.includes(line))) keep.push(line);
+      if (keep.length >= max) return keep;
+    }
   }
   return keep;
 }
@@ -52,7 +59,7 @@ export function watchGate({ today, hh, lastRun = null, force = false }) {
   return { run: true, reason: '' };
 }
 
-const KIND_TEXT = { point: 'ポイントの率', pay: '支払い方法', shop: '購入場所', jumbo: 'ジャンボ宝くじの発売' };
+const KIND_TEXT = { point: 'ポイントの率', pay: '支払い方法', shop: '購入場所', jumbo: 'ジャンボ宝くじの発売', rule: 'くじのルール（1口の値段・賞金・当せん確率・1等の上限）' };
 
 export function changeIssue(page, before, after, today) {
   const { removed, added } = diffLines(before, after);
@@ -76,7 +83,8 @@ export function changeIssue(page, before, after, today) {
       '1. 上のページを開いて、何が変わったかを確認します。',
       `2. ${page.what}が変わっていたら、\`${page.file}\` を直します（GitHub でファイルを開き、鉛筆のマークから編集して保存）。言い回しやキャンペーンの入れ替えだけなら、何もせずにこの Issue を閉じてください。`,
       page.kind === 'point' || page.kind === 'pay' ? '3. ポイントを直したときは、`config/points.json` の `checkedOn` を今日の日付にします。' : null,
-      page.kind === 'jumbo' ? '3. 新しいジャンボの賞金表が発表されていたら、`data/games.json` に追加し、`config/links.json` の `games` にも購入リンクを足します（README の「新しいジャンボ宝くじを追加する」）。' : null,
+      page.kind === 'jumbo' ? '3. 新しいジャンボの賞金表が発表されていたら、`data/games.json` に追加します（ふつうは公式発表から自動で登録されます。README の「新しいジャンボ宝くじ」）。' : null,
+      page.kind === 'rule' ? '3. ルールの変更は、還元率の計算に直接ひびきます。賞金・確率・配分・上限・値段が変わっていたら、この Issue を Claude に見せて「直して」と頼んでください（`data/games.json` の `tiers`・`price`・`capNormal`・`capCO` などを直します）。変わる日（「第〇回から」など）が書かれていれば、その日に合わせて直します。' : null,
       '',
       HOW_TO_FIX,
     ].filter((x) => x !== null).join('\n'),
@@ -108,29 +116,33 @@ export function downIssue(page, error, fails) {
 
 const addDays = (iso, k) => new Date(Date.parse(`${iso}T00:00:00Z`) + k * 86400000).toISOString().slice(0, 10);
 
+/** 最後のジャンボが売り終わってから、次のジャンボが登録されないまま何日たったら知らせるか（ふだんの間は35〜60日） */
+export const JUMBO_GAP_DAYS = 60;
+
 /**
  * 日付から分かる「お願い」
- *   ・次のジャンボ宝くじが登録されていない（登録済みのジャンボが30日以内に売り終わり、その先がない）
- *   ・報道などをもとに入れた賞金表（verify が付いたくじ）の発売が30日以内に近づいた
+ *   ・次のジャンボ宝くじが登録されていない（ふつうは公式発表から自動で登録される。発売中・発売前のジャンボがなく、
+ *     最後のジャンボが売り終わってから60日たっても次が登録されないときだけ知らせる）
+ *   ・報道などをもとに入れた賞金表（verify が付いていて、自動登録ではないくじ）の発売が30日以内に近づいた
  *   ・ポイントの率を最後に確認してから90日たった
  * 戻り値：[{ type: 'raise', key, title, body } | { type: 'clear', key }]
  */
 export function scheduleChecks(defs, points, today) {
   const out = [];
   const jumbos = Object.values(defs).filter((d) => d.model === 'fixed' && d.salesStart && d.salesEnd);
-  const upcoming = jumbos.filter((d) => d.salesStart > today);
+  const current = jumbos.filter((d) => d.salesEnd >= today);
   const lastEnd = jumbos.map((d) => d.salesEnd).sort().pop() || '';
-  if (!upcoming.length && (!lastEnd || lastEnd < addDays(today, 30))) {
+  if (!current.length && (!lastEnd || lastEnd < addDays(today, -JUMBO_GAP_DAYS))) {
     out.push({
       type: 'raise', key: 'jumbo-next',
-      title: '【お願い】次のジャンボ宝くじの賞金表を登録してください',
+      title: '【確認のお願い】次のジャンボ宝くじが登録されていません',
       body: [
-        `登録されているジャンボ宝くじは、${lastEnd ? `${lastEnd}で` : 'すでに'}すべて売り終わります。次のジャンボ（バレンタイン・ドリーム・サマー・ハロウィン・年末など）がまだ登録されていないため、発売が始まってもランキングに出ません。`,
+        `登録されているジャンボ宝くじは、${lastEnd ? `${lastEnd}で` : 'すでに'}すべて売り終わり、それから${JUMBO_GAP_DAYS}日以上たちました。ふつうは宝くじ公式サイトの発表（宝ニュース）から自動で登録しますが、次のジャンボがまだ登録されていません。`,
         '',
         '### やること',
-        '1. [宝くじ公式サイトの商品のご案内](https://www.takarakuji-official.jp/kuji/top.html)で、次のジャンボの賞金（1等〜各等の金額と本数）、発売期間、抽せん日、発売総数を確認します。',
-        '2. `data/games.json` に、`halloween2026` などをまねて新しい項目を追加し、`config/links.json` の `games` に同じIDで購入リンクを足します（README の「新しいジャンボ宝くじを追加する」）。',
-        '3. 発売前のジャンボが登録されると、この Issue は自動で閉じます。',
+        '1. [宝くじ公式サイトの「ジャンボ宝くじ等の普通くじ」](https://www.takarakuji-official.jp/kuji/jumbo/)で、次のジャンボの発売が発表されているか確認します。',
+        '2. 発表されていれば、この Issue を Claude に見せて「次のジャンボを追加して」と頼んでください（`data/games.json` に追加します）。',
+        '3. まだ発表されていなければ、何もしなくてかまいません。発売前のジャンボが登録されると、この Issue は自動で閉じます。',
         '',
         HOW_TO_FIX,
       ].join('\n'),
@@ -140,7 +152,8 @@ export function scheduleChecks(defs, points, today) {
   for (const d of Object.values(defs)) {
     const key = `verify-${d.id}`;
     const soon = d.salesStart && d.salesStart <= addDays(today, 30) && (!d.salesEnd || d.salesEnd >= today);
-    if (d.verify && soon) {
+    // 公式発表から自動で登録した項目（autoFrom）の確認は、自動登録の Issue（jumbo-auto-…）でお願いする
+    if (d.verify && !d.autoFrom && soon) {
       out.push({
         type: 'raise', key,
         title: `【お願い】${d.name}の賞金表を公式発表で確認してください`,
@@ -149,9 +162,11 @@ export function scheduleChecks(defs, points, today) {
           '',
           `> ${d.verify}`,
           '',
-          '### やること',
-          '1. [宝くじ公式サイト](https://www.takarakuji-official.jp/kuji/top.html)で、賞金・本数・発売期間・抽せん日・発売総数を確認します。',
-          `2. 違っていたら \`data/games.json\` の \`${d.id}\` を直します。`,
+          '宝くじ公式サイトの発表（宝ニュース）が出ると、毎朝の自動チェックで読み取り、公式の内容に置き換えます（そのときは、この Issue は自動で閉じ、確認のお願いの Issue が別に届きます）。',
+          '',
+          '### 発売の1週間前になっても置き換わらないとき',
+          '1. [宝くじ公式サイト](https://www.takarakuji-official.jp/kuji/jumbo/)で、賞金・本数・発売期間・抽せん日・発売総数を確認します。',
+          `2. 違っていたら \`data/games.json\` の \`${d.id}\` を直します（この Issue を Claude に見せて「直して」と頼めます）。`,
           `3. 確認できたら、同じ項目の \`"verify": …\` の行を消します。すると、この Issue は自動で閉じ、くじ別ページの注意書きも消えます。`,
           '',
           HOW_TO_FIX,

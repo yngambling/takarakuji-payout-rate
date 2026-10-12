@@ -359,7 +359,7 @@ t('404ページ（存在しない深い階層のURLでも、CSSとリンクが�
 
 /* ---------- 公式ページの見張り・お知らせ ---------- */
 
-const { extractLines, diffLines, scheduleChecks, changeIssue, specialChecks, watchGate } = await import('./lib/watchlib.mjs');
+const { extractLines, hashLines, diffLines, scheduleChecks, changeIssue, specialChecks, watchGate } = await import('./lib/watchlib.mjs');
 
 t('公式ページの見張りは1日1回（朝6時以降の最初の更新）', () => {
   const today = '2026-10-12';
@@ -399,9 +399,15 @@ t('日付から分かるお願い（次のジャンボ・賞金表の確認・�
   k = kinds('2026-10-30');
   assert.equal(k['verify-nenmatsu2026'], 'raise', '発売30日前から確認をお願いする');
   k = kinds('2026-12-01');
-  assert.equal(k['jumbo-next'], 'raise', '年末ジャンボのあとが未登録');
+  assert.equal(k['jumbo-next'], 'clear', '年末ジャンボの発売中は不要（次のジャンボはふつう公式発表から自動で登録される）');
   k = kinds('2027-01-20');
   assert.equal(k['points-recheck'], 'raise', '確認から90日');
+  assert.equal(k['jumbo-next'], 'clear', '年末ジャンボが売り終わって26日（ふだんの間）');
+  assert.equal(kinds('2027-02-23')['jumbo-next'], 'clear', 'ちょうど60日');
+  assert.equal(kinds('2027-02-24')['jumbo-next'], 'raise', '売り終わって60日を過ぎても次が登録されない');
+  // 公式発表から自動で登録した項目（autoFrom）の確認は、自動登録の Issue でお願いするので、こちらでは知らせない
+  const auto = { ...jumbo, nenmatsu2026: { ...jumbo.nenmatsu2026, autoFrom: { hash: 'x' } } };
+  assert.equal(Object.fromEntries(scheduleChecks(auto, pts, '2026-10-30').map((c) => [c.key, c.type]))['verify-nenmatsu2026'], 'clear');
 });
 
 /* ---------- 検索エンジンへの通知（IndexNow） ---------- */
@@ -606,6 +612,290 @@ t('BIG777 のお知らせ（月に1回・週が終わって1週間で閉じる�
   // 週が終わっても BIG777 の回が分からなかったら、確認をお願いする（12月：データなし）
   assert.deepEqual(raised(run({ results: [] }, '2026-12-14')).map((c) => c.key), ['special-big-2026-12-unknown']);
   assert.ok(memo.big.notified.includes('2026-12') && memo.big.mismatch.includes(1671), '記録を残す');
+});
+
+/* ---------- 新しいジャンボ宝くじの自動登録 ---------- */
+
+const J = await import('./lib/jumbo.mjs');
+const { mergeOrder } = await import('./lib/render.mjs');
+
+// 宝ニュースの賞金表の並び（見出し → 賞金表 → 注記 → 発売期間の表）で、お知らせの見本を作る
+const newsPage = (items) => `${items.map((x) => `<div class="profile-box">
+<h3><span class="point"></span>「${x.name}」（${x.prefix ? `${x.prefix} ` : ''}第${x.round}回 全国自治宝くじ）の当せん金・本数</h3>
+<table class="news-table news-table2"><tbody>
+<tr>
+<th>等級等</th>
+<th>当せん金</th>
+<th>本数</th>
+</tr>
+${x.tiers.map(([nm, p, c]) => `<tr>\n<th class="news-table-th">${nm}</th>\n<td class="ta_r">${p.toLocaleString('en-US')}円</td>\n<td class="ta_r">${c.toLocaleString('en-US')}本</td>\n</tr>`).join('\n')}
+</tbody></table>
+<p class="ta_r">（発売総額${x.sales}・${x.units}ユニットの場合 ※1ユニット${x.per}）</p></div>
+<div class="news-table-period"><table class="ta_l"><tbody>
+<tr><th>発売期間：</th><td>${x.period}</td></tr>
+<tr><th>抽せん日：</th><td>${x.draw}</td></tr>
+<tr><th>発売価格：</th><td>1枚${x.price || 300}円</td></tr>
+</tbody></table></div>`).join('\n')}\n<h3>初めてのご利用の方</h3>`;
+const NEN26 = {
+  name: '年末ジャンボ宝くじ', round: 1134, sales: '1,380億円', units: 23, per: '2,000万枚',
+  period: '令和8年11月24日（火）～令和8年12月25日（金）', draw: '令和8年12月31日（木）',
+  tiers: [['1等', 7e8, 23], ['1等の前後賞', 1.5e8, 46], ['1等の組違い賞', 1e5, 4577], ['2等', 1e8, 23], ['3等', 1e7, 46], ['4等', 1e6, 1380], ['5等', 1e4, 1380000], ['6等', 3000, 4600000], ['7等', 300, 46000000]],
+};
+const NENMINI26 = {
+  name: '年末ジャンボミニ', round: 1135, sales: '450億円', units: 15, per: '1,000万枚',
+  period: '令和8年11月24日（火）～令和8年12月25日（金）', draw: '令和8年12月31日（木）',
+  tiers: [['1等', 3e7, 150], ['1等の前後賞', 1e7, 300], ['2等', 1e6, 150], ['3等', 3e4, 45000], ['4等', 1e4, 450000], ['5等', 3000, 1500000], ['6等', 300, 15000000]],
+};
+const NEWS26 = { id: '261101', url: 'https://www.takarakuji-official.jp/news/recent/?newsId=261101', label: 'ジャンボ宝くじ等', title: '「年末ジャンボ」が11月24日（火）から発売開始！', date: '2026-11-05' };
+const prodsOf = (html, today, news = NEWS26) => J.parseJumboNews(html).map((p) => ({ p, news, errors: J.checkJumbo(p, today) }));
+const jumboRaw = JSON.parse(fx('jumbo.json').toString('utf8'));
+
+t('宝ニュースの一覧（ジャンボ宝くじ等のお知らせを選ぶ）', () => {
+  const list = J.parseNewsList(fx('takarakuji-news-list.html').toString('utf8'));
+  const jumboNews = list.filter(J.isJumboNews);
+  assert.deepEqual(jumboNews.map((x) => x.id), ['261001', '261002', '260902'], 'ジャンボ宝くじ等の種類のお知らせだけ（スクラッチ・抽せん会は選ばない）');
+  assert.equal(jumboNews[0].url, 'https://www.takarakuji-official.jp/news/recent/?newsId=261001');
+  assert.equal(jumboNews[0].date, '2026-10-05');
+  assert.equal(jumboNews[2].title, '「ハロウィンジャンボ」が9月16日(水)から発売開始!');
+  assert.ok(list.some((x) => x.id === '261003' && x.label === 'スクラッチ'));
+});
+
+t('ジャンボの賞金表の読み取り（宝ニュースのお知らせ）', () => {
+  const ps = J.parseJumboNews(fx('takarakuji-news-jumbo.html').toString('utf8'));
+  assert.deepEqual(ps.map((p) => [p.name, p.roundText]), [['ハロウィンジャンボ宝くじ', '第1126回全国自治宝くじ'], ['ハロウィンジャンボミニ', '第1127回全国自治宝くじ']]);
+  const [h, m] = ps;
+  assert.deepEqual([h.price, h.totalTickets, h.units, h.unitTickets, h.salesStart, h.salesEnd, h.drawDate, h.payStart], [300, 120000000, 12, 10000000, '2026-09-16', '2026-10-16', '2026-10-26', '2026-11-02']);
+  assert.deepEqual(h.cands, { sales: 120000000, units: 120000000, lowest: 120000000 }, '発売総数を3つの方法で出して一致');
+  assert.equal(h.tiers.length, 8);
+  assert.deepEqual(h.tiers[2], { name: '1等の組違い賞', prize: 100000, count: 1188 });
+  assert.equal(m.totalTickets, 50000000);
+  for (const p of ps) assert.deepEqual(J.checkJumbo(p, '2026-10-12'), [], `${p.name} の検算`);
+  // 手で登録した内容（2026年10月11日の写し）と同じ
+  assert.deepEqual(J.diffJumbo(jumboRaw.halloween2026, h), []);
+  assert.deepEqual(J.diffJumbo(jumboRaw.halloweenmini2026, m), []);
+  // ジャンボではない普通くじの賞金表は読まない
+  assert.deepEqual(J.parseJumboNews(fx('takarakuji-news-other.html').toString('utf8')), []);
+  // 2018年の古い書き方（発売期間の表がない）は、検算に通らないので登録しない（読み取りで止まらない）
+  const old = J.parseJumboNews(fx('takarakuji-news-jumbo-2018.html').toString('utf8'));
+  assert.equal(old.length, 2);
+  assert.equal(old[0].units, 9, '本数の見出しの（9ユニット）');
+  assert.equal(old[0].tiers.at(-1).name, 'ハロウィン賞');
+  assert.ok(J.checkJumbo(old[0], '2018-10-10').some((e) => e.includes('発売期間')));
+  // 数の読み方
+  assert.deepEqual(['1,380億', '2,000万', '200,000,000円', '1億5,000万円', '12本', 'あ', ''].map(J.jpNumber), [138000000000, 20000000, 200000000, 150000000, 12, null, null]);
+  assert.deepEqual([1e7, 1e6, 2e7, 4782969].map(J.oddsJa), ['1,000万分の1', '100万分の1', '2,000万分の1', '4,782,969分の1']);
+});
+
+t('ジャンボの検算（読み違いを載せない）', () => {
+  const base = prodsOf(newsPage([NEN26, NENMINI26]), '2026-11-06');
+  assert.deepEqual(base.map((x) => x.errors), [[], []], '年末ジャンボ（賞金の合計は発売総額の約50%）と年末ジャンボミニ');
+  const bad = (edit) => { const p = structuredClone(base[1].p); edit(p); return J.checkJumbo(p, '2026-11-06'); };
+  assert.ok(bad((p) => { p.tiers.splice(3, 1); }).some((e) => e.includes('3等が見つかりません')), '等級が1行抜けた');
+  const odd = prodsOf(newsPage([NENMINI26]).replace('<td class="ta_r">45,000本</td>', '<td class="ta_r">45,000本（予定）</td>'), '2026-11-06')[0];
+  assert.ok(odd.errors.some((e) => e.includes('読み取れない行') && e.includes('3等')), '読めない行を読み飛ばしたまま載せない');
+  assert.ok(bad((p) => { p.tiers[0].count = 151; }).some((e) => e.includes('ユニット数')), '1等の本数がユニット数で割り切れない');
+  assert.ok(bad((p) => { p.tiers[1].count = 299; }).some((e) => e.includes('前後賞')), '前後賞が1等の2倍でない');
+  assert.ok(bad((p) => { p.tiers[3].count = 450000; }).some((e) => e.includes('50%')), '賞金の合計が5割を超える');
+  assert.ok(bad((p) => { p.cands.sales = 160000000; }).some((e) => e.includes('発売総数が合いません')), '発売総額とユニットが合わない');
+  assert.ok(bad((p) => { p.price = 200; }).length, '値段の読み違い');
+  assert.ok(bad((p) => { p.drawDate = '2026-12-20'; }).some((e) => e.includes('順番')), '抽せん日が発売の終わりより前');
+  assert.ok(bad((p) => { p.tiers[2].name = '1等'; }).some((e) => e.includes('2回')), '同じ等級が2回');
+  const kumi = structuredClone(base[0].p);
+  kumi.tiers[2].count = 4600;
+  assert.ok(J.checkJumbo(kumi, '2026-11-06').some((e) => e.includes('組違い賞')), '組違い賞は1等×（組の数−1）');
+});
+
+t('ジャンボの自動登録（足す・公式発表で置き換える・確認済みにする・違いを知らせる）', () => {
+  const raw = { ...structuredClone(jumboRaw), megabig: { name: 'MEGA BIG', group: 'sports', model: 'parimutuel' } };
+  const prods = prodsOf(newsPage([NEN26, NENMINI26]), '2026-11-06');
+  const plan = J.planJumbo(raw, prods, { today: '2026-11-06', base: 'https://takarakuji-kangen.com', guides: { nenmatsu2026: { about: [{ text: '2026年は**11月24日から12月25日まで発売**、12月31日に抽せん。' }, { text: '11月21日から発売' }] } } });
+  assert.equal(plan.changed, true);
+  assert.deepEqual(Object.keys(plan.raw), ['_note', 'halloween2026', 'halloweenmini2026', 'nenmatsu2026', 'nenmatsumini2026', 'megabig'], 'ジャンボの並び（回号の順）に入れる');
+  const mini = plan.raw.nenmatsumini2026;
+  assert.deepEqual([mini.name, mini.round, mini.price, mini.totalTickets, mini.salesStart, mini.salesEnd, mini.drawDate, mini.tiers.length], ['年末ジャンボミニ', '第1135回全国自治宝くじ', 300, 150000000, '2026-11-24', '2026-12-25', '2026-12-31', 7]);
+  assert.equal(mini.how, '組と番号が印刷された券を買う普通くじ。1ユニット1,000万枚・15ユニット（発売予定額450億円）');
+  assert.deepEqual([mini.drawLabel, mini.deadline, mini.rules], ['12月31日（木）抽せん', '12月25日（金）まで', '1等・前後賞合わせて5,000万円。']);
+  assert.ok(mini.verify.includes('2026年11月5日の宝くじ公式サイトの発表から自動で読み取った') && mini.verify.includes('確認待ち'));
+  assert.equal(mini.autoFrom.hash, J.dataHash(mini));
+  assert.equal(mini.sources[0].url, NEWS26.url);
+  near(evaluate(resolveGames({ x: mini }).x).rate, 0.5, 1e-9, '年末ジャンボミニの還元率');
+  // 報道をもとにした仮の登録（verify あり・autoFrom なし）は、公式発表の内容に置き換える
+  const nen = plan.raw.nenmatsu2026;
+  assert.ok(nen.autoFrom && nen.verify.includes('確認待ち') && !nen.verify.includes('報道'));
+  assert.deepEqual(nen.autoFrom.changes, [], '数字は報道と同じ');
+  assert.equal(nen.rules, '1等・前後賞合わせて10億円。', '「ミニは確認でき次第追加」の文は消える');
+  assert.ok(nen.sources[0].url === NEWS26.url && nen.sources.some((s) => s.url.includes('fukuishimbun')), '出典は公式発表を先に（前の出典も残す）');
+  const issues = Object.fromEntries(plan.items.filter((x) => x.type === 'raise').map((x) => [x.key, x]));
+  const ka = J.autoKey('nenmatsumini2026', mini.autoFrom.hash);
+  assert.ok(issues[ka].title.includes('自動で登録しました') && issues[ka].body.includes('| 1等 | 30,000,000円 | 150本 |') && issues[ka].body.includes('Close issue'));
+  assert.ok(issues[ka].body.includes('https://takarakuji-kangen.com/kuji/nenmatsumini2026.html'));
+  const kn = J.autoKey('nenmatsu2026', nen.autoFrom.hash);
+  assert.ok(issues[kn].title.includes('公式発表の内容に更新しました') && issues[kn].body.includes('前の登録と、数字は同じでした'));
+  assert.ok(issues[kn].body.includes('11月21日') && issues[kn].body.includes('data/guides.json'), '解説の日付が日程と合わないことも知らせる');
+  // games.json の書き方（2つの空白で字下げ）で書いて読み直しても同じ
+  assert.deepEqual(JSON.parse(JSON.stringify(plan.raw, null, 2)), plan.raw);
+
+  // 次の日：変わらない（確認待ちの Issue は開いたまま）
+  const p2 = J.planJumbo(plan.raw, prods, { today: '2026-11-07' });
+  assert.equal(p2.changed, false);
+  assert.ok(p2.items.some((x) => x.type === 'raise' && x.key === ka));
+  // Issue が閉じられた → 確認済み（verify を消す）
+  const p3 = J.planJumbo(plan.raw, prods, { today: '2026-11-08', closed: new Set([ka]) });
+  assert.equal(p3.changed, true);
+  assert.ok(!('verify' in p3.raw.nenmatsumini2026) && 'verify' in p3.raw.nenmatsu2026);
+  assert.ok(p3.items.some((x) => x.type === 'clear' && x.key === ka) && !p3.items.some((x) => x.type === 'raise' && x.key === ka));
+  // 公式発表が直された：確認待ちなら読み直す（新しい Issue）。確認済みなら知らせるだけ
+  const fixedHtml = newsPage([NEN26, { ...NENMINI26, tiers: NENMINI26.tiers.map((x) => (x[0] === '2等' ? ['2等', 1e6, 120] : x)) }]);
+  const fixedProds = prodsOf(fixedHtml, '2026-11-09');
+  assert.deepEqual(fixedProds[1].errors, []);
+  const p4 = J.planJumbo(plan.raw, fixedProds, { today: '2026-11-09' });
+  assert.ok(p4.changed && p4.raw.nenmatsumini2026.tiers[2].count === 120);
+  assert.ok(p4.items.some((x) => x.type === 'clear' && x.key === ka && x.note.includes('読み直しました')));
+  const ka2 = J.autoKey('nenmatsumini2026', p4.raw.nenmatsumini2026.autoFrom.hash);
+  assert.ok(ka2 !== ka && p4.items.find((x) => x.key === ka2).body.includes('2等：1,000,000円×150本 → 1,000,000円×120本'));
+  const p5 = J.planJumbo(p3.raw, fixedProds, { today: '2026-11-09' });
+  assert.equal(p5.changed, false, '確認済みの登録は自動では変えない');
+  const diff = p5.items.find((x) => x.type === 'raise' && x.key.startsWith('jumbo-diff-nenmatsumini2026-'));
+  assert.ok(diff && diff.body.includes('2等：1,000,000円×150本 → 1,000,000円×120本'));
+  assert.ok(!J.planJumbo(p3.raw, fixedProds, { today: '2026-11-09', closed: new Set([diff.key]) }).items.some((x) => x.key === diff.key && x.type === 'raise'), '閉じた違いは、もう知らせない');
+  // 人が直した確認待ちの項目は、公式発表で上書きしない
+  const edited = structuredClone(plan.raw);
+  edited.nenmatsumini2026.tiers[2].count = 140;
+  const p6 = J.planJumbo(edited, fixedProds, { today: '2026-11-09' });
+  assert.equal(p6.raw.nenmatsumini2026.tiers[2].count, 140);
+});
+
+t('ジャンボの自動登録（登録しない・読み取れない・発売中なのに未登録）', () => {
+  // 発売が終わったジャンボは登録しない
+  const ended = prodsOf(newsPage([{ ...NENMINI26, round: 1083, period: '令和7年11月21日（金）～令和7年12月23日（火）', draw: '令和7年12月31日（水）' }]), '2026-10-12', { ...NEWS26, date: '2025-11-05' });
+  assert.deepEqual(ended[0].errors, []);
+  const pe = J.planJumbo(jumboRaw, ended, { today: '2026-10-12' });
+  assert.equal(pe.changed, false);
+  assert.ok(pe.lines[0].includes('発売が終わっている'));
+  // 検算に通らない → 載せずに知らせる（閉じたら、もう知らせない）
+  const broken = prodsOf(newsPage([{ ...NENMINI26, tiers: NENMINI26.tiers.slice(0, -1) }]), '2026-11-06');
+  assert.ok(broken[0].errors.length);
+  const pb = J.planJumbo(jumboRaw, broken, { today: '2026-11-06' });
+  assert.equal(pb.changed, false);
+  const pi = pb.items.find((x) => x.type === 'raise');
+  assert.equal(pi.key, 'jumbo-parse-1135');
+  assert.ok(pi.title.includes('読み取れませんでした') && pi.body.includes('検算で引っかかったところ'));
+  assert.ok(!J.planJumbo(jumboRaw, broken, { today: '2026-11-06', closed: new Set(['jumbo-parse-1135']) }).items.some((x) => x.type === 'raise'));
+  // 同じ回が2つのお知らせにあれば、検算に通ったほうを使う
+  const both = [...broken, ...prodsOf(newsPage([NENMINI26]), '2026-11-06')];
+  assert.ok(J.planJumbo(jumboRaw, both, { today: '2026-11-06' }).raw.nenmatsumini2026);
+  // 知らない名前のジャンボは jumbo＋回号、同じ年に2回目なら回号を付ける
+  assert.equal(J.jumboId({ name: 'スプリングジャンボ宝くじ', round: 1200, salesStart: '2027-04-01' }), 'spring2027');
+  assert.equal(J.jumboId({ name: 'ふしぎジャンボ', round: 1201, salesStart: '2027-04-01' }), 'jumbo1201');
+  assert.equal(J.jumboId({ name: '年末ジャンボミニ', round: 1999, salesStart: '2026-11-24' }, { nenmatsumini2026: { round: '第1135回全国自治宝くじ' } }), 'nenmatsumini2026-1999');
+  // 発売中のジャンボ（「現在取扱い中」の欄だけを見る。関連するお知らせの回は数えない）
+  assert.deepEqual(J.parseOnSale(fx('takarakuji-onsale.html').toString('utf8')), [{ round: 1126, name: 'ハロウィンジャンボ宝くじ' }]);
+  assert.equal(J.parseOnSale('<p>ページの作りが変わった</p>'), null);
+  assert.ok(J.missingIssue({ round: 1140, name: 'バレンタインジャンボ宝くじ' }).title.includes('第1140回'));
+});
+
+t('ジャンボの自動登録のページ（確認待ちの注記・自動の解説・購入先・宝くじ一覧）', () => {
+  // 本物の data/games.json からジャンボを全部外し（自動で足されたものがあっても結果が変わらないように）、見本のジャンボを入れる
+  const raw = Object.fromEntries(Object.entries(JSON.parse(readFileSync(path.join(ROOT, 'data/games.json'), 'utf8'))).filter(([, g]) => !(g?.model === 'fixed' && g.group === 'takarakuji')));
+  const withJ = J.insertGame(J.insertGame(raw, 'nenmatsu2026', structuredClone(jumboRaw.nenmatsu2026)), 'halloween2026', structuredClone(jumboRaw.halloween2026));
+  const plan = J.planJumbo(withJ, prodsOf(newsPage([NEN26, NENMINI26]), '2026-11-06'), { today: '2026-11-06' });
+  const defsA = resolveGames(plan.raw);
+  assert.deepEqual(Object.keys(defsA).slice(6, 10), ['halloween2026', 'nenmatsu2026', 'nenmatsumini2026', 'megabig']);
+  const nowA = { ...at('2026-11-30T12:00'), y: 2026 };
+  const rowsA = computeAll(defsA, state, nowA, {});
+  const guides = JSON.parse(readFileSync(path.join(ROOT, 'data/guides.json'), 'utf8'));
+  const rd = createRenderer({
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} },
+    links, points, rows: rowsA, byId: Object.fromEntries(rowsA.map((r) => [r.id, r])), log: [], history: { days: {} },
+    catalog: { order: ['loto6', 'halloween2026', 'nenmatsu2026', 'megabig'], items: {} }, guides, now: nowA, state, defs: defsA,
+    order: Object.fromEntries(Object.keys(defsA).map((k, i) => [k, i])), preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
+  });
+  const mini = rowsA.find((r) => r.id === 'nenmatsumini2026');
+  assert.ok(mini.listed, '発売中ならランキングに出る');
+  const html = rd.game(mini).html;
+  const text = html.replace(/<script[\s\S]*?<\/script>/g, '');
+  assert.ok(html.includes('<p class="notice">賞金・本数・発売期間は、2026年11月5日の宝くじ公式サイトの発表から自動で読み取ったものです（運営者の確認待ち）。</p>'), '確認待ちの注記');
+  assert.ok(html.includes('<h2 id="about">年末ジャンボミニの特徴と還元率</h2>') && html.includes('gd-card gd-odds') && html.includes('100万分の1'), '自動の解説');
+  assert.ok(html.includes('<dt>年末ジャンボミニはいつまで買えますか？</dt>') && html.includes('"@type":"FAQPage"'), '自動のよくある質問');
+  assert.ok(html.includes('2026年11月5日の宝くじ公式サイトの発表をもとに自動で作成しています'), '自動の解説の注記');
+  assert.ok(html.includes('宝くじ公式サイトをPayPayクレジットで払う方法（2.0%）'), 'ポイントが一番多い買い方');
+  assert.ok(html.includes('みずほ銀行') && html.includes('href="https://www.takarakuji-official.jp/"'), '購入先（config/links.json の jumboDefault）');
+  assert.ok(html.includes(NEWS26.url), '出典に公式発表');
+  for (const bad of ['NaN', 'undefined', 'Infinity', '[object', '**']) assert.ok(!text.includes(bad), `${bad} が出ている`);
+  // 手で書いた解説（年末ジャンボ）は、そのまま使い、注記を公式発表の日に
+  const nen = rd.game(rowsA.find((r) => r.id === 'nenmatsu2026')).html;
+  assert.ok(nen.includes('※賞金・本数・発売期間は、2026年11月5日の宝くじ公式サイトの発表にもとづきます。') && !nen.includes('報道にもとづきます'));
+  assert.ok(nen.includes(guides.games.nenmatsu2026.faq[0].q), '手で書いたよくある質問');
+  // 自動の解説の書き方は data/guides.json と同じ決まりを守る
+  const g = J.autoGuide(defsA.nenmatsumini2026, { rate: 0.5, point: 'x' });
+  for (const a of g.about) assert.ok(a.key.length <= 20 && (a.text.match(/\*\*/g) || []).length % 2 === 0, a.key);
+  for (const f of g.faq) assert.ok(/？$/.test(f.q) && f.a.length >= 20);
+  for (const bad of ['必ず当たる', '儲かる']) assert.ok(!JSON.stringify(g).includes(bad));
+  // 宝くじ一覧：catalog.json の order にないジャンボは、games.json で直前のくじの後ろに。説明は賞金表から
+  const ich = rd.ichiran().html;
+  assert.ok(ich.indexOf('id="k-nenmatsu2026"') < ich.indexOf('id="k-nenmatsumini2026"') && ich.indexOf('id="k-nenmatsumini2026"') < ich.indexOf('id="k-megabig"'));
+  assert.ok(ich.includes('2026年は1等3,000万円、1等の前後賞と合わせて5,000万円です。'));
+  assert.deepEqual(mergeOrder(['a', 'c', 'x'], ['a', 'b', 'c', 'd']), ['a', 'b', 'c', 'd']);
+  assert.deepEqual(mergeOrder(['c', 'a'], ['z', 'a', 'b', 'c']), ['z', 'c', 'a', 'b']);
+  // ポイント還元のページ：自動で登録したジャンボも、公式サイトで買えるくじに入る
+  assert.ok(rd.point().html.includes('ジャンボ'));
+});
+
+/* ---------- 新しいくじ・くじのルールの見張り ---------- */
+
+const PR = await import('./lib/products.mjs');
+
+t('新しいくじの見張り（宝くじ公式サイトのメニュー・BIG系・DUNK）', () => {
+  const listHtml = fx('takarakuji-news-list.html').toString('utf8');
+  const menu = PR.takarakujiMenu(listHtml);
+  assert.deepEqual(menu.net.map((x) => x.key), ['Jumbo', 'Loto7', 'Loto6', 'Miniloto', 'Bingo5', 'Numbers4', 'Numbers3', 'Quickone']);
+  assert.deepEqual(menu.kuji.map((x) => x.key), ['jumbo', 'scratch', 'loto', 'bingo5', 'numbers', 'quickone']);
+  assert.deepEqual(PR.unknownTakarakuji(menu), [], 'いまのメニューは全部知っている');
+  const more = listHtml.replace('<li><a href="javascript:glonaviQuickoneForm.submit()">クイックワン</a></li>', '<li><a href="javascript:glonaviQuickoneForm.submit()">クイックワン</a></li><li><a href="javascript:glonaviLoto8Form.submit()">ロト8</a></li>');
+  const unk = PR.unknownTakarakuji(PR.takarakujiMenu(more));
+  assert.deepEqual(unk.map((x) => [x.key, x.name]), [['net-loto8', 'ロト8']]);
+  assert.equal(PR.takarakujiKey(unk[0]), 'newproduct-takarakuji-net-loto8');
+  assert.ok(PR.takarakujiIssue(unk[0]).title.includes('「ロト8」'));
+  assert.equal(PR.takarakujiMenu('<p>メニューなし</p>'), null);
+  // スポーツくじ：見本のページは全部知っているくじ
+  for (const [f, kind] of [['big-info.html', 'big'], ['big-result.html', 'big'], ['dunk-info.html', 'dunk'], ['dunk-result.html', 'dunk']]) {
+    const labels = PR.sportsLabels(fx(f).toString('utf8'), kind);
+    assert.ok(labels.length >= 3, `${f} のくじの名前`);
+    assert.deepEqual(PR.unknownSports(kind, labels), [], f);
+  }
+  const big = PR.sportsLabels(`${fx('big-info.html').toString('utf8')}<h3>第1700回 BIG 2000 くじ情報</h3>`, 'big');
+  assert.deepEqual(PR.unknownSports('big', big), ['BIG 2000']);
+  assert.deepEqual(PR.unknownSports('dunk', ['DUNK10', 'DUNK6', 'DUNK6-C', 'DUNK8']), ['DUNK6-C', 'DUNK8'], 'DUNK6 は DUNK6-A・B のまとめた呼び名');
+  assert.equal(PR.sportsKey('big', 'BIG 2000'), 'newproduct-big-big2000');
+  assert.ok(PR.sportsIssue('big', 'BIG 2000', '2026-11-01').body.includes('BIG_PRODUCTS'));
+});
+
+t('くじのルールの見張り（値段・賞金・確率・上限の公式ページ）', () => {
+  const conf = JSON.parse(readFileSync(path.join(ROOT, 'config/watch.json'), 'utf8'));
+  const rules = conf.pages.filter((p) => p.kind === 'rule');
+  assert.deepEqual(rules.map((p) => p.id), ['rule-loto6', 'rule-loto7', 'rule-miniloto', 'rule-bingo5', 'rule-numbers4', 'rule-numbers3', 'rule-big', 'rule-dunk']);
+  for (const p of conf.pages) assert.ok(p.id && p.kind && /^https:\/\//.test(p.url) && p.keywords?.length && p.file && p.what, `${p.id} の設定`);
+  assert.ok(!conf.pages.some((p) => p.id === 'jumbo-takarakuji'), 'ジャンボは宝ニュースからの自動登録に移した');
+  const loto6 = fx('rule-loto6.html').toString('utf8');
+  const page = rules[0];
+  const got = extractLines(loto6, page);
+  for (const want of ['2億円', '1 / 6,096,454', '約1,000万円', '(原則固定) 1,000円', 'ロト6でに発生した1億円以上の当せん口数', '※100円未満の端数は切り捨てられます。']) assert.ok(got.includes(want), `「${want}」を見張る`);
+  assert.ok(got.some((l) => l.includes('1口 200円') && l.includes('1等最高 6億円')), '1口の値段と1等の上限');
+  assert.ok(!got.some((l) => /^\d$/.test(l) || l.includes('更新日')), '数字だけの飾り・更新日は見ない');
+  // 年が変わっただけ・更新日だけでは知らせない。賞金が変わったら知らせる
+  assert.equal(hashLines(extractLines(loto6.replace('2026年に発生', '2027年に発生').replace('2026年10月12日', '2027年1月5日'), page)), hashLines(got));
+  const changed = extractLines(loto6.replace('<p>2億円</p>', '<p>3億円</p>'), page);
+  assert.notEqual(hashLines(changed), hashLines(got));
+  const issue = changeIssue(page, got, changed, '2026-11-01');
+  assert.ok(issue.body.includes('くじのルール') && issue.body.includes('- 2億円') && issue.body.includes('- 3億円') && issue.body.includes('capCO'));
+  // BIG と 100円BIG の同じ確率の行も、それぞれ数える（片方だけ変わっても気づく）
+  const bigLines = extractLines(fx('rule-big.html').toString('utf8'), rules.find((p) => p.id === 'rule-big'));
+  assert.equal(bigLines.filter((l) => l === '1等...4,782,969分の1').length, 2);
+  assert.ok(bigLines.includes('1口 300円') && bigLines.includes('1等...80%') && !bigLines.some((l) => l.includes('実績')), '実績の本数は見ない');
+  // ワークフロー：見張りの手順は、閉じた Issue を読むために GITHUB_TOKEN を使う
+  const wf = readFileSync(path.join(ROOT, '.github/workflows/update.yml'), 'utf8');
+  assert.ok(/run: node scripts\/watch\.mjs\n\s+env:\n\s+WATCH_FORCE: \$\{\{ inputs\.watch \}\}\n\s+GITHUB_TOKEN: \$\{\{ secrets\.GITHUB_TOKEN \}\}/.test(wf));
+  assert.ok(Array.isArray(links.jumboDefault) && links.jumboDefault.every((l) => links.shops[l.shop]), 'config/links.json の jumboDefault');
 });
 
 console.log(`\n${n}件すべて成功`);

@@ -1,8 +1,27 @@
 // ページの HTML をつくる
 import { esc, num, yenJa, pct, odds, fmtMd, fmtMdPlain, fmtYmd, fmtShort } from './util.mjs';
 import { carryoverTable, rateSeries } from './model.mjs';
+import { autoGuide, autoLead, autoSourceNote } from './jumbo.mjs';
 
 const GROUP_LABEL = { takarakuji: '宝くじ', sports: 'スポーツくじ' };
+
+/** 宝くじのジャンボ（賞金が決まっているくじ）か */
+const isJumbo = (d) => d?.model === 'fixed' && d.group === 'takarakuji';
+
+/**
+ * 「宝くじ一覧」の並び：data/catalog.json の order のとおり。order にないくじ（自動で登録したジャンボなど）は、
+ * data/games.json で直前にあるくじのすぐ後ろに入れる
+ */
+export function mergeOrder(order = [], ids = []) {
+  const out = order.filter((id) => ids.includes(id));
+  ids.forEach((id, i) => {
+    if (out.includes(id)) return;
+    let at = -1;
+    for (let j = i - 1; j >= 0 && at < 0; j--) at = out.indexOf(ids[j]);
+    out.splice(at + 1, 0, id);
+  });
+  return out;
+}
 
 /** 金額はすべて「○億○万○円」 */
 const yen = (n) => yenJa(Math.round(Number(n) || 0));
@@ -54,14 +73,15 @@ export function createRenderer(ctx) {
   const guides = ctx.guides?.games || {}; // くじ別ページの解説とよくある質問（data/guides.json）
   const shops = links.shops || {};
   const signups = links.signups || {};
+  /** くじの購入先（config/links.json の games。書いていないジャンボは jumboDefault） */
+  const gameLinks = (id) => links.games?.[id] || (isJumbo(ctx.defs[id]) ? links.jumboDefault || [] : []);
 
   /* ---------------- ポイント ---------------- */
 
   const byOrder = (a, b) => (ctx.order[a] ?? 99) - (ctx.order[b] ?? 99);
   const shopGames = {};
-  for (const [gid, list] of Object.entries(links.games || {})) {
-    if (!ctx.defs[gid]) continue;
-    for (const l of list) if (shops[l.shop]) (shopGames[l.shop] ??= []).push(gid);
+  for (const gid of Object.keys(ctx.defs)) {
+    for (const l of gameLinks(gid)) if (shops[l.shop] && !(shopGames[l.shop] ||= []).includes(gid)) shopGames[l.shop].push(gid);
   }
   for (const k of Object.keys(shopGames)) shopGames[k].sort(byOrder);
   const routes = (points.routes || []).filter((rt) => shops[rt.shop]);
@@ -155,7 +175,7 @@ export function createRenderer(ctx) {
 
   /** くじの購入先（ポイントが多い順。同じならリンク集の順） */
   function shopLinks(id) {
-    const list = (links.games?.[id] || []).map((l, i) => {
+    const list = gameLinks(id).map((l, i) => {
       const shop = shops[l.shop] || {};
       const own = !!l.url && (l.affiliate || !shop.affiliate);
       const rt = routeByShop[l.shop];
@@ -890,8 +910,19 @@ ${trs}
     const coHtml = coTableHtml(r);
     const br = ev.computable ? bestRoute(r.id) : null;
     const showTrend = r.status.kind !== 'upcoming' && ev.computable;
-    // くじごとの解説とよくある質問（data/guides.json。書いてあるくじだけ出す）
-    const gd = guides[r.id] || {};
+    // くじごとの解説とよくある質問（data/guides.json。書いてあるくじだけ出す。書いていないジャンボは賞金表から作る）
+    let gd = guides[r.id];
+    if (!gd && isJumbo(d)) {
+      const pr = bestRoute(r.id);
+      const pointText = pr ? `${shops[pr.route.shop]?.name || pr.route.shop}${pr.route.how ? `を${pr.route.how}方法` : 'で買う方法'}（${fmtPt(pr.rate)}）` : '';
+      gd = autoGuide(d, { rate: ev.computable ? r.rate : null, point: pointText });
+    }
+    gd ||= {};
+    // 公式発表から自動で登録・更新したジャンボは、手で書いた解説でも、公式発表の日を出す
+    // （解説の note は「公式発表の前の情報」の注記なので使わない。note を消して checkedOn を公式発表より後にしたら、確認日を出す）
+    const gdNote = gd.auto ? gd.note
+      : d.autoFrom && (gd.note || !(gd.checkedOn > (d.autoFrom.on || ''))) ? autoSourceNote(d)
+        : gd.note || (gd.checkedOn ? `※しくみと数値は、${fmtYmd(gd.checkedOn)}に公式の発表で確認したものです。` : '');
     const about = (gd.about || []).map((a) => (typeof a === 'string' ? { text: a } : a)).filter((a) => typeof a?.text === 'string' && a.text.trim());
     const faq = (gd.faq || []).filter((x) => x?.q && x?.a).map((x) => [x.q, x.a]);
     const sources = [...(d.sources || []), ...(gd.sources || [])].filter((s, i, a) => s?.url && a.findIndex((x) => x.url === s.url) === i);
@@ -945,7 +976,7 @@ ${toc(sections)}
 ${ad('top')}
 ${about.length ? `<h2 id="about">${esc(d.name)}の特徴と還元率</h2>
 ${guideCards(about)}
-${gd.note ? `<p class="note">${esc(gd.note)}</p>` : gd.checkedOn ? `<p class="note">※しくみと数値は、${fmtYmd(gd.checkedOn)}に公式の発表で確認したものです。</p>` : ''}` : ''}
+${gdNote ? `<p class="note">${esc(gdNote)}</p>` : ''}` : ''}
 <h2 id="buy">${esc(d.name)}の購入場所</h2>
 ${shopList}
 ${ev.computable ? `<h2 id="tiers">等級ごとの当せん金と確率</h2>
@@ -1015,10 +1046,11 @@ ${related(rel, r.id)}
   function ichiran() {
     const path = 'ichiran.html';
     const rel = '';
-    const ids = (catalog.order || []).filter((id) => ctx.defs[id]);
+    const ids = mergeOrder(catalog.order || [], Object.keys(ctx.defs));
     const sections = ids.map((id, i) => {
       const d = ctx.defs[id];
-      const c = catalog.items?.[id] || {};
+      // data/catalog.json に説明がないジャンボ（自動で登録したもの）は、賞金表から説明を作る
+      const c = catalog.items?.[id] || (isJumbo(d) ? { lead: autoLead(d), points: [['券の選び方', '連番（番号が続いた10枚）やバラ（番号がばらばらの10枚）などで買います。']] } : {});
       const r = byId[id];
       const rowsHtml = [];
       rowsHtml.push(['種類', esc(d.category || GROUP_LABEL[d.group] || '')]);
@@ -1392,7 +1424,7 @@ ${contact ? `<h2>お問い合わせ</h2><p>数値の誤りのご指摘や、掲�
 <h2>ランキングの決め方</h2>
 <p>還元率ランキングは、計算した還元率の高い順です。ポイント還元ランキングは、各社の公式ページに書かれているポイントの率の高い順です。購入場所のボタンも、ポイントの多い順に並べています。広告の有無や報酬の額で、順位や並び順を変えることはありません。</p>
 <h2>情報の確認</h2>
-<p>還元率のもとになる販売額やキャリーオーバーは、公式発表から1日に数回自動で取得しています。購入場所とポイントの情報は、各社の公式ページで確認し、確認日をページに載せています（最終確認：${esc(fmtYmd(checkedOn))}）。ポイント・購入場所・ジャンボ宝くじの公式ページは毎日自動で変化をチェックし、変わったときは内容を確かめて直しています。</p>
+<p>還元率のもとになる販売額やキャリーオーバーは、公式発表から1日に数回自動で取得しています。購入場所とポイントの情報は、各社の公式ページで確認し、確認日をページに載せています（最終確認：${esc(fmtYmd(checkedOn))}）。ポイント・購入場所・くじのルール（1口の値段・賞金・確率・1等の上限）が書かれた公式ページは毎日自動で変化をチェックし、変わったときは内容を確かめて直しています。新しいジャンボ宝くじの賞金表は、宝くじ公式サイトの発表から自動で読み取り、本数と金額の検算に通ったものだけを載せています。運営者が公式発表と見比べて確認するまでは、くじ別ページにその旨を表示します。</p>
 <h2>広告について</h2>
 <p>当サイトは、運営費をまかなうために広告（Google AdSense などの広告配信と、アフィリエイト広告）を掲載しています。アフィリエイト広告のリンクには「PR」と表示しています。</p>
 `;

@@ -9,12 +9,17 @@ import path from 'node:path';
 
 export const ALERT_FILE = process.env.ALERT_FILE || path.join(process.env.RUNNER_TEMP || os.tmpdir(), 'takarakuji-alerts.json');
 
+/** Issue に付けるラベルと、Issue の本文に埋め込む目印（同じ内容の Issue を見分けるため） */
+export const LABEL = '自動チェック';
+export const marker = (key) => `<!-- kt-key:${key} -->`;
+export const MARKER_RE = /<!-- kt-key:(\S+?) -->/g;
+
 export async function loadAlerts() {
   try {
     const a = JSON.parse(await readFile(ALERT_FILE, 'utf8'));
-    return { open: a.open || [], ok: a.ok || [] };
+    return { open: a.open || [], ok: a.ok || [], notes: a.notes || {} };
   } catch {
-    return { open: [], ok: [] };
+    return { open: [], ok: [], notes: {} };
   }
 }
 
@@ -28,10 +33,11 @@ export function raise(a, key, title, body) {
   a.ok = a.ok.filter((k) => k !== key);
 }
 
-/** 問題なし（同じ key の Issue が開いていれば閉じる） */
-export function clear(a, key) {
+/** 問題なし（同じ key の Issue が開いていれば閉じる）。note は閉じるときのコメント（なければ「解消しました」） */
+export function clear(a, key, note) {
   if (a.open.some((x) => x.key === key)) return;
   if (!a.ok.includes(key)) a.ok.push(key);
+  if (note) (a.notes ??= {})[key] = note;
 }
 
 /** Issue の本文の最後に付ける、直し方の共通の案内 */
