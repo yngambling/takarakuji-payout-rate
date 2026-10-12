@@ -572,7 +572,7 @@ export function parseOnSale(html) {
  *   rate  … このサイトの計算の還元率（0.47 など）
  *   point … ポイントが一番多い買い方の説明（「宝くじ公式サイトをPayPayクレジットで払う方法（2.0%）」など）
  */
-export function autoGuide(d, { rate = null, point = '' } = {}) {
+export function autoGuide(d, { rate = null, point = '', sibling = null } = {}) {
   const T = d.totalTickets;
   const first = d.tiers?.[0];
   if (!(T > 0) || !first || !isDate(d.salesStart) || !isDate(d.salesEnd) || !isDate(d.drawDate)) return null;
@@ -610,6 +610,7 @@ export function autoGuide(d, { rate = null, point = '' } = {}) {
     { q: `${d.name}の1等の当せん確率はどれくらいですか？`, a: `${oddsText}です。発売総数${manNoYen(T)}枚の中に、1等が${num(first.count)}本あります。` },
   ];
   if (tenth) faq.push({ q: '10枚買うと必ず当たりますか？', a: `連番またはバラで10枚買うと、下1ケタが0〜9までそろうので、${low.name}（${num(low.prize)}円）が必ず1枚当たります。それ以外の等級が当たるかどうかは運しだいです。` });
+  faq.push(...dynamicFaq(d, { sibling }));
   const when = d.autoFrom?.date || d.autoFrom?.on;
   return {
     about,
@@ -626,6 +627,100 @@ export function autoLead(d) {
   if (!first || !isDate(d.salesStart)) return '';
   const zengo = d.tiers.find((t) => /前後賞/.test(t.name));
   return `組と番号が印刷された券を買うジャンボ宝くじです。抽せんで決まった当せん番号と一致すれば当せんです。${d.salesStart.slice(0, 4)}年は1等${man(first.prize)}${zengo ? `、1等の前後賞と合わせて${man(first.prize + zengo.prize * 2)}` : ''}です。`;
+}
+
+/* ---------------- 何枚買うと当たる？・ミニとの比較（くじ別ページ用の計算） ---------------- */
+
+/** 1枚で、min 円以上の賞のどれかが当たる確率 */
+export function chanceAtLeast(d, min) {
+  const T = d?.totalTickets;
+  if (!(T > 0)) return null;
+  return (d.tiers || []).filter((t) => t.prize >= min).reduce((s, t) => s + t.count, 0) / T;
+}
+
+/** n 枚買って、1枚以上当たる確率（1枚ずつ別々に当たると考えた目安） */
+export const chanceOfN = (p, n) => 1 - (1 - p) ** n;
+
+/** 確率の書き方：0.0297 → 「3.0%」、0.0033 → 「0.33%」、0.000015 → 「約6.7万分の1」、0.0000005 → 「約200万分の1」 */
+export function chanceText(p) {
+  if (!(p > 0)) return '—';
+  if (p >= 0.01) return `${(p * 100).toFixed(1)}%`;
+  if (p >= 0.0001) return `${Number((p * 100).toPrecision(2))}%`;
+  const inv = 1 / p;
+  const [unit, label] = inv >= 1e8 ? [1e8, '億'] : [1e4, '万'];
+  const v = inv / unit;
+  const r = v >= 100 ? Math.round(v / 10) * 10 : v >= 10 ? Math.round(v) : Math.round(v * 10) / 10; // 2けたくらいに丸める
+  return `約${r.toLocaleString('ja-JP')}${label}分の1`;
+}
+
+export const BUY_COUNTS = [10, 30, 100];
+
+/**
+ * 買う枚数ごとの「1枚以上当たる確率」と、平均で戻る金額
+ *   列：1万円以上・10万円以上・100万円以上・1等（同じ確率になる列は、高い金額のほうだけ残す）
+ *   rate … このサイトの計算の還元率（平均で戻る金額に使う）
+ */
+export function buyChances(d, rate = null) {
+  const first = d?.tiers?.[0];
+  if (!first || !(d.totalTickets > 0)) return null;
+  let levels = [
+    { label: '1万円以上', min: 10000 },
+    { label: '10万円以上', min: 100000 },
+    { label: '100万円以上', min: 1000000 },
+    { label: `1等（${man(first.prize)}）`, min: first.prize, first: true },
+  ].filter((l) => l.first || l.min < first.prize).map((l) => ({ ...l, p: l.first ? first.count / d.totalTickets : chanceAtLeast(d, l.min) }));
+  levels = levels.filter((l, i) => l.p > 0 && !(i + 1 < levels.length && levels[i + 1].p === l.p));
+  return {
+    levels,
+    rows: BUY_COUNTS.map((n) => ({ n, cost: n * d.price, chances: levels.map((l) => chanceOfN(l.p, n)), back: Number.isFinite(rate) ? n * d.price * rate : null })),
+    lowest: (() => { const low = d.tiers.reduce((a, t) => (t.prize < a.prize ? t : a)); return low.prize === d.price && low.count * 10 === d.totalTickets ? low : null; })(),
+  };
+}
+
+/** 同じ日に発売・抽せんされるもう一方のジャンボ（年末ジャンボと年末ジャンボミニなど） */
+export function jumboSibling(d, defs) {
+  return Object.values(defs || {}).find((x) => x && x.id !== d.id && x.model === 'fixed' && x.group === d.group
+    && x.salesStart === d.salesStart && x.drawDate === d.drawDate) || null;
+}
+
+/**
+ * 賞金表から計算する「よくある質問」（何枚買えば1万円以上が当たるか・同じ日のジャンボとどちらが当たりやすいか）。
+ * 手で書いた解説（data/guides.json）のジャンボにも足す。数字は賞金表から毎回計算するので、賞金表が変わってもずれない
+ */
+export function dynamicFaq(d, { sibling = null } = {}) {
+  const out = [];
+  const first = d?.tiers?.[0];
+  const p1 = chanceAtLeast(d, 10000);
+  if (first && p1 > 0 && first.prize > 10000) {
+    out.push({ q: `${d.name}を何枚買えば、1万円以上が当たりますか？`, a: `1万円以上の賞が当たる確率は1枚あたり${chanceText(p1)}で、平均すると${num(Math.round(1 / p1))}枚に1枚です。10枚買うと${chanceText(chanceOfN(p1, 10))}、100枚買うと${chanceText(chanceOfN(p1, 100))}の確率で、1枚以上当たる計算です（1枚ずつ別々に当たると考えた目安）。` });
+  }
+  if (first && sibling?.tiers?.length && sibling.totalTickets > 0) {
+    out.push({ q: `${d.name}と${sibling.name}は、どちらが当たりやすいですか？`, a: compareSentence(d, sibling) });
+  }
+  return out;
+}
+
+/** ジャンボの比較の一文（数字だけで中立に） */
+export function compareSentence(a, b) {
+  const fa = a.tiers[0];
+  const fb = b.tiers[0];
+  const [big, small] = fa.prize >= fb.prize ? [a, b] : [b, a];
+  const ratio = (x, y) => (x / y >= 10 ? Math.round(x / y) : Math.round((x / y) * 10) / 10);
+  const pBig = big.tiers[0].count / big.totalTickets;
+  const pSmall = small.tiers[0].count / small.totalTickets;
+  const m = (d) => chanceAtLeast(d, 10000);
+  const parts = [`1等の金額は${big.name}が${ratio(big.tiers[0].prize, small.tiers[0].prize)}倍`];
+  if (pSmall > pBig) parts.push(`1等の当せん確率は${small.name}が${ratio(pSmall, pBig)}倍高い`);
+  const mb = m(big);
+  const ms = m(small);
+  let tail;
+  if (mb > 0 && ms > 0) {
+    const r = ms / mb;
+    if (r > 1.1) tail = `1万円以上が当たる確率は${small.name}のほうが${ratio(ms, mb)}倍高くなります`;
+    else if (r < 1 / 1.1) tail = `1万円以上が当たる確率は${big.name}のほうが${ratio(mb, ms)}倍高くなります`;
+    else tail = '1万円以上が当たる確率は、ほぼ同じです';
+  }
+  return `${parts.join('、')}計算です。${tail ? `${tail}。` : ''}`;
 }
 
 /** 自動で登録した項目の、解説の下の注記（data/guides.json の解説を、公式発表より前に確認したとき） */
