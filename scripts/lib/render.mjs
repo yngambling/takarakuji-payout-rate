@@ -51,6 +51,7 @@ export function createRenderer(ctx) {
   const coList = listed.filter((r) => r.hasCO && r.carryover > 0).sort((a, b) => b.carryover - a.carryover);
   const hasContact = !!(site.contactFormUrl || site.contactEmail);
   const overrides = ctx.overrides || {};
+  const guides = ctx.guides?.games || {}; // くじ別ページの解説とよくある質問（data/guides.json）
   const shops = links.shops || {};
   const signups = links.signups || {};
 
@@ -868,10 +869,18 @@ ${trs}
     const coHtml = coTableHtml(r);
     const br = ev.computable ? bestRoute(r.id) : null;
     const showTrend = r.status.kind !== 'upcoming' && ev.computable;
-    const sections = [['buy', `${d.name}の購入場所`], ['tiers', '等級ごとの当せん金と確率']];
+    // くじごとの解説とよくある質問（data/guides.json。書いてあるくじだけ出す）
+    const gd = guides[r.id] || {};
+    const about = (gd.about || []).filter((p) => typeof p === 'string' && p.trim());
+    const faq = (gd.faq || []).filter((x) => x?.q && x?.a).map((x) => [x.q, x.a]);
+    const sources = [...(d.sources || []), ...(gd.sources || [])].filter((s, i, a) => s?.url && a.findIndex((x) => x.url === s.url) === i);
+    const sections = [];
+    if (about.length) sections.push(['about', `${d.name}の特徴と還元率`]);
+    sections.push(['buy', `${d.name}の購入場所`], ['tiers', '等級ごとの当せん金と確率']);
     if (coHtml) sections.push(['co', 'キャリーオーバーの額ごとの還元率']);
     if (recent) sections.push(['recent', '最近の結果']);
     if (showTrend) sections.push(['trend', '還元率の推移（過去1年）']);
+    if (faq.length) sections.push(['faq', `${d.name}のよくある質問`]);
     sections.push(['data', 'くわしいデータ'], ['rules', 'ルールと注意']);
 
     const tiles = [];
@@ -913,6 +922,9 @@ ${ctaBox(r.id, r)}
 ${share(path, `${d.name}の還元率は${ev.computable ? pct(r.rate) : '—'}（${fmtMdPlain(now.iso)}時点）`)}
 ${toc(sections)}
 ${ad('top')}
+${about.length ? `<h2 id="about">${esc(d.name)}の特徴と還元率</h2>
+${about.map((p) => `<p>${esc(p)}</p>`).join('\n')}
+${gd.checkedOn ? `<p class="note">※しくみと数値は、${fmtYmd(gd.checkedOn)}に公式の発表で確認したものです。</p>` : ''}` : ''}
 <h2 id="buy">${esc(d.name)}の購入場所</h2>
 ${shopList}
 ${ev.computable ? `<h2 id="tiers">等級ごとの当せん金と確率</h2>
@@ -929,6 +941,8 @@ ${ad('middle')}
 ${coHtml}
 ${recent ? `<h2 id="recent">最近の結果</h2>${recent}` : ''}
 ${showTrend ? `<h2 id="trend">還元率の推移（過去1年）</h2>${chartCard(rel, r, series, { days: 365, big: true })}${series.some((p) => p.calc) ? '<p class="note">※サイトで記録を始める前の期間は、公式の販売実績額と繰越額から計算し直した値です。</p>' : ''}` : ''}
+${faq.length ? `<h2 id="faq">${esc(d.name)}のよくある質問</h2>
+${faqHtml(faq)}` : ''}
 <h2 id="data">くわしいデータ</h2>
 <dl class="kv">
 ${kv.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('\n')}
@@ -938,7 +952,7 @@ ${kv.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('\n')}
 ${st.error || st.infoError ? `<p class="note">直近の自動取得でエラーがありました（${esc(st.error || st.infoError)}）。表示しているのは前回までに取得できた値です。</p>` : ''}
 <h3>出典</h3>
 <ul class="note">
-${(d.sources || []).map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a></li>`).join('\n')}
+${sources.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a></li>`).join('\n')}
 ${st.source ? `<li>${esc(st.source)}（${fetched}取得）</li>` : ''}
 </ul>
 ${ctaBox(r.id)}
@@ -952,7 +966,7 @@ ${related(rel, r.id)}
       : `${d.name}のしくみと購入場所。`;
     return {
       path,
-      html: layout({ path, title, description: desc, body, jsonld: [breadcrumbLd(path, d.name)], scripts: showTrend ? CHART_JS : '', stickyHtml: ev.computable && r.listed ? sticky(r) : '' }),
+      html: layout({ path, title, description: desc, body, jsonld: [breadcrumbLd(path, d.name), ...(faq.length ? [faqLd(faq)] : [])], scripts: showTrend ? CHART_JS : '', stickyHtml: ev.computable && r.listed ? sticky(r) : '' }),
     };
   }
 

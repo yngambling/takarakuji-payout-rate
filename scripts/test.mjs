@@ -272,6 +272,53 @@ t('グラフの期間（推移は30日・くじ別は1年）と名前の変更',
   assert.ok(!all.includes('買える所'), '「買える所」は残さない');
 });
 
+t('くじ別ページの解説とよくある質問（data/guides.json）', () => {
+  const guides = JSON.parse(readFileSync(path.join(ROOT, 'data/guides.json'), 'utf8'));
+  // 書き方の確認：あるくじだけ・確認日・段落と質問が空でない・出典は https・使わない言い回しがない
+  for (const [id, g] of Object.entries(guides.games || {})) {
+    assert.ok(defs[id], `data/guides.json の ${id} が data/games.json にありません`);
+    assert.match(g.checkedOn || '', /^\d{4}-\d{2}-\d{2}$/, `${id} の checkedOn（確認日）`);
+    assert.ok((g.about || []).length >= 1 && g.about.every((p) => typeof p === 'string' && p.length >= 20), `${id} の about（段落）`);
+    for (const f of g.faq || []) assert.ok(/？$/.test(f.q || '') && (f.a || '').length >= 20, `${id} の faq（質問は「？」で終わる・答えは20字以上）`);
+    assert.ok((g.sources || []).length >= 1 && g.sources.every((s) => s.title && /^https:\/\//.test(s.url)), `${id} の sources（出典）`);
+    const text = JSON.stringify(g);
+    for (const bad of ['必ず当たる', '絶対に当たる', '一番儲かる', '儲かる', '毎日自動更新']) assert.ok(!text.includes(bad), `${id} に「${bad}」が入っています`);
+  }
+  // ページに出る：目次・見出し・段落・確認日・よくある質問・構造化データ・出典（重複なし）
+  const ctxG = {
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} },
+    links, points, rows: rowsT, byId: Object.fromEntries(rowsT.map((r) => [r.id, r])), log: [], history: { days: {} },
+    catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])),
+    preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
+  };
+  const sample = {
+    checkedOn: '2026-10-12', about: ['ビンゴ5は、ビンゴのようにラインをそろえる数字選択式の宝くじです。'],
+    faq: [{ q: 'ビンゴ5の還元率は回によって変わりますか？', a: 'ほとんど変わりません。キャリーオーバーがないためです。' }],
+    sources: [{ title: '見本', url: 'https://example.org/bingo5' }, { title: 'みずほ銀行「ビンゴ5」', url: defs.bingo5.sources[0].url }],
+  };
+  const b5 = rowsT.find((r) => r.id === 'bingo5');
+  const html = createRenderer({ ...ctxG, guides: { games: { bingo5: sample } } }).game(b5).html;
+  assert.ok(html.includes('<a href="#about">ビンゴ5の特徴と還元率</a>') && html.includes('<a href="#faq">ビンゴ5のよくある質問</a>'), '目次');
+  assert.ok(html.includes('<h2 id="about">ビンゴ5の特徴と還元率</h2>\n<p>ビンゴ5は、ビンゴのようにラインをそろえる数字選択式の宝くじです。</p>'), '解説の段落');
+  assert.ok(html.indexOf('id="about"') < html.indexOf('id="buy"'), '解説は購入場所の前');
+  assert.ok(html.includes('2026年10月12日（月）に公式の発表で確認'), '確認日');
+  assert.ok(html.includes('<dt>ビンゴ5の還元率は回によって変わりますか？</dt>'), 'よくある質問');
+  assert.ok(html.includes('"@type":"FAQPage"'), 'よくある質問の構造化データ');
+  assert.equal(html.split(defs.bingo5.sources[0].url).length - 1, 1, '同じ出典は1回だけ');
+  assert.ok(html.includes('https://example.org/bingo5'), '解説の出典も載せる');
+  // 解説を書いていないくじのページは、今までどおり
+  const plain = createRenderer(ctxG).game(b5).html;
+  assert.ok(!plain.includes('id="about"') && !plain.includes('id="faq"') && !plain.includes('FAQPage'), '解説なし');
+  // 本物の data/guides.json でも、書いてあるくじのページが作れる
+  const rg = createRenderer({ ...ctxG, guides });
+  for (const id of Object.keys(guides.games || {})) {
+    const r = rowsT.find((x) => x.id === id);
+    if (!r || r.def.model === 'none') continue;
+    const h = rg.game(r).html;
+    assert.ok(h.includes(`<h2 id="about">`) && !/NaN|undefined/.test(h.replace(/<script[\s\S]*?<\/script>/g, '')), `${id} のページ`);
+  }
+});
+
 t('404ページ（存在しない深い階層のURLでも、CSSとリンクがずれない）', () => {
   // GitHub Pages は /kuji/abc/def.html のような存在しないURLでも 404.html の中身を返すので、相対パスを使わない
   const base = 'https://yngambling.github.io/takarakuji-payout-rate';
