@@ -33,6 +33,7 @@ permissions:
   pages: write
   id-token: write
   issues: write   # 確認が必要なことを Issue でお知らせするため
+  actions: read   # 外部タイマー（cron-job.org）からの実行が止まっていないかを確かめるため
 
 concurrency:
   group: update-site
@@ -66,6 +67,15 @@ jobs:
         run: node scripts/watch.mjs
         env:
           WATCH_FORCE: ${{ inputs.watch }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Search Console の自動チェック（README「Search Console の自動チェック」。設定していなければ何もしない）
+          GSC_CREDENTIALS: ${{ secrets.GSC_CREDENTIALS }}
+
+      # 毎回：公開中のサイトが開けるか・更新が止まっていないか、証明書とドメインの期限、外部タイマーからの実行
+      - name: サイトと自動更新の健康診断
+        if: github.event_name != 'push'
+        run: node scripts/health.mjs
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 計算の確認
@@ -118,18 +128,27 @@ jobs:
       - id: deployment
         uses: actions/deploy-pages@v5
 
-      # 公開したあとで、内容が変わったページを検索エンジン（Bing など）に知らせる（IndexNow）。選んだ回だけ送る。失敗しても公開には影響しない
+      # ここから下は、公開に失敗しても動かす（失敗を Issue で知らせるため）
       - uses: actions/checkout@v7
-        if: github.event_name != 'push'
+        if: always()
         with:
           ref: main
 
       - uses: actions/setup-node@v7
-        if: github.event_name != 'push'
+        if: always()
         with:
           node-version: 22
 
+      # 公開したあとで、内容が変わったページを検索エンジン（Bing など）に知らせる（IndexNow）。選んだ回だけ送る。失敗しても公開には影響しない
       - name: 検索エンジンに更新を知らせる（IndexNow）
-        if: github.event_name != 'push'
+        if: github.event_name != 'push' && steps.deployment.outcome == 'success'
         continue-on-error: true
         run: node scripts/indexnow.mjs send
+
+      # 公開の失敗と、IndexNow の設定の誤りを Issue で知らせる（直ったら自動で閉じる）
+      - name: 公開の結果を知らせる
+        if: always()
+        run: node scripts/notify.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_STATUS: ${{ steps.deployment.outcome }}

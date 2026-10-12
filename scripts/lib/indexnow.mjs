@@ -51,6 +51,27 @@ export function payload({ base, key, urls }) {
   return { host: new URL(base).host, key, keyLocation: `${base}/${key}.txt`, urlList: urls };
 }
 
+/** 設定を直さないと続けて失敗する応答（形式・キー・URL の誤り）。429（送りすぎ）や通信の失敗は、次の日にまた送るだけ */
+export const isConfigError = (status) => [400, 403, 422].includes(status);
+
+/** 設定の誤りで送れなかったときの Issue */
+export function indexNowIssue(status, detail, base, key) {
+  return {
+    title: `【要確認】検索エンジンへの通知（IndexNow）が受け付けられませんでした（HTTP ${status}）`,
+    body: [
+      `内容が変わったページを Bing などに知らせる IndexNow で、「${statusText(status)}」と返されました。設定を直すまで、毎日の通知は受け付けられません（サイトの表示や Google には影響しません）。`,
+      '',
+      `- 応答：HTTP ${status} ${detail || ''}`.trim(),
+      `- キーのファイル：${base}/${key}.txt`,
+      '',
+      '### やること',
+      `1. 上のキーのファイルを開いて、\`${key}\` と表示されるか確認します。表示されないときは、\`config/site.json\` の \`indexNowKey\` の書き方を確認します。`,
+      '2. 表示されるのに続くときは、この Issue を Claude に見せて「直して」と頼んでください。止めたいときは `indexNowKey` を空（`""`）にします。',
+      '3. 次に受け付けられると、この Issue は自動で閉じます。',
+    ].join('\n'),
+  };
+}
+
 /** 応答コードの意味（IndexNow の説明より） */
 export function statusText(status) {
   return ({

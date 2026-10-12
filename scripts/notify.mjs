@@ -36,6 +36,25 @@ if (process.env.JOB_STATUS === 'failure') {
   clear(alerts, 'run-failed');
 }
 
+// 公開（GitHub Pages への deploy）の結果。公開のジョブの最後に DEPLOY_STATUS を付けて呼ぶ
+if (process.env.DEPLOY_STATUS === 'failure') {
+  raise(alerts, 'deploy-failed', '【要確認】サイトの公開（GitHub Pages）に失敗しました', [
+    'データの取得とページの生成はできましたが、GitHub Pages への公開で失敗しました。公開中のサイトは、前回の公開のまま表示されています。',
+    '',
+    runUrl ? `- 実行の記録：${runUrl}` : null,
+    '',
+    '### やること',
+    '1. 上の「実行の記録」を開き、「deploy」の赤い × の手順でエラーの内容を見ます。',
+    '2. 「Settings → Pages」の **Source** が「GitHub Actions」のままか確認します。',
+    '3. GitHub 側の一時的な不具合のことも多く、次の更新で公開できると、この Issue は自動で閉じます（[GitHub の稼働状況](https://www.githubstatus.com/) で Pages や Actions の障害も確認できます）。',
+    '',
+    '### 直し方が分からないとき',
+    'エラーの内容と、この Issue の題名をそのままコピーして、Claude に「これを直して」と頼んでください。',
+  ].filter((x) => x !== null).join('\n'));
+} else if (process.env.DEPLOY_STATUS === 'success') {
+  clear(alerts, 'deploy-failed');
+}
+
 const summary = [];
 const log = (s) => { summary.push(s); console.log(s); };
 

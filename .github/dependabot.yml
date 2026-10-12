@@ -1,0 +1,14 @@
+# GitHub Actions の部品（actions/checkout など）に新しい版が出たら、更新のプルリクエストを自動で作ります（月1回まで・1つにまとめる）。
+# プルリクエストに「変更の確認」の緑のチェック（✓）が付いていれば、そのままマージしてかまいません。
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns:
+          - '*'
+    commit-message:
+      prefix: GitHub Actions の部品を更新

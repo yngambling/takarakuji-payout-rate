@@ -203,7 +203,7 @@
       "affiliate": false
     }
   },
-  "_jumboDefault": "games に書いていないジャンボ宝くじ（公式発表から自動で登録したものなど）の購入先です。",
+  "_jumboDefault": "ジャンボ宝くじの購入先です（games に書かなくても、すべてのジャンボに使います。ジャンボごとに変えたいときだけ、games に同じIDで書きます）。",
   "jumboDefault": [
     {
       "shop": "takarakuji"
@@ -340,30 +340,6 @@
       {
         "shop": "smbc",
         "url": "https://www.smbc.co.jp/kojin/takarakuji/numbers/numbers3.html"
-      }
-    ],
-    "halloween2026": [
-      {
-        "shop": "takarakuji"
-      },
-      {
-        "shop": "mizuho"
-      }
-    ],
-    "halloweenmini2026": [
-      {
-        "shop": "takarakuji"
-      },
-      {
-        "shop": "mizuho"
-      }
-    ],
-    "nenmatsu2026": [
-      {
-        "shop": "takarakuji"
-      },
-      {
-        "shop": "mizuho"
       }
     ],
     "megabig": [
