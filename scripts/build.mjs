@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 import { jstParts, weekdayOf, verificationCode } from './lib/util.mjs';
 import { resolveGames, computeAll } from './lib/model.mjs';
 import { createRenderer } from './lib/render.mjs';
+import { validKey, contentHash, trackPages } from './lib/indexnow.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const P = (...a) => path.join(ROOT, ...a);
@@ -89,11 +90,24 @@ for (const f of ['style.css', 'favicon.svg', 'og.png', 'apple-touch-icon.png']) 
 }
 
 const base = String(site.baseUrl || '').replace(/\/$/, '');
+// ページごとに「内容が最後に変わった日時」を記録する（sitemap.xml の lastmod と、検索エンジンへの通知 IndexNow に使う）
+const nowIso = `${now.iso}T${String(now.hh).padStart(2, '0')}:${String(now.mm).padStart(2, '0')}+09:00`;
+const pagesState = await readJson('data/pages.json', { pages: {} });
+const tracked = trackPages(pagesState.pages || {}, pages.filter((p) => p.path !== '404.html').map((p) => ({ path: p.path, hash: contentHash(p.html) })), nowIso);
+if (RECORD) {
+  await writeFile(P('data/pages.json'), JSON.stringify({
+    _note: 'ページごとの内容のハッシュと、内容が最後に変わった日時（build.mjs が更新）。sitemap.xml の lastmod と、検索エンジンへの通知（scripts/indexnow.mjs）に使います。',
+    pages: tracked,
+  }, null, 1) + '\n', 'utf8');
+}
+const indexNowKey = String(site.indexNowKey || '').trim();
 if (!PREVIEW) {
-  const urls = pages.filter((p) => p.path !== '404.html').map((p) => `${base}/${p.path === 'index.html' ? '' : p.path}`);
+  const urls = pages.filter((p) => p.path !== '404.html').map((p) => ({ loc: `${base}/${p.path === 'index.html' ? '' : p.path}`, lastmod: String(tracked[p.path]?.changed || now.iso).slice(0, 10) }));
   await writeFile(path.join(OUT, 'sitemap.xml'),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `<url><loc>${u}</loc><lastmod>${now.iso}</lastmod></url>`).join('\n')}\n</urlset>\n`, 'utf8');
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `<url><loc>${u.loc}</loc><lastmod>${u.lastmod}</lastmod></url>`).join('\n')}\n</urlset>\n`, 'utf8');
   await writeFile(path.join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${base}/sitemap.xml\n`, 'utf8');
+  // IndexNow のキーのファイル（検索エンジンが、このサイトの持ち主からの通知か確かめるのに使う）
+  if (validKey(indexNowKey)) await writeFile(path.join(OUT, `${indexNowKey}.txt`), indexNowKey, 'utf8');
   const client = site.adsense?.client || '';
   if (/^ca-pub-\d+$/.test(client)) {
     await writeFile(path.join(OUT, 'ads.txt'), `google.com, ${client.replace('ca-', '')}, DIRECT, f08c47fec0942fa0\n`, 'utf8');
@@ -107,4 +121,6 @@ for (const r of listed) {
 }
 if (base.includes('example.com')) console.log('※ config/site.json の baseUrl がまだ example.com です。公開する前に自分のURLに変えてください。');
 if (verification) console.log('Google Search Console の確認タグ：全ページに入れました');
+if (validKey(indexNowKey)) console.log(`IndexNow のキーのファイル：${indexNowKey}.txt を置きました`);
+else if (indexNowKey) console.log('::warning::config/site.json の indexNowKey の形式が正しくありません（英数字とハイフンで8〜128文字）');
 else if (gsvPasted) console.log('::warning::config/google-site-verification.txt から確認コードを読み取れませんでした。Search Console の「HTML タグ」をそのまま貼り付けてください。');

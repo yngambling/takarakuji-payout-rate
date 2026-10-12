@@ -17,7 +17,7 @@
 ## フォルダ
 
 ```
-config/site.json      サイト名・URL・連絡先・AdSense・GA4 の設定
+config/site.json      サイト名・URL・連絡先・AdSense・GA4・IndexNow のキーの設定
 config/links.json     購入場所（shops）・登録や口座開設の申し込み先（signups）・くじごとのリンク。アフィリエイトに差し替える場所
 config/points.json    購入場所ごとのポイント還元率と出典（ポイント還元ランキングとポイント込みの計算に使う）
 config/watch.json     毎日変化をチェックする公式ページの一覧（ポイント・支払い方法・購入場所・ジャンボの発売予定）
@@ -28,12 +28,15 @@ data/log.json         「最近の結果」の記録（fetch.mjs が追記）
 data/history.json     日ごとの還元率（build.mjs が記録）
 data/overrides.json   自動取得が壊れたときに手で値を入れる場所・BIG777 の判定を手で直す場所
 data/watch.json       公式ページの前の日の内容と、最後に見張った日（watch.mjs が更新。変化を見つけるために使う）
+data/pages.json       ページごとの内容のハッシュと、内容が最後に変わった日時（build.mjs が更新。sitemap.xml の lastmod と IndexNow に使う）
+data/indexnow.json    検索エンジン（IndexNow）に知らせるページの記録（indexnow.mjs が更新）
 data/catalog.json     「宝くじ一覧」の説明文
 data/guides.json      くじ別ページの解説（特徴と還元率）とよくある質問
 scripts/fetch.mjs     公式サイトからデータを取得（過去1年分も少しずつさかのぼって集める）
 scripts/build.mjs     dist/ にサイトを生成
 scripts/watch.mjs     公式ページの変化と、ジャンボの登録漏れなどをチェック（1日1回）
 scripts/notify.mjs    確認が必要なことを GitHub の Issue にしてお知らせ（直ったら自動で閉じる）
+scripts/indexnow.mjs  内容が変わったページを、Bing などの検索エンジンに知らせる（IndexNow・1日1回）
 scripts/test.mjs      パーサー・還元率・リンク設定・ページの確認
 static/               CSS・アイコン・OGP画像
 ```
@@ -180,6 +183,19 @@ Google のポリシーでは、オンラインで宝くじを買えるページ�
 6. 左のメニューの「サイトマップ」を開き、「新しいサイトマップの追加」に `https://takarakuji-kangen.com/sitemap.xml` と入れて「送信」を押します。
 
 `robots.txt`（`https://takarakuji-kangen.com/robots.txt`）にもサイトマップの場所を書いているので、Google 以外の検索エンジンもサイトマップを見つけられます。`config/google-site-verification.txt` のタグは、独自ドメインに移る前に `github.io` の URL で登録したときのものです。残しておいても問題ありません。
+
+サイトマップの `lastmod`（最終更新日）は、ページの本文が実際に変わった日です（`data/pages.json` に記録。更新時刻やサイドバーだけの違いは数えません）。「このサイトについて」のように変わらないページは、古い日付のままになります。
+
+Bing Webmaster Tools には、Search Console からの取り込みで登録しています（2026年10月12日）。
+
+### 検索エンジン（Bing など）に更新を知らせる（IndexNow）
+
+IndexNow は、内容が変わったページを検索エンジンにすぐ知らせる仕組みです。送ると、Bing・Yandex・Naver・Seznam など IndexNow に参加している検索エンジンに共有されます（Google は参加していないので、Google は今までどおりサイトマップで見つけます）。
+
+- **送るタイミング**：1日1回、日本時間の朝6時以降の最初の更新（ふだんは7:47）で、前の日に送ったあとで本文が変わったページだけを選び、公開が終わってから送ります（`scripts/indexnow.mjs`）。同じページを1日に何度も送らないため、IndexNow の推奨に沿っています。
+- **キー**：`config/site.json` の `indexNowKey`（英数字32文字）です。サイトの一番上に `キー.txt` というファイルを自動で置き、検索エンジンはそれでこのサイトからの通知だと確かめます。キーは公開される前提のもので、秘密にする必要はありません。
+- **結果の確認**：Actions の実行結果（Summary）の「検索エンジンへの通知（IndexNow）」に、送った件数と結果が出ます。Bing Webmaster Tools の「IndexNow」でも、受け取ったURLを確認できます。
+- **止めたいとき**：`indexNowKey` を空（`""`）にします。キーを変えたいときは、新しい英数字32文字に書き換えます（古いキーのファイルは次の公開で消えます）。
 
 ### サイトに取り入れたアフィリエイトサイトの作り方
 
