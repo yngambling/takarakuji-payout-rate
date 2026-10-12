@@ -60,11 +60,13 @@ jobs:
           BACKFILL_PER_RUN: ${{ vars.BACKFILL_PER_RUN }}
 
       # 1日1回だけ（日本時間の朝6時以降の最初の更新）。同じ日の2回目からは watch.mjs が何もしないで終わる
+      # 新しいジャンボ宝くじの自動登録もここで行う（GITHUB_TOKEN は、運営者が閉じた Issue＝確認済みを読むため）
       - name: 公式ページの変化をチェック（1日1回）
         if: github.event_name != 'push'
         run: node scripts/watch.mjs
         env:
           WATCH_FORCE: ${{ inputs.watch }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 計算の確認
         run: node scripts/test.mjs

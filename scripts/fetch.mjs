@@ -17,6 +17,7 @@ import {
 import { jstParts, yenJa, sleep } from './lib/util.mjs';
 import { NAMES, resultEntry } from './lib/logtext.mjs';
 import { raise, clear, saveAlerts, HOW_TO_FIX } from './lib/alerts.mjs';
+import { sportsLabels } from './lib/products.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const P = (...a) => path.join(ROOT, ...a);
@@ -190,10 +191,15 @@ const sane = (r) => r && r.sales > 1e5 && r.sales < 5e10 && r.tiers?.length >= 3
 async function updateSports(kind) {
   const S = SPORTS[kind];
   for (const id of S.ids) (state.games[id] ??= {}).results ??= [];
+  // 公式ページに出てくるくじの名前（知らない新しいくじが出たら、毎朝の見張り（watch.mjs）が知らせる）
+  const labels = new Set();
+  const noteLabels = (html) => { for (const l of sportsLabels(html, kind)) labels.add(l); };
 
   // 1) 販売中の回
   try {
-    const info = S.parseInfo(await get(S.info, `${kind}-info.html`));
+    const infoHtml = await get(S.info, `${kind}-info.html`);
+    noteLabels(infoHtml);
+    const info = S.parseInfo(infoHtml);
     const got = Object.keys(info);
     if (!got.length) throw new Error('くじ情報ページから販売中の回を読み取れませんでした');
     for (const id of S.ids) {
@@ -232,7 +238,9 @@ async function updateSports(kind) {
       const round = parseInt(hid, 10);
       const known = S.ids.some((id) => state.games[id].results.some((r) => r.round === round));
       if (known && hid !== ids[0]) continue; // 確定済みの古い回は取り直さない（最新回だけは毎回確認）
-      const res = S.parseResult(await get(S.detail(hid), `${kind}-result-${hid}.html`));
+      const resHtml = await get(S.detail(hid), `${kind}-result-${hid}.html`);
+      noteLabels(resHtml);
+      const res = S.parseResult(resHtml);
       for (const [id, r] of Object.entries(res)) {
         if (!S.ids.includes(id) || !sane(r)) continue;
         const list = state.games[id].results;
@@ -290,6 +298,8 @@ async function updateSports(kind) {
     warn(`${S.label} くじ結果の取得に失敗: ${e.message || e}`);
     fetchFailed(`${kind}-result`, `${S.label}のくじ結果（スポーツくじオフィシャルサイトの「くじ結果」）`, String(e.message || e));
   }
+  // 名前を読めた回だけ記録を新しくする（取得に失敗した回は、前の記録を残す）
+  if (labels.size) (state.products ??= {})[kind] = { at: nowIso, labels: [...labels] };
 }
 
 /* ---------------------------------- 実行 ---------------------------------- */

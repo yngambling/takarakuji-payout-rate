@@ -203,6 +203,15 @@
       "affiliate": false
     }
   },
+  "_jumboDefault": "games に書いていないジャンボ宝くじ（公式発表から自動で登録したものなど）の購入先です。",
+  "jumboDefault": [
+    {
+      "shop": "takarakuji"
+    },
+    {
+      "shop": "mizuho"
+    }
+  ],
   "games": {
     "loto6": [
       {
