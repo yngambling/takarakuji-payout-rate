@@ -278,7 +278,14 @@ t('くじ別ページの解説とよくある質問（data/guides.json）', () =
   for (const [id, g] of Object.entries(guides.games || {})) {
     assert.ok(defs[id], `data/guides.json の ${id} が data/games.json にありません`);
     assert.match(g.checkedOn || '', /^\d{4}-\d{2}-\d{2}$/, `${id} の checkedOn（確認日）`);
-    assert.ok((g.about || []).length >= 1 && g.about.every((p) => typeof p === 'string' && p.length >= 20), `${id} の about（段落）`);
+    assert.ok((g.about || []).length >= 1, `${id} の about（解説）`);
+    for (const a of g.about) {
+      const item = typeof a === 'string' ? { text: a } : a;
+      assert.ok(typeof item.text === 'string' && item.text.replace(/\*\*/g, '').length >= 20, `${id} の about の text（20字以上）`);
+      assert.ok(!item.type || ['rules', 'rate', 'odds', 'buy'].includes(item.type), `${id} の about の type は rules・rate・odds・buy のどれか（${item.type}）`);
+      assert.ok(!item.key || item.key.length <= 20, `${id} の about の key（要点）は20字まで：${item.key}`);
+      assert.equal((item.text.match(/\*\*/g) || []).length % 2, 0, `${id} の about の ** が閉じていません`);
+    }
     for (const f of g.faq || []) assert.ok(/？$/.test(f.q || '') && (f.a || '').length >= 20, `${id} の faq（質問は「？」で終わる・答えは20字以上）`);
     assert.ok((g.sources || []).length >= 1 && g.sources.every((s) => s.title && /^https:\/\//.test(s.url)), `${id} の sources（出典）`);
     const text = JSON.stringify(g);
@@ -292,14 +299,21 @@ t('くじ別ページの解説とよくある質問（data/guides.json）', () =
     preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
   };
   const sample = {
-    checkedOn: '2026-10-12', about: ['ビンゴ5は、ビンゴのようにラインをそろえる数字選択式の宝くじです。'],
+    checkedOn: '2026-10-12',
+    about: [
+      { type: 'rules', key: '毎週水曜・1口200円', text: 'ビンゴ5は、**ビンゴのようにラインをそろえる**数字選択式の宝くじです。' },
+      '見出しのない段落も書けます（<b>のような記号は文字のまま出ます）。',
+    ],
     faq: [{ q: 'ビンゴ5の還元率は回によって変わりますか？', a: 'ほとんど変わりません。キャリーオーバーがないためです。' }],
     sources: [{ title: '見本', url: 'https://example.org/bingo5' }, { title: 'みずほ銀行「ビンゴ5」', url: defs.bingo5.sources[0].url }],
   };
   const b5 = rowsT.find((r) => r.id === 'bingo5');
   const html = createRenderer({ ...ctxG, guides: { games: { bingo5: sample } } }).game(b5).html;
   assert.ok(html.includes('<a href="#about">ビンゴ5の特徴と還元率</a>') && html.includes('<a href="#faq">ビンゴ5のよくある質問</a>'), '目次');
-  assert.ok(html.includes('<h2 id="about">ビンゴ5の特徴と還元率</h2>\n<p>ビンゴ5は、ビンゴのようにラインをそろえる数字選択式の宝くじです。</p>'), '解説の段落');
+  assert.ok(html.includes('<h2 id="about">ビンゴ5の特徴と還元率</h2>\n<div class="guide">'), '解説のカード');
+  assert.ok(html.includes('<section class="gd-card gd-rules"><div class="gd-head"><span class="gd-ic" aria-hidden="true"><svg'), '色とアイコン');
+  assert.ok(html.includes('<h3>遊び方</h3><span class="gd-key">毎週水曜・1口200円</span></div><p>ビンゴ5は、<strong class="marker">ビンゴのようにラインをそろえる</strong>数字選択式の宝くじです。</p></section>'), '見出し・要点・マーカー');
+  assert.ok(html.includes('<section class="gd-card"><p>見出しのない段落も書けます（&lt;b&gt;のような記号は文字のまま出ます）。</p></section>'), '見出しのない段落・HTML は無効');
   assert.ok(html.indexOf('id="about"') < html.indexOf('id="buy"'), '解説は購入場所の前');
   assert.ok(html.includes('2026年10月12日（月）に公式の発表で確認'), '確認日');
   assert.ok(html.includes('<dt>ビンゴ5の還元率は回によって変わりますか？</dt>'), 'よくある質問');
@@ -315,7 +329,7 @@ t('くじ別ページの解説とよくある質問（data/guides.json）', () =
     const r = rowsT.find((x) => x.id === id);
     if (!r || r.def.model === 'none') continue;
     const h = rg.game(r).html;
-    assert.ok(h.includes(`<h2 id="about">`) && !/NaN|undefined/.test(h.replace(/<script[\s\S]*?<\/script>/g, '')), `${id} のページ`);
+    assert.ok(h.includes(`<h2 id="about">`) && h.includes('<div class="guide">') && !h.includes('**') && !/NaN|undefined/.test(h.replace(/<script[\s\S]*?<\/script>/g, '')), `${id} のページ`);
   }
 });
 

@@ -365,6 +365,27 @@ export function createRenderer(ctx) {
     return `<dl class="faq">${items.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join('')}</dl>`;
   }
 
+  /** くじ別ページの解説（data/guides.json の about）。話題ごとのカードにして、ラベル・要点・マーカーで拾い読みしやすくする */
+  const svgIc = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const GUIDE_TYPES = {
+    rules: { label: '遊び方', icon: svgIc('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>') },
+    rate: { label: '還元率', icon: svgIc('<circle cx="7" cy="7" r="2.6"/><circle cx="17" cy="17" r="2.6"/><path d="M19 5 5 19"/>') },
+    odds: { label: '当たりやすさ', icon: svgIc('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>') },
+    buy: { label: '買える場所', icon: svgIc('<path d="M3 4h2.2l2.4 11.2h10.9L21 8H6.4"/><circle cx="10" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>') },
+  };
+  // **…** の部分を、黄色いマーカーの太字にする（ほかの記号は文字のまま）
+  const richText = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong class="marker">$1</strong>');
+  function guideCards(about) {
+    return `<div class="guide">
+${about.map((a) => {
+    const ty = GUIDE_TYPES[a.type] || {};
+    const label = a.label || ty.label;
+    const head = label ? `<div class="gd-head">${ty.icon ? `<span class="gd-ic" aria-hidden="true">${ty.icon}</span>` : ''}<h3>${esc(label)}</h3>${a.key ? `<span class="gd-key">${esc(a.key)}</span>` : ''}</div>` : '';
+    return `<section class="gd-card${GUIDE_TYPES[a.type] ? ` gd-${a.type}` : ''}">${head}<p>${richText(a.text)}</p></section>`;
+  }).join('\n')}
+</div>`;
+  }
+
   function faqLd(items) {
     return { '@context': 'https://schema.org', '@type': 'FAQPage', mainEntity: items.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })) };
   }
@@ -871,7 +892,7 @@ ${trs}
     const showTrend = r.status.kind !== 'upcoming' && ev.computable;
     // くじごとの解説とよくある質問（data/guides.json。書いてあるくじだけ出す）
     const gd = guides[r.id] || {};
-    const about = (gd.about || []).filter((p) => typeof p === 'string' && p.trim());
+    const about = (gd.about || []).map((a) => (typeof a === 'string' ? { text: a } : a)).filter((a) => typeof a?.text === 'string' && a.text.trim());
     const faq = (gd.faq || []).filter((x) => x?.q && x?.a).map((x) => [x.q, x.a]);
     const sources = [...(d.sources || []), ...(gd.sources || [])].filter((s, i, a) => s?.url && a.findIndex((x) => x.url === s.url) === i);
     const sections = [];
@@ -923,7 +944,7 @@ ${share(path, `${d.name}の還元率は${ev.computable ? pct(r.rate) : '—'}（
 ${toc(sections)}
 ${ad('top')}
 ${about.length ? `<h2 id="about">${esc(d.name)}の特徴と還元率</h2>
-${about.map((p) => `<p>${esc(p)}</p>`).join('\n')}
+${guideCards(about)}
 ${gd.checkedOn ? `<p class="note">※しくみと数値は、${fmtYmd(gd.checkedOn)}に公式の発表で確認したものです。</p>` : ''}` : ''}
 <h2 id="buy">${esc(d.name)}の購入場所</h2>
 ${shopList}

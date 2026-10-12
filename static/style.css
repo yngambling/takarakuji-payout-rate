@@ -386,6 +386,21 @@ table.t { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 
 .faq dt::before { content: "Q"; background: var(--red); }
 .faq dd::before { content: "A"; background: var(--blue); top: 6px; }
 
+/* くじ別ページの解説（特徴と還元率）：話題ごとのカード。色・アイコン・要点・マーカーで拾い読みしやすく */
+.guide { display: grid; gap: 14px; margin: 0 0 12px; }
+.gd-card { --c: var(--red); --c-soft: var(--red-soft); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 8px; padding: 12px 18px 16px; background: var(--white); box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
+.gd-rules { --c: var(--navy); --c-soft: #eef1f7; }
+.gd-rate { --c: var(--red); --c-soft: var(--red-soft); }
+.gd-odds { --c: #9a6a00; --c-soft: var(--gold-soft); border-top-color: var(--gold); }
+.gd-buy { --c: var(--green-dk); --c-soft: var(--green-soft); }
+.gd-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 8px; }
+.gd-ic { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--c-soft); color: var(--c); }
+.gd-ic svg { width: 19px; height: 19px; }
+.gd-card h3 { margin: 0; padding: 0; border: 0; font-size: 18px; line-height: 1.4; color: var(--c); }
+.gd-key { margin-left: auto; padding: 3px 12px; border-radius: 999px; background: var(--c-soft); color: var(--c); font-size: 14px; font-weight: 700; line-height: 1.6; }
+.gd-card p { margin: 0; line-height: 1.95; }
+.gd-card .marker { font-weight: 700; }
+
 /* 関連リンク */
 .related { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
 .related a { display: flex; justify-content: space-between; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; text-decoration: none; color: var(--ink); font-weight: 700; font-size: 14.5px; transition: border-color .2s, color .2s, transform .2s var(--ease); }
@@ -510,6 +525,7 @@ table.t { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 
   .score-grid { grid-template-columns: 1fr; }
   .score-grid > div:nth-child(odd) { border-right: 0; }
   .scroll-hint { display: block; }
+  .gd-card { padding: 10px 14px 14px; }
   .kv { grid-template-columns: 1fr; gap: 0; }
   .kv dd { margin-bottom: 8px; }
   .shops li { grid-template-columns: 1fr; }
