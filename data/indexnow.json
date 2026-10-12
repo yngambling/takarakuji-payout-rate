@@ -1,8 +1,8 @@
 {
  "_note": "検索エンジン（IndexNow）に知らせるページの記録（scripts/indexnow.mjs が毎日書く）。plannedAt より後に内容が変わったページを、次の日に送ります。",
- "lastRun": "2026-10-12",
- "plannedAt": "2026-10-12T12:47+09:00",
- "run": "38201122855",
+ "lastRun": "2026-10-13",
+ "plannedAt": "2026-10-13T06:28+09:00",
+ "run": "38310457297",
  "urls": [
   "https://takarakuji-kangen.com/",
   "https://takarakuji-kangen.com/kuji/loto6.html",
@@ -23,11 +23,8 @@
   "https://takarakuji-kangen.com/kuji/dunk6a.html",
   "https://takarakuji-kangen.com/kuji/dunk6b.html",
   "https://takarakuji-kangen.com/point.html",
-  "https://takarakuji-kangen.com/ichiran.html",
   "https://takarakuji-kangen.com/keisan.html",
-  "https://takarakuji-kangen.com/kaikata.html",
   "https://takarakuji-kangen.com/suii.html",
-  "https://takarakuji-kangen.com/about.html",
-  "https://takarakuji-kangen.com/privacy.html"
+  "https://takarakuji-kangen.com/about.html"
  ]
 }
