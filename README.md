@@ -27,7 +27,7 @@ data/state.json       自動取得したキャリーオーバー・販売額（f
 data/log.json         「最近の結果」の記録（fetch.mjs が追記）
 data/history.json     日ごとの還元率（build.mjs が記録）
 data/overrides.json   自動取得が壊れたときに手で値を入れる場所・BIG777 の判定を手で直す場所
-data/watch.json       公式ページの前の日の内容（watch.mjs が更新。変化を見つけるために使う）
+data/watch.json       公式ページの前の日の内容と、最後に見張った日（watch.mjs が更新。変化を見つけるために使う）
 data/catalog.json     「宝くじ一覧」の説明文
 scripts/fetch.mjs     公式サイトからデータを取得（過去1年分も少しずつさかのぼって集める）
 scripts/build.mjs     dist/ にサイトを生成
@@ -54,9 +54,44 @@ static/               CSS・アイコン・OGP画像
 4. 実行結果のページ（Summary）に、取得できたキャリーオーバーなどが一覧で出ます。⚠ が出ていたら下の「取得に失敗したとき」を見てください。
 5. 通知を受け取れるようにします（下の「問題が起きたときのお知らせ」）。
 
-以後は日本時間の 7:07・12:07・19:47・21:37・23:47 に自動で更新されます（GitHub の都合で数分〜数十分遅れることがあります）。
+以後は日本時間の 7:47・12:47・19:47・21:47・23:47 に自動で更新されます。ただし GitHub の予約だけだと数時間遅れることがあるので、下の「定時更新を時刻どおりに動かす（外部タイマー）」も設定してください。
 
 公開した直後は、くじ別ページの「過去1年」のグラフが短い線になります。毎回の更新で公式データを少しずつ（1回に最大12件）さかのぼって集めるので、数日で1年分そろいます。急ぐときは、リポジトリの **Settings → Secrets and variables → Actions → Variables** で `BACKFILL_PER_RUN` という変数を作り、40 などの大きな数を入れます。
+
+#### 定時更新を時刻どおりに動かす（外部タイマー）
+
+2026年8月ごろから、GitHub の予約実行（schedule）は数時間遅れたり、抜けたりすることがあります（GitHub 側の不具合で、手動の実行はすぐ動きます）。そこで、無料の外部サービス **cron-job.org** から、決まった時刻に GitHub へ「実行して」と頼みます。Actions タブで「Run workflow」を押すのと同じ仕組みです。GitHub の予約も、外部タイマーが止まったときの予備として同じ時刻に残しています。
+
+**1. GitHub でトークン（合い鍵）を作る**
+
+1. [トークンの作成画面（入力済み）](https://github.com/settings/personal-access-tokens/new?name=cron-job.org+takarakuji+update&description=Run+update.yml+from+cron-job.org&expires_in=366&actions=write) を開きます。名前・期限（366日）・権限（Actions の Read and write）が入った状態で開きます。
+2. **Repository access** で **Only select repositories** を選び、**Select repositories** で `takarakuji-payout-rate` を選びます。
+3. **Permissions** に **Actions**（Read and write）と **Metadata**（Read-only）だけがあることを確認します。
+4. 一番下の **Generate token** を押し、表示された `github_pat_` で始まる文字列をコピーします（画面を閉じると二度と表示されません。分からなくなったら作り直します）。
+
+このトークンでできるのは、このリポジトリの自動更新（Actions）の操作だけです。コードやサイトの中身は書き換えられません。
+
+**2. cron-job.org に予約を作る**
+
+1. [cron-job.org の登録ページ](https://console.cron-job.org/signup) で、First name・Last name・Email address・Password・Password (repeat) を入れ、2つの同意（Terms of Service・Privacy Policy）にチェックして **CREATE ACCOUNT** を押します。届いたメールのリンクで有効にしてから、[ログインページ](https://console.cron-job.org/login) で **SIGN IN** します。
+2. 左のメニューの **Cronjobs** を開き、**CREATE CRONJOB** を押します（メニューが閉じているときは、左上の ☰ を押すと開きます）。
+3. **COMMON** タブの **Title** に `宝くじ還元率の定時更新` と入れます。**URL** 欄にはじめから入っている `http://` を消し、次の1行をそのまま貼り付けます（`YOUR_TOKEN` はこの時点ではそのまま）。
+
+   ```
+   47 7,12,19,21,23 * * * curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer YOUR_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" -H "Content-Type: application/json" -d '{"ref":"main"}' https://api.github.com/repos/yngambling/takarakuji-payout-rate/actions/workflows/update.yml/dispatches
+   ```
+
+   「This looks like a crontab line」と出たら、**IMPORT COMMAND** を押します。画面の下に「Imported: URL, request method, 4 headers, request body, execution schedule.」と出れば、URL・送り方（POST）・ヘッダー4つ・本文・実行時刻がまとめて入っています。
+4. **ADVANCED** タブを開きます。
+   - **Headers** の `Authorization` の **Value** を消し、`Bearer `（Bearer と半角スペース）に続けて、1でコピーしたトークンを貼り付けます。
+   - **Time zone** が `Asia/Tokyo` になっていることを確認します（違っていたら選び直します）。
+   - **Request method** が `POST`、**Request body** が `{"ref":"main"}` になっていることを確認します。
+5. **NOTIFICATIONS** タブで、**execution of the cronjob fails**・**execution of the cronjob succeeds after it failed before**・**the cronjob will be disabled because of too many failures** の3つをオンにします。失敗したとき（トークンの期限切れなど）にメールが届きます。
+6. **COMMON** タブに戻り、**Execution schedule** の下に次の実行予定が5つ（「12:47 PM」「7:47 PM」のように午前・午後で表示。7:47・12:47・19:47・21:47・23:47 のどれか）と、「In this job's individual timezone (Asia/Tokyo).」が出ていることを確認します。
+7. 下の **TEST RUN** → **START TEST RUN** を押します。結果に **204** と出れば成功で、GitHub の Actions タブに「workflow_dispatch」の実行が1つ増えます（401・403・404 と出たら、トークンの貼り付け、トークンで選んだリポジトリ、URL のどれかが違っています）。
+8. **CREATE** を押して保存します。
+
+**トークンの期限（1年）が近づいたら**：GitHub からメールが届きます。上の1と同じ手順で新しいトークンを作り、cron-job.org の **Cronjobs** でこのジョブの **EDIT** を押し、**ADVANCED** タブの `Authorization` を `Bearer 新しいトークン` に書き換えて **SAVE** を押します。古いトークンは GitHub の **Settings → Developer settings → Personal access tokens → Fine-grained tokens** で削除します。期限が切れたままでも、更新は GitHub の予約（遅れることがある）で続きます。
 
 ### 3. 自分の情報に書き換える
 
@@ -170,10 +205,12 @@ Google のポリシーでは、オンラインで宝くじを買えるページ�
 | 毎回（1日5回） | 公式サイトからの取得の失敗（ロト6・ロト7・BIG系・DUNK） | 次に取得できたら Issue を自動で閉じる |
 | 毎回（1日5回） | ロトの結果が長く入ってこない（取得はできているのに更新が止まっている） | 新しい結果が入ったら自動で閉じる |
 | 毎回（1日5回） | 自動更新そのものが途中で止まった | 次の更新が成功したら自動で閉じる |
-| 毎朝（7:07の回） | ポイント・支払い方法・購入場所・ジャンボの発売予定が書かれた公式ページ（12ページ）の内容の変化 | 確認して閉じる（必要ならファイルを直す） |
-| 毎朝（7:07の回） | 公式ページを3日続けて開けない（URLが変わった可能性） | 開けるようになったら自動で閉じる |
-| 毎朝（7:07の回） | 次のジャンボ宝くじが未登録・報道ベースの賞金表の発売が30日以内・ポイントの確認から90日 | 登録・確認すると自動で閉じる |
-| 毎朝（7:07の回） | 今月の BIG777 の回（月に1回のお知らせ）・BIG777 の回を判定できなかった月・BIG777 の判定が実際の当せん金と合わなかった回 | お知らせは BIG777 の週が終わって1週間で自動で閉じる。確認のお願いは確認して閉じる |
+| 毎朝（朝6時以降の最初の更新。ふだんは7:47） | ポイント・支払い方法・購入場所・ジャンボの発売予定が書かれた公式ページ（12ページ）の内容の変化 | 確認して閉じる（必要ならファイルを直す） |
+| 毎朝（同上） | 公式ページを3日続けて開けない（URLが変わった可能性） | 開けるようになったら自動で閉じる |
+| 毎朝（同上） | 次のジャンボ宝くじが未登録・報道ベースの賞金表の発売が30日以内・ポイントの確認から90日 | 登録・確認すると自動で閉じる |
+| 毎朝（同上） | 今月の BIG777 の回（月に1回のお知らせ）・BIG777 の回を判定できなかった月・BIG777 の判定が実際の当せん金と合わなかった回 | お知らせは BIG777 の週が終わって1週間で自動で閉じる。確認のお願いは確認して閉じる |
+
+公式ページの見張りは1日1回だけです（同じ日の2回目からの更新では行いません）。今すぐ見張りもやり直したいときは、Actions タブの「Run workflow」で「公式ページの見張りも今すぐ行う」にチェックを入れてから実行します。外部タイマー（cron-job.org）からの呼び出しが失敗したときは、cron-job.org からメールが届きます。
 
 同じ問題が続いても、Issue は1つだけです（毎回メールが届くことはありません）。
 

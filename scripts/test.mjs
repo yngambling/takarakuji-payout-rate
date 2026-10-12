@@ -297,7 +297,24 @@ t('404ページ（存在しない深い階層のURLでも、CSSとリンクが�
 
 /* ---------- 公式ページの見張り・お知らせ ---------- */
 
-const { extractLines, diffLines, scheduleChecks, changeIssue, specialChecks } = await import('./lib/watchlib.mjs');
+const { extractLines, diffLines, scheduleChecks, changeIssue, specialChecks, watchGate } = await import('./lib/watchlib.mjs');
+
+t('公式ページの見張りは1日1回（朝6時以降の最初の更新）', () => {
+  const today = '2026-10-12';
+  assert.equal(watchGate({ today, hh: 7, lastRun: '2026-10-11' }).run, true, '今日まだなら行う');
+  assert.equal(watchGate({ today, hh: 6, lastRun: undefined }).run, true, '記録がなければ行う');
+  assert.equal(watchGate({ today, hh: 12, lastRun: today }).run, false, '今日はもう済んだ（外部のタイマーと GitHub の予約が両方動いても1回）');
+  assert.equal(watchGate({ today, hh: 4, lastRun: '2026-10-11' }).run, false, '朝6時より前（前の晩の遅れた更新）は行わない');
+  assert.equal(watchGate({ today, hh: 23, lastRun: today, force: true }).run, true, '手動で選んだときは何回でも行う');
+  assert.match(watchGate({ today, hh: 12, lastRun: today }).reason, /済んでいます/);
+  // ワークフロー：見張りは push 以外の毎回呼び、1日1回かどうかは watch.mjs が決める。最新の main から始める
+  const wf = readFileSync(path.join(ROOT, '.github/workflows/update.yml'), 'utf8');
+  assert.ok(wf.includes("if: github.event_name != 'push'\n        run: node scripts/watch.mjs"), '見張りの手順の条件');
+  assert.ok(wf.includes('WATCH_FORCE: ${{ inputs.watch }}'), '手動の「見張りも今すぐ行う」');
+  assert.ok(/uses: actions\/checkout@v\d+\n\s+with:\n\s+ref: main/.test(wf), 'checkout は最新の main');
+  const crons = [...wf.matchAll(/cron: '(\d+) (\d+) \* \* \*'/g)].map((m) => `${(+m[2] + 9) % 24}:${m[1].padStart(2, '0')}`);
+  assert.deepEqual(crons, ['7:47', '12:47', '19:47', '21:47', '23:47'], '予備の予約は外部のタイマーと同じ時刻（日本時間）');
+});
 
 t('見張る行の取り出し（日付・残り日数は無視）', () => {
   const html = '<div><p>購入額の1%のポイントが貯まります（2026年10月10日更新）</p><p>楽天カードで払うとさらに1%</p><p>関係ない文章</p><p>ポイントの使い方</p><p>あと3日で終了：ポイント2倍</p></div>';

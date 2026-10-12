@@ -37,6 +37,21 @@ export function diffLines(before = [], after = []) {
   return { removed: before.filter((l) => !a.has(l)), added: after.filter((l) => !b.has(l)) };
 }
 
+/**
+ * 今回の実行で見張りを行うかどうか。
+ * 自動更新は外部のタイマー（cron-job.org）と GitHub の予約の両方から1日に何回も動くので、
+ * 見張りは1日1回だけ、日本時間の朝6時以降の最初の更新で行う（「3日続けて開けない」を日数で数えるため）。
+ *   lastRun … 前に見張りをした日（data/watch.json の lastRun）
+ *   force   … 手動の実行で「公式ページの見張りも今すぐ行う」を選んだとき
+ */
+export const WATCH_FROM_HOUR = 6;
+export function watchGate({ today, hh, lastRun = null, force = false }) {
+  if (force) return { run: true, reason: '手動の指定により、公式ページの見張りを行います' };
+  if (lastRun && lastRun >= today) return { run: false, reason: `今日（${today}）の公式ページの見張りは済んでいます（1日1回）` };
+  if (hh < WATCH_FROM_HOUR) return { run: false, reason: `日本時間の${WATCH_FROM_HOUR}時より前なので、公式ページの見張りは${WATCH_FROM_HOUR}時以降の最初の更新で行います` };
+  return { run: true, reason: '' };
+}
+
 const KIND_TEXT = { point: 'ポイントの率', pay: '支払い方法', shop: '購入場所', jumbo: 'ジャンボ宝くじの発売' };
 
 export function changeIssue(page, before, after, today) {

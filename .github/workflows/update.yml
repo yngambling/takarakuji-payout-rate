@@ -1,14 +1,22 @@
 name: 還元率を更新して公開
 
 on:
+  # ふだんは外部のタイマー（cron-job.org）が、日本時間の 7:47・12:47・19:47・21:47・23:47 に
+  # 「workflow_dispatch」でこのワークフローを動かします（README「定時更新を時刻どおりに動かす」）。
+  # 2026年8月ごろから GitHub の予約（schedule）は数時間遅れたり抜けたりするため、下の予約は予備です。
   schedule:
-    # 時刻は UTC（日本時間 = UTC+9）。GitHub の都合で数分〜数十分遅れることがあります。
-    - cron: '7 22 * * *'   # 07:07 朝の更新
-    - cron: '7 3 * * *'    # 12:07 昼（BIG・DUNKの販売回の切り替わり）
+    # 時刻は UTC（日本時間 = UTC+9）
+    - cron: '47 22 * * *'  # 07:47 朝の更新（公式ページの見張りもこの回で行う）
+    - cron: '47 3 * * *'   # 12:47 昼（BIG・DUNKの販売回の切り替わり）
     - cron: '47 10 * * *'  # 19:47 ロト・ナンバーズの抽せん（18:45）のあと
-    - cron: '37 12 * * *'  # 21:37 取りこぼしの再取得
+    - cron: '47 12 * * *'  # 21:47 取りこぼしの再取得
     - cron: '47 14 * * *'  # 23:47 BIG・DUNKの結果発表のあと
   workflow_dispatch:
+    inputs:
+      watch:
+        description: '公式ページの見張りも今すぐ行う（ふだんは朝6時以降の最初の更新で1日1回だけ行います）'
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths-ignore:
@@ -33,7 +41,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      # 外部のタイマーと GitHub の予約の実行が続いても、いつも最新の main から始める（前の回のデータの保存と食い違わないように）
       - uses: actions/checkout@v7
+        with:
+          ref: main
 
       - uses: actions/setup-node@v7
         with:
@@ -46,9 +57,12 @@ jobs:
           # 過去1年分を1回に何件さかのぼるか（空なら12件）。リポジトリの変数 BACKFILL_PER_RUN で変えられます
           BACKFILL_PER_RUN: ${{ vars.BACKFILL_PER_RUN }}
 
-      - name: 公式ページの変化をチェック（朝の1回だけ）
-        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '7 22 * * *'
+      # 1日1回だけ（日本時間の朝6時以降の最初の更新）。同じ日の2回目からは watch.mjs が何もしないで終わる
+      - name: 公式ページの変化をチェック（1日1回）
+        if: github.event_name != 'push'
         run: node scripts/watch.mjs
+        env:
+          WATCH_FORCE: ${{ inputs.watch }}
 
       - name: 計算の確認
         run: node scripts/test.mjs
