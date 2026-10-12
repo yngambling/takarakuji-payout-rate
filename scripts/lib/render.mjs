@@ -945,7 +945,7 @@ ${toc(sections)}
 ${ad('top')}
 ${about.length ? `<h2 id="about">${esc(d.name)}の特徴と還元率</h2>
 ${guideCards(about)}
-${gd.checkedOn ? `<p class="note">※しくみと数値は、${fmtYmd(gd.checkedOn)}に公式の発表で確認したものです。</p>` : ''}` : ''}
+${gd.note ? `<p class="note">${esc(gd.note)}</p>` : gd.checkedOn ? `<p class="note">※しくみと数値は、${fmtYmd(gd.checkedOn)}に公式の発表で確認したものです。</p>` : ''}` : ''}
 <h2 id="buy">${esc(d.name)}の購入場所</h2>
 ${shopList}
 ${ev.computable ? `<h2 id="tiers">等級ごとの当せん金と確率</h2>
