@@ -404,6 +404,47 @@ t('日付から分かるお願い（次のジャンボ・賞金表の確認・�
   assert.equal(k['points-recheck'], 'raise', '確認から90日');
 });
 
+/* ---------- 検索エンジンへの通知（IndexNow） ---------- */
+
+const ix = await import('./lib/indexnow.mjs');
+
+t('IndexNow（内容が変わったページだけを1日1回知らせる）', () => {
+  const page = (main, time = '07:47', side = 'TOP5') => `<title>T</title><main id="main"><p class="updated"><span>最終更新：2026年10月12日（月） ${time}</span></p>${main}<p>出典（10/12 ${time}取得）</p></main><aside>${side}</aside>`;
+  assert.equal(ix.contentHash(page('A')), ix.contentHash(page('A', '12:47', 'TOP5が変わった')), '更新時刻やサイドバーだけの違いは、内容が変わったとみなさない');
+  assert.notEqual(ix.contentHash(page('A')), ix.contentHash(page('B')), '本文が変わったら別の内容');
+  const t1 = ix.trackPages({}, [{ path: 'index.html', hash: 'a' }, { path: 'about.html', hash: 'x' }, { path: 'old.html', hash: 'o' }], '2026-10-12T07:47+09:00');
+  const t2 = ix.trackPages(t1, [{ path: 'index.html', hash: 'b' }, { path: 'about.html', hash: 'x' }], '2026-10-13T07:47+09:00');
+  assert.equal(t2['index.html'].changed, '2026-10-13T07:47+09:00', '変わったページは日時を今に');
+  assert.equal(t2['about.html'].changed, '2026-10-12T07:47+09:00', '変わっていないページは日時をそのまま');
+  assert.ok(!t2['old.html'], 'なくなったページは記録から消す');
+  assert.deepEqual(ix.changedSince(t2, '2026-10-12T07:47+09:00'), ['index.html'], '前回選んだあとに変わったページだけ送る');
+  assert.deepEqual(ix.changedSince(t2, null).sort(), ['about.html', 'index.html'], '初めては全部');
+  assert.equal(ix.dueToday({ today: '2026-10-13', hh: 7, lastRun: '2026-10-12' }).due, true, '朝の最初の更新で選ぶ');
+  assert.equal(ix.dueToday({ today: '2026-10-13', hh: 12, lastRun: '2026-10-13' }).due, false, '1日1回');
+  assert.equal(ix.dueToday({ today: '2026-10-13', hh: 4, lastRun: '2026-10-12' }).due, false, '朝6時より前（前の晩の遅れた更新）は選ばない');
+  assert.equal(ix.dueToday({ today: '2026-10-13', hh: 23, lastRun: '2026-10-13', force: true }).due, true, '手動の指定');
+  assert.deepEqual(ix.payload({ base: 'https://takarakuji-kangen.com', key: 'abcdef12', urls: ['https://takarakuji-kangen.com/'] }),
+    { host: 'takarakuji-kangen.com', key: 'abcdef12', keyLocation: 'https://takarakuji-kangen.com/abcdef12.txt', urlList: ['https://takarakuji-kangen.com/'] });
+  assert.equal(ix.pageUrl('https://takarakuji-kangen.com', 'index.html'), 'https://takarakuji-kangen.com/');
+  assert.equal(ix.pageUrl('https://takarakuji-kangen.com', 'kuji/big.html'), 'https://takarakuji-kangen.com/kuji/big.html');
+  assert.ok(ix.validKey('47c9e6fd734f2d6f986c6345f4d447b4') && !ix.validKey('short') && !ix.validKey('has space 1234'), 'キーの形式');
+  const siteConf = JSON.parse(readFileSync(path.join(ROOT, 'config/site.json'), 'utf8'));
+  assert.ok(!siteConf.indexNowKey || ix.validKey(siteConf.indexNowKey), 'config/site.json の indexNowKey は、空か英数字とハイフンで8〜128文字');
+  // 本物のページ：同じ日に時刻だけ違う更新では、内容が変わったとみなさない（1日に何度も送らないため）
+  const at2 = (s) => ({ ...at(s), y: 2026 });
+  const ctxH = (now) => createRenderer({
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {}, startedOn: '2026-10-10' },
+    links, points, rows: computeAll(defs, state, now, {}), byId: {}, log: [], history: { days: {} },
+    catalog: { order: [], items: {} }, now, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])),
+    preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
+  });
+  for (const id of ['bingo5', 'loto6']) {
+    const h = (s) => { const now = at2(s); const rr = computeAll(defs, state, now, {}); return ix.contentHash(ctxH(now).game(rr.find((r) => r.id === id)).html); };
+    assert.equal(h('2026-10-10T10:07'), h('2026-10-10T10:47'), `${id}：時刻だけ違う更新`);
+  }
+  assert.equal(ix.contentHash(ctxH(at2('2026-10-10T10:07')).about().html), ix.contentHash(ctxH(at2('2026-10-11T10:07')).about().html), '「このサイトについて」は日が変わっても同じ内容');
+});
+
 /* ---------- Google Search Console の確認タグ ---------- */
 
 const { verificationCode } = await import('./lib/util.mjs');

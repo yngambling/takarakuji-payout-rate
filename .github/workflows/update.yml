@@ -24,6 +24,8 @@ on:
       - 'data/history.json'
       - 'data/log.json'
       - 'data/watch.json'
+      - 'data/pages.json'
+      - 'data/indexnow.json'
       - 'README.md'
 
 permissions:
@@ -70,6 +72,11 @@ jobs:
       - name: サイトを生成
         run: node scripts/build.mjs
 
+      # 検索エンジン（Bing など）に知らせるページを選ぶ（1日1回。朝6時以降の最初の更新で、内容が変わったページだけ）。送るのは公開のあと
+      - name: 検索エンジンへの通知を準備（IndexNow）
+        if: github.event_name != 'push'
+        run: node scripts/indexnow.mjs plan
+
       - name: 取得したデータをリポジトリに保存
         run: |
           git config user.name "github-actions[bot]"
@@ -108,3 +115,19 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v5
+
+      # 公開したあとで、内容が変わったページを検索エンジン（Bing など）に知らせる（IndexNow）。選んだ回だけ送る。失敗しても公開には影響しない
+      - uses: actions/checkout@v7
+        if: github.event_name != 'push'
+        with:
+          ref: main
+
+      - uses: actions/setup-node@v7
+        if: github.event_name != 'push'
+        with:
+          node-version: 22
+
+      - name: 検索エンジンに更新を知らせる（IndexNow）
+        if: github.event_name != 'push'
+        continue-on-error: true
+        run: node scripts/indexnow.mjs send
