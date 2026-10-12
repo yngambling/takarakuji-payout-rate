@@ -51,6 +51,7 @@ export function createRenderer(ctx) {
   const coList = listed.filter((r) => r.hasCO && r.carryover > 0).sort((a, b) => b.carryover - a.carryover);
   const hasContact = !!(site.contactFormUrl || site.contactEmail);
   const overrides = ctx.overrides || {};
+  const guides = ctx.guides?.games || {}; // くじ別ページの解説とよくある質問（data/guides.json）
   const shops = links.shops || {};
   const signups = links.signups || {};
 
@@ -362,6 +363,27 @@ export function createRenderer(ctx) {
 
   function faqHtml(items) {
     return `<dl class="faq">${items.map(([q, a]) => `<dt>${esc(q)}</dt><dd>${esc(a)}</dd>`).join('')}</dl>`;
+  }
+
+  /** くじ別ページの解説（data/guides.json の about）。話題ごとのカードにして、ラベル・要点・マーカーで拾い読みしやすくする */
+  const svgIc = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const GUIDE_TYPES = {
+    rules: { label: '遊び方', icon: svgIc('<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/>') },
+    rate: { label: '還元率', icon: svgIc('<circle cx="7" cy="7" r="2.6"/><circle cx="17" cy="17" r="2.6"/><path d="M19 5 5 19"/>') },
+    odds: { label: '当たりやすさ', icon: svgIc('<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>') },
+    buy: { label: '買える場所', icon: svgIc('<path d="M3 4h2.2l2.4 11.2h10.9L21 8H6.4"/><circle cx="10" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>') },
+  };
+  // **…** の部分を、黄色いマーカーの太字にする（ほかの記号は文字のまま）
+  const richText = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong class="marker">$1</strong>');
+  function guideCards(about) {
+    return `<div class="guide">
+${about.map((a) => {
+    const ty = GUIDE_TYPES[a.type] || {};
+    const label = a.label || ty.label;
+    const head = label ? `<div class="gd-head">${ty.icon ? `<span class="gd-ic" aria-hidden="true">${ty.icon}</span>` : ''}<h3>${esc(label)}</h3>${a.key ? `<span class="gd-key">${esc(a.key)}</span>` : ''}</div>` : '';
+    return `<section class="gd-card${GUIDE_TYPES[a.type] ? ` gd-${a.type}` : ''}">${head}<p>${richText(a.text)}</p></section>`;
+  }).join('\n')}
+</div>`;
   }
 
   function faqLd(items) {
@@ -868,10 +890,18 @@ ${trs}
     const coHtml = coTableHtml(r);
     const br = ev.computable ? bestRoute(r.id) : null;
     const showTrend = r.status.kind !== 'upcoming' && ev.computable;
-    const sections = [['buy', `${d.name}の購入場所`], ['tiers', '等級ごとの当せん金と確率']];
+    // くじごとの解説とよくある質問（data/guides.json。書いてあるくじだけ出す）
+    const gd = guides[r.id] || {};
+    const about = (gd.about || []).map((a) => (typeof a === 'string' ? { text: a } : a)).filter((a) => typeof a?.text === 'string' && a.text.trim());
+    const faq = (gd.faq || []).filter((x) => x?.q && x?.a).map((x) => [x.q, x.a]);
+    const sources = [...(d.sources || []), ...(gd.sources || [])].filter((s, i, a) => s?.url && a.findIndex((x) => x.url === s.url) === i);
+    const sections = [];
+    if (about.length) sections.push(['about', `${d.name}の特徴と還元率`]);
+    sections.push(['buy', `${d.name}の購入場所`], ['tiers', '等級ごとの当せん金と確率']);
     if (coHtml) sections.push(['co', 'キャリーオーバーの額ごとの還元率']);
     if (recent) sections.push(['recent', '最近の結果']);
     if (showTrend) sections.push(['trend', '還元率の推移（過去1年）']);
+    if (faq.length) sections.push(['faq', `${d.name}のよくある質問`]);
     sections.push(['data', 'くわしいデータ'], ['rules', 'ルールと注意']);
 
     const tiles = [];
@@ -913,6 +943,9 @@ ${ctaBox(r.id, r)}
 ${share(path, `${d.name}の還元率は${ev.computable ? pct(r.rate) : '—'}（${fmtMdPlain(now.iso)}時点）`)}
 ${toc(sections)}
 ${ad('top')}
+${about.length ? `<h2 id="about">${esc(d.name)}の特徴と還元率</h2>
+${guideCards(about)}
+${gd.note ? `<p class="note">${esc(gd.note)}</p>` : gd.checkedOn ? `<p class="note">※しくみと数値は、${fmtYmd(gd.checkedOn)}に公式の発表で確認したものです。</p>` : ''}` : ''}
 <h2 id="buy">${esc(d.name)}の購入場所</h2>
 ${shopList}
 ${ev.computable ? `<h2 id="tiers">等級ごとの当せん金と確率</h2>
@@ -929,6 +962,8 @@ ${ad('middle')}
 ${coHtml}
 ${recent ? `<h2 id="recent">最近の結果</h2>${recent}` : ''}
 ${showTrend ? `<h2 id="trend">還元率の推移（過去1年）</h2>${chartCard(rel, r, series, { days: 365, big: true })}${series.some((p) => p.calc) ? '<p class="note">※サイトで記録を始める前の期間は、公式の販売実績額と繰越額から計算し直した値です。</p>' : ''}` : ''}
+${faq.length ? `<h2 id="faq">${esc(d.name)}のよくある質問</h2>
+${faqHtml(faq)}` : ''}
 <h2 id="data">くわしいデータ</h2>
 <dl class="kv">
 ${kv.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('\n')}
@@ -938,7 +973,7 @@ ${kv.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('\n')}
 ${st.error || st.infoError ? `<p class="note">直近の自動取得でエラーがありました（${esc(st.error || st.infoError)}）。表示しているのは前回までに取得できた値です。</p>` : ''}
 <h3>出典</h3>
 <ul class="note">
-${(d.sources || []).map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a></li>`).join('\n')}
+${sources.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a></li>`).join('\n')}
 ${st.source ? `<li>${esc(st.source)}（${fetched}取得）</li>` : ''}
 </ul>
 ${ctaBox(r.id)}
@@ -952,7 +987,7 @@ ${related(rel, r.id)}
       : `${d.name}のしくみと購入場所。`;
     return {
       path,
-      html: layout({ path, title, description: desc, body, jsonld: [breadcrumbLd(path, d.name)], scripts: showTrend ? CHART_JS : '', stickyHtml: ev.computable && r.listed ? sticky(r) : '' }),
+      html: layout({ path, title, description: desc, body, jsonld: [breadcrumbLd(path, d.name), ...(faq.length ? [faqLd(faq)] : [])], scripts: showTrend ? CHART_JS : '', stickyHtml: ev.computable && r.listed ? sticky(r) : '' }),
     };
   }
 

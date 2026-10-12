@@ -46,6 +46,8 @@ const history = await readJson('data/history.json', { days: {} });
 history.days ??= {};
 const overrides = await readJson('data/overrides.json', { games: {} });
 const catalog = await readJson('data/catalog.json');
+// くじ別ページの解説とよくある質問（ファイルがなければ出さない。書き方の誤りは止めて知らせる）
+const guides = existsSync(P('data/guides.json')) ? await readJson('data/guides.json') : { games: {} };
 const css = await readFile(P('static/style.css'), 'utf8');
 // Google Search Console の確認コード（config/google-site-verification.txt に貼ったタグから取り出す。なければ空）
 const gsvText = existsSync(P('config/google-site-verification.txt')) ? await readFile(P('config/google-site-verification.txt'), 'utf8') : '';
@@ -69,7 +71,7 @@ if (RECORD) {
 }
 
 const render = createRenderer({
-  site, links, points, rows, byId, log, history, catalog, now, state, defs, order, overrides, verification,
+  site, links, points, rows, byId, log, history, catalog, guides, now, state, defs, order, overrides, verification,
   preview: PREVIEW, placeholders: PLACEHOLDERS || PREVIEW, inlineCss: PREVIEW, css,
   cssVersion: createHash('md5').update(css).digest('hex').slice(0, 8),
 });
