@@ -1,6 +1,6 @@
 {
  "_note": "scripts/fetch.mjs が公式サイトから自動で更新します。取得に失敗した項目は前回の値が残り、error に理由が入ります。",
- "updatedAt": "2026-10-12T04:10:00+09:00",
+ "updatedAt": "2026-10-12T09:59:00+09:00",
  "games": {
   "loto7": {
    "draws": [
@@ -535,7 +535,7 @@
      "complete": true
     }
    ],
-   "fetchedAt": "2026-10-12T04:10:00+09:00",
+   "fetchedAt": "2026-10-12T09:59:00+09:00",
    "source": "みずほ銀行 当せん番号データ（CSV）"
   },
   "loto6": {
@@ -1001,7 +1001,7 @@
      "complete": true
     }
    ],
-   "fetchedAt": "2026-10-12T04:10:00+09:00",
+   "fetchedAt": "2026-10-12T09:59:00+09:00",
    "source": "みずほ銀行 当せん番号データ（CSV）"
   },
   "big": {
@@ -1012,11 +1012,11 @@
     "salesEnd": "2026-10-13",
     "salesEndTime": "19:00",
     "resultDate": "2026-10-15",
-    "salesSoFar": 230350800,
+    "salesSoFar": 322254600,
     "carryoverIn": 4607319900,
-    "firstPool": 4699460220,
-    "asOf": "2026-10-12T04:10:00+09:00",
-    "fetchedAt": "2026-10-12T04:10:00+09:00"
+    "firstPool": 4736221740,
+    "asOf": "2026-10-12T09:59:00+09:00",
+    "fetchedAt": "2026-10-12T09:59:00+09:00"
    },
    "results": [
     {
@@ -3469,9 +3469,439 @@
       }
      ],
      "carryoverOut": 5199675960
+    },
+    {
+     "round": 1595,
+     "salesStart": "2025-12-09",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-13",
+     "salesEndTime": null,
+     "resultDate": "2025-12-15",
+     "sales": 762210300,
+     "units": 2540701,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 700077000,
+       "winners": 1
+      },
+      {
+       "tier": 2,
+       "prize": 1404060,
+       "winners": 19
+      },
+      {
+       "tier": 3,
+       "prize": 41190,
+       "winners": 185
+      },
+      {
+       "tier": 4,
+       "prize": 7290,
+       "winners": 1568
+      },
+      {
+       "tier": 5,
+       "prize": 1320,
+       "winners": 8539
+      },
+      {
+       "tier": 6,
+       "prize": 540,
+       "winners": 34350
+      }
+     ],
+     "carryoverOut": 4838294520
+    },
+    {
+     "round": 1594,
+     "salesStart": "2025-12-06",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-09",
+     "salesEndTime": null,
+     "resultDate": "2025-12-10",
+     "sales": 611190000,
+     "units": 2037300,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 2139150,
+       "winners": 10
+      },
+      {
+       "tier": 3,
+       "prize": 43020,
+       "winners": 142
+      },
+      {
+       "tier": 4,
+       "prize": 7590,
+       "winners": 1207
+      },
+      {
+       "tier": 5,
+       "prize": 1320,
+       "winners": 6893
+      },
+      {
+       "tier": 6,
+       "prize": 540,
+       "winners": 27289
+      }
+     ],
+     "carryoverOut": 5233487400
+    },
+    {
+     "round": 1593,
+     "salesStart": "2025-11-29",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-06",
+     "salesEndTime": null,
+     "resultDate": "2025-12-07",
+     "sales": 897018900,
+     "units": 2990063,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 1652400,
+       "winners": 19
+      },
+      {
+       "tier": 3,
+       "prize": 45510,
+       "winners": 197
+      },
+      {
+       "tier": 4,
+       "prize": 7320,
+       "winners": 1833
+      },
+      {
+       "tier": 5,
+       "prize": 1320,
+       "winners": 10004
+      },
+      {
+       "tier": 6,
+       "prize": 540,
+       "winners": 40815
+      }
+     ],
+     "carryoverOut": 4989011400
+    },
+    {
+     "round": 1591,
+     "salesStart": "2025-11-25",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-29",
+     "salesEndTime": null,
+     "resultDate": "2025-11-30",
+     "sales": 699338100,
+     "units": 2331127,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 2225160,
+       "winners": 11
+      },
+      {
+       "tier": 3,
+       "prize": 38610,
+       "winners": 181
+      },
+      {
+       "tier": 4,
+       "prize": 7260,
+       "winners": 1443
+      },
+      {
+       "tier": 5,
+       "prize": 1350,
+       "winners": 7759
+      },
+      {
+       "tier": 6,
+       "prize": 540,
+       "winners": 31109
+      }
+     ],
+     "carryoverOut": 4630203840
+    },
+    {
+     "round": 1590,
+     "salesStart": "2025-11-22",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-25",
+     "salesEndTime": null,
+     "resultDate": "2025-11-26",
+     "sales": 508428000,
+     "units": 1694760,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 600000000,
+       "winners": 1
+      },
+      {
+       "tier": 2,
+       "prize": 2542140,
+       "winners": 7
+      },
+      {
+       "tier": 3,
+       "prize": 40020,
+       "winners": 127
+      },
+      {
+       "tier": 4,
+       "prize": 7140,
+       "winners": 1064
+      },
+      {
+       "tier": 5,
+       "prize": 1290,
+       "winners": 5807
+      },
+      {
+       "tier": 6,
+       "prize": 540,
+       "winners": 22659
+      }
+     ],
+     "carryoverOut": 4350468600
+    },
+    {
+     "round": 1589,
+     "salesStart": "2025-11-17",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-22",
+     "salesEndTime": null,
+     "resultDate": "2025-11-23",
+     "sales": 700178400,
+     "units": 2333928,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 1633740,
+       "winners": 15
+      },
+      {
+       "tier": 3,
+       "prize": 38880,
+       "winners": 180
+      },
+      {
+       "tier": 4,
+       "prize": 7500,
+       "winners": 1399
+      },
+      {
+       "tier": 5,
+       "prize": 1290,
+       "winners": 7978
+      },
+      {
+       "tier": 6,
+       "prize": 540,
+       "winners": 31200
+      }
+     ],
+     "carryoverOut": 4747097400
+    },
+    {
+     "round": 1588,
+     "salesStart": "2025-11-13",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-17",
+     "salesEndTime": null,
+     "resultDate": "2025-11-19",
+     "sales": 622408200,
+     "units": 2074694,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 600000000,
+       "winners": 1
+      },
+      {
+       "tier": 2,
+       "prize": 1556010,
+       "winners": 14
+      },
+      {
+       "tier": 3,
+       "prize": 33630,
+       "winners": 185
+      },
+      {
+       "tier": 4,
+       "prize": 7680,
+       "winners": 1214
+      },
+      {
+       "tier": 5,
+       "prize": 1320,
+       "winners": 6953
+      },
+      {
+       "tier": 6,
+       "prize": 540,
+       "winners": 28009
+      }
+     ],
+     "carryoverOut": 4467026040
+    },
+    {
+     "round": 1586,
+     "salesStart": "2025-11-08",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-13",
+     "salesEndTime": null,
+     "resultDate": "2025-11-15",
+     "sales": 672468300,
+     "units": 2241561,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 2942040,
+       "winners": 8
+      },
+      {
+       "tier": 3,
+       "prize": 40020,
+       "winners": 168
+      },
+      {
+       "tier": 4,
+       "prize": 7230,
+       "winners": 1393
+      },
+      {
+       "tier": 5,
+       "prize": 1320,
+       "winners": 7478
+      },
+      {
+       "tier": 6,
+       "prize": 540,
+       "winners": 30335
+      }
+     ],
+     "carryoverOut": 4818062760
+    },
+    {
+     "round": 1585,
+     "salesStart": "2025-11-04",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-08",
+     "salesEndTime": null,
+     "resultDate": "2025-11-09",
+     "sales": 741331500,
+     "units": 2471105,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 3243300,
+       "winners": 8
+      },
+      {
+       "tier": 3,
+       "prize": 38010,
+       "winners": 195
+      },
+      {
+       "tier": 4,
+       "prize": 7140,
+       "winners": 1555
+      },
+      {
+       "tier": 5,
+       "prize": 1350,
+       "winners": 8155
+      },
+      {
+       "tier": 6,
+       "prize": 540,
+       "winners": 33347
+      }
+     ],
+     "carryoverOut": 4549075440
+    },
+    {
+     "round": 1584,
+     "salesStart": "2025-11-01",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-04",
+     "salesEndTime": null,
+     "resultDate": "2025-11-05",
+     "sales": 557664000,
+     "units": 1858880,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 1501380,
+       "winners": 13
+      },
+      {
+       "tier": 3,
+       "prize": 39540,
+       "winners": 141
+      },
+      {
+       "tier": 4,
+       "prize": 7200,
+       "winners": 1161
+      },
+      {
+       "tier": 5,
+       "prize": 1320,
+       "winners": 6230
+      },
+      {
+       "tier": 6,
+       "prize": 540,
+       "winners": 24913
+      }
+     ],
+     "carryoverOut": 4252542840
     }
    ],
-   "fetchedAt": "2026-10-12T04:10:00+09:00",
+   "fetchedAt": "2026-10-12T09:59:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "megabig": {
@@ -3482,11 +3912,11 @@
     "salesEnd": "2026-10-13",
     "salesEndTime": "19:00",
     "resultDate": "2026-10-15",
-    "salesSoFar": 159495900,
+    "salesSoFar": 228668700,
     "carryoverIn": 8792691960,
-    "firstPool": 8848515525,
-    "asOf": "2026-10-12T04:10:00+09:00",
-    "fetchedAt": "2026-10-12T04:10:00+09:00"
+    "firstPool": 8872726005,
+    "asOf": "2026-10-12T09:59:00+09:00",
+    "fetchedAt": "2026-10-12T09:59:00+09:00"
    },
    "results": [
     {
@@ -5939,9 +6369,439 @@
       }
      ],
      "carryoverOut": 5201355270
+    },
+    {
+     "round": 1595,
+     "salesStart": "2025-12-09",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-13",
+     "salesEndTime": null,
+     "resultDate": "2025-12-15",
+     "sales": 508073700,
+     "units": 1693579,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 11855040,
+       "winners": 3
+      },
+      {
+       "tier": 3,
+       "prize": 81930,
+       "winners": 62
+      },
+      {
+       "tier": 4,
+       "prize": 12510,
+       "winners": 608
+      },
+      {
+       "tier": 5,
+       "prize": 3120,
+       "winners": 4070
+      },
+      {
+       "tier": 6,
+       "prize": 780,
+       "winners": 19522
+      }
+     ],
+     "carryoverOut": 4961484555
+    },
+    {
+     "round": 1594,
+     "salesStart": "2025-12-06",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-09",
+     "salesEndTime": null,
+     "resultDate": "2025-12-10",
+     "sales": 401081700,
+     "units": 1336939,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 9358560,
+       "winners": 3
+      },
+      {
+       "tier": 3,
+       "prize": 83550,
+       "winners": 48
+      },
+      {
+       "tier": 4,
+       "prize": 12870,
+       "winners": 467
+      },
+      {
+       "tier": 5,
+       "prize": 3120,
+       "winners": 3211
+      },
+      {
+       "tier": 6,
+       "prize": 780,
+       "winners": 15384
+      }
+     ],
+     "carryoverOut": 4783658760
+    },
+    {
+     "round": 1593,
+     "salesStart": "2025-11-29",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-06",
+     "salesEndTime": null,
+     "resultDate": "2025-12-07",
+     "sales": 671314800,
+     "units": 2237716,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 4699200,
+       "winners": 10
+      },
+      {
+       "tier": 3,
+       "prize": 93210,
+       "winners": 72
+      },
+      {
+       "tier": 4,
+       "prize": 12300,
+       "winners": 817
+      },
+      {
+       "tier": 5,
+       "prize": 3210,
+       "winners": 5214
+      },
+      {
+       "tier": 6,
+       "prize": 780,
+       "winners": 25801
+      }
+     ],
+     "carryoverOut": 4643280165
+    },
+    {
+     "round": 1591,
+     "salesStart": "2025-11-25",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-29",
+     "salesEndTime": null,
+     "resultDate": "2025-11-30",
+     "sales": 514269000,
+     "units": 1714230,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 17999400,
+       "winners": 2
+      },
+      {
+       "tier": 3,
+       "prize": 91830,
+       "winners": 56
+      },
+      {
+       "tier": 4,
+       "prize": 12450,
+       "winners": 619
+      },
+      {
+       "tier": 5,
+       "prize": 3090,
+       "winners": 4146
+      },
+      {
+       "tier": 6,
+       "prize": 780,
+       "winners": 19670
+      }
+     ],
+     "carryoverOut": 4408319985
+    },
+    {
+     "round": 1590,
+     "salesStart": "2025-11-22",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-25",
+     "salesEndTime": null,
+     "resultDate": "2025-11-26",
+     "sales": 362771700,
+     "units": 1209239,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 6348480,
+       "winners": 4
+      },
+      {
+       "tier": 3,
+       "prize": 103620,
+       "winners": 35
+      },
+      {
+       "tier": 4,
+       "prize": 11880,
+       "winners": 457
+      },
+      {
+       "tier": 5,
+       "prize": 3180,
+       "winners": 2836
+      },
+      {
+       "tier": 6,
+       "prize": 780,
+       "winners": 13926
+      }
+     ],
+     "carryoverOut": 4228325835
+    },
+    {
+     "round": 1589,
+     "salesStart": "2025-11-17",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-22",
+     "salesEndTime": null,
+     "resultDate": "2025-11-23",
+     "sales": 546769500,
+     "units": 1822565,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 1200000000,
+       "winners": 2
+      },
+      {
+       "tier": 2,
+       "prize": 9568440,
+       "winners": 4
+      },
+      {
+       "tier": 3,
+       "prize": 85410,
+       "winners": 64
+      },
+      {
+       "tier": 4,
+       "prize": 12180,
+       "winners": 673
+      },
+      {
+       "tier": 5,
+       "prize": 3240,
+       "winners": 4208
+      },
+      {
+       "tier": 6,
+       "prize": 780,
+       "winners": 20818
+      }
+     ],
+     "carryoverOut": 4101355740
+    },
+    {
+     "round": 1588,
+     "salesStart": "2025-11-13",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-17",
+     "salesEndTime": null,
+     "resultDate": "2025-11-19",
+     "sales": 469537800,
+     "units": 1565126,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 32867640,
+       "winners": 1
+      },
+      {
+       "tier": 3,
+       "prize": 93900,
+       "winners": 50
+      },
+      {
+       "tier": 4,
+       "prize": 12540,
+       "winners": 561
+      },
+      {
+       "tier": 5,
+       "prize": 3090,
+       "winners": 3793
+      },
+      {
+       "tier": 6,
+       "prize": 780,
+       "winners": 18003
+      }
+     ],
+     "carryoverOut": 6309986445
+    },
+    {
+     "round": 1586,
+     "salesStart": "2025-11-08",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-13",
+     "salesEndTime": null,
+     "resultDate": "2025-11-15",
+     "sales": 530271000,
+     "units": 1767570,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 9279720,
+       "winners": 4
+      },
+      {
+       "tier": 3,
+       "prize": 85500,
+       "winners": 62
+      },
+      {
+       "tier": 4,
+       "prize": 13350,
+       "winners": 595
+      },
+      {
+       "tier": 5,
+       "prize": 3090,
+       "winners": 4282
+      },
+      {
+       "tier": 6,
+       "prize": 780,
+       "winners": 20166
+      }
+     ],
+     "carryoverOut": 6145648215
+    },
+    {
+     "round": 1585,
+     "salesStart": "2025-11-04",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-08",
+     "salesEndTime": null,
+     "resultDate": "2025-11-09",
+     "sales": 535418700,
+     "units": 1784729,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 18739650,
+       "winners": 2
+      },
+      {
+       "tier": 3,
+       "prize": 69510,
+       "winners": 77
+      },
+      {
+       "tier": 4,
+       "prize": 13080,
+       "winners": 613
+      },
+      {
+       "tier": 5,
+       "prize": 3150,
+       "winners": 4216
+      },
+      {
+       "tier": 6,
+       "prize": 780,
+       "winners": 20323
+      }
+     ],
+     "carryoverOut": 5960053365
+    },
+    {
+     "round": 1584,
+     "salesStart": "2025-11-01",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-04",
+     "salesEndTime": null,
+     "resultDate": "2025-11-05",
+     "sales": 384924000,
+     "units": 1283080,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 13472340,
+       "winners": 2
+      },
+      {
+       "tier": 3,
+       "prize": 76980,
+       "winners": 50
+      },
+      {
+       "tier": 4,
+       "prize": 13350,
+       "winners": 432
+      },
+      {
+       "tier": 5,
+       "prize": 3120,
+       "winners": 3080
+      },
+      {
+       "tier": 6,
+       "prize": 780,
+       "winners": 14713
+      }
+     ],
+     "carryoverOut": 5772656820
     }
    ],
-   "fetchedAt": "2026-10-12T04:10:00+09:00",
+   "fetchedAt": "2026-10-12T09:59:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "big100": {
@@ -5952,11 +6812,11 @@
     "salesEnd": "2026-10-13",
     "salesEndTime": "19:00",
     "resultDate": "2026-10-15",
-    "salesSoFar": 90654900,
+    "salesSoFar": 136135000,
     "carryoverIn": 1719754140,
-    "firstPool": 1754203002,
-    "asOf": "2026-10-12T04:10:00+09:00",
-    "fetchedAt": "2026-10-12T04:10:00+09:00"
+    "firstPool": 1771485440,
+    "asOf": "2026-10-12T09:59:00+09:00",
+    "fetchedAt": "2026-10-12T09:59:00+09:00"
    },
    "results": [
     {
@@ -8124,9 +8984,389 @@
       }
      ],
      "carryoverOut": 10555370
+    },
+    {
+     "round": 1595,
+     "salesStart": "2025-12-09",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-13",
+     "salesEndTime": null,
+     "resultDate": "2025-12-15",
+     "sales": 251806000,
+     "units": 2518060,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 163791360,
+       "winners": 1
+      },
+      {
+       "tier": 2,
+       "prize": 599530,
+       "winners": 21
+      },
+      {
+       "tier": 3,
+       "prize": 32280,
+       "winners": 156
+      },
+      {
+       "tier": 4,
+       "prize": 3210,
+       "winners": 1565
+      },
+      {
+       "tier": 5,
+       "prize": 890,
+       "winners": 8473
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1594,
+     "salesStart": "2025-12-06",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-09",
+     "salesEndTime": null,
+     "resultDate": "2025-12-10",
+     "sales": 179223900,
+     "units": 1792239,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 814650,
+       "winners": 11
+      },
+      {
+       "tier": 3,
+       "prize": 21330,
+       "winners": 168
+      },
+      {
+       "tier": 4,
+       "prize": 3140,
+       "winners": 1138
+      },
+      {
+       "tier": 5,
+       "prize": 910,
+       "winners": 5894
+      }
+     ],
+     "carryoverOut": 68105082
+    },
+    {
+     "round": 1593,
+     "salesStart": "2025-11-29",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-06",
+     "salesEndTime": null,
+     "resultDate": "2025-12-07",
+     "sales": 291378000,
+     "units": 2913780,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 55361820,
+       "winners": 2
+      },
+      {
+       "tier": 2,
+       "prize": 766780,
+       "winners": 19
+      },
+      {
+       "tier": 3,
+       "prize": 27350,
+       "winners": 213
+      },
+      {
+       "tier": 4,
+       "prize": 3260,
+       "winners": 1783
+      },
+      {
+       "tier": 5,
+       "prize": 880,
+       "winners": 9855
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1591,
+     "salesStart": "2025-11-25",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-29",
+     "salesEndTime": null,
+     "resultDate": "2025-11-30",
+     "sales": 281703900,
+     "units": 2817039,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 154423810,
+       "winners": 2
+      },
+      {
+       "tier": 2,
+       "prize": 563400,
+       "winners": 25
+      },
+      {
+       "tier": 3,
+       "prize": 27340,
+       "winners": 206
+      },
+      {
+       "tier": 4,
+       "prize": 3320,
+       "winners": 1694
+      },
+      {
+       "tier": 5,
+       "prize": 880,
+       "winners": 9550
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1590,
+     "salesStart": "2025-11-22",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-25",
+     "salesEndTime": null,
+     "resultDate": "2025-11-26",
+     "sales": 210756300,
+     "units": 2107563,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 200000000,
+       "winners": 2
+      },
+      {
+       "tier": 2,
+       "prize": 658610,
+       "winners": 16
+      },
+      {
+       "tier": 3,
+       "prize": 25240,
+       "winners": 167
+      },
+      {
+       "tier": 4,
+       "prize": 3220,
+       "winners": 1307
+      },
+      {
+       "tier": 5,
+       "prize": 890,
+       "winners": 7071
+      }
+     ],
+     "carryoverOut": 201800140
+    },
+    {
+     "round": 1589,
+     "salesStart": "2025-11-17",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-22",
+     "salesEndTime": null,
+     "resultDate": "2025-11-23",
+     "sales": 302819500,
+     "units": 3028195,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 841160,
+       "winners": 18
+      },
+      {
+       "tier": 3,
+       "prize": 26680,
+       "winners": 227
+      },
+      {
+       "tier": 4,
+       "prize": 3160,
+       "winners": 1912
+      },
+      {
+       "tier": 5,
+       "prize": 890,
+       "winners": 10188
+      }
+     ],
+     "carryoverOut": 521712760
+    },
+    {
+     "round": 1588,
+     "salesStart": "2025-11-13",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-17",
+     "salesEndTime": null,
+     "resultDate": "2025-11-19",
+     "sales": 267193900,
+     "units": 2671939,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 200000000,
+       "winners": 1
+      },
+      {
+       "tier": 2,
+       "prize": 1335960,
+       "winners": 10
+      },
+      {
+       "tier": 3,
+       "prize": 23750,
+       "winners": 225
+      },
+      {
+       "tier": 4,
+       "prize": 3210,
+       "winners": 1663
+      },
+      {
+       "tier": 5,
+       "prize": 880,
+       "winners": 9030
+      }
+     ],
+     "carryoverOut": 406641350
+    },
+    {
+     "round": 1586,
+     "salesStart": "2025-11-08",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-13",
+     "salesEndTime": null,
+     "resultDate": "2025-11-15",
+     "sales": 285447000,
+     "units": 2854470,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 892020,
+       "winners": 16
+      },
+      {
+       "tier": 3,
+       "prize": 25710,
+       "winners": 222
+      },
+      {
+       "tier": 4,
+       "prize": 3390,
+       "winners": 1684
+      },
+      {
+       "tier": 5,
+       "prize": 880,
+       "winners": 9715
+      }
+     ],
+     "carryoverOut": 505107670
+    },
+    {
+     "round": 1585,
+     "salesStart": "2025-11-04",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-08",
+     "salesEndTime": null,
+     "resultDate": "2025-11-09",
+     "sales": 285199500,
+     "units": 2851995,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 891240,
+       "winners": 16
+      },
+      {
+       "tier": 3,
+       "prize": 25920,
+       "winners": 220
+      },
+      {
+       "tier": 4,
+       "prize": 3290,
+       "winners": 1730
+      },
+      {
+       "tier": 5,
+       "prize": 890,
+       "winners": 9534
+      }
+     ],
+     "carryoverOut": 396637810
+    },
+    {
+     "round": 1584,
+     "salesStart": "2025-11-01",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-04",
+     "salesEndTime": null,
+     "resultDate": "2025-11-05",
+     "sales": 215274000,
+     "units": 2152740,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 200000000,
+       "winners": 1
+      },
+      {
+       "tier": 2,
+       "prize": 768830,
+       "winners": 14
+      },
+      {
+       "tier": 3,
+       "prize": 27950,
+       "winners": 154
+      },
+      {
+       "tier": 4,
+       "prize": 3040,
+       "winners": 1414
+      },
+      {
+       "tier": 5,
+       "prize": 880,
+       "winners": 7312
+      }
+     ],
+     "carryoverOut": 288262000
     }
    ],
-   "fetchedAt": "2026-10-12T04:10:00+09:00",
+   "fetchedAt": "2026-10-12T09:59:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "big1000": {
@@ -8137,11 +9377,11 @@
     "salesEnd": "2026-10-13",
     "salesEndTime": "19:00",
     "resultDate": "2026-10-15",
-    "salesSoFar": 44364800,
+    "salesSoFar": 62203200,
     "carryoverIn": 0,
-    "firstPool": 13309440,
-    "asOf": "2026-10-12T04:10:00+09:00",
-    "fetchedAt": "2026-10-12T04:10:00+09:00"
+    "firstPool": 18660960,
+    "asOf": "2026-10-12T09:59:00+09:00",
+    "fetchedAt": "2026-10-12T09:59:00+09:00"
    },
    "results": [
     {
@@ -10024,9 +11264,339 @@
       }
      ],
      "carryoverOut": 0
+    },
+    {
+     "round": 1595,
+     "salesStart": "2025-12-09",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-13",
+     "salesEndTime": null,
+     "resultDate": "2025-12-15",
+     "sales": 123394800,
+     "units": 616974,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 18509220,
+       "winners": 2
+      },
+      {
+       "tier": 2,
+       "prize": 103980,
+       "winners": 89
+      },
+      {
+       "tier": 3,
+       "prize": 11480,
+       "winners": 806
+      },
+      {
+       "tier": 4,
+       "prize": 1340,
+       "winners": 4594
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1594,
+     "salesStart": "2025-12-06",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-09",
+     "salesEndTime": null,
+     "resultDate": "2025-12-10",
+     "sales": 99095200,
+     "units": 495476,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 29728560,
+       "winners": 1
+      },
+      {
+       "tier": 2,
+       "prize": 119860,
+       "winners": 62
+      },
+      {
+       "tier": 3,
+       "prize": 11980,
+       "winners": 620
+      },
+      {
+       "tier": 4,
+       "prize": 1300,
+       "winners": 3781
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1593,
+     "salesStart": "2025-11-29",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-06",
+     "salesEndTime": null,
+     "resultDate": "2025-12-07",
+     "sales": 159744200,
+     "units": 798721,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 4792320,
+       "winners": 10
+      },
+      {
+       "tier": 2,
+       "prize": 116300,
+       "winners": 103
+      },
+      {
+       "tier": 3,
+       "prize": 12400,
+       "winners": 965
+      },
+      {
+       "tier": 4,
+       "prize": 1300,
+       "winners": 6052
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1591,
+     "salesStart": "2025-11-25",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-29",
+     "salesEndTime": null,
+     "resultDate": "2025-11-30",
+     "sales": 122293200,
+     "units": 611466,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 6114660,
+       "winners": 6
+      },
+      {
+       "tier": 2,
+       "prize": 120680,
+       "winners": 76
+      },
+      {
+       "tier": 3,
+       "prize": 11740,
+       "winners": 780
+      },
+      {
+       "tier": 4,
+       "prize": 1300,
+       "winners": 4638
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1590,
+     "salesStart": "2025-11-22",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-25",
+     "salesEndTime": null,
+     "resultDate": "2025-11-26",
+     "sales": 90696600,
+     "units": 453483,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 9069660,
+       "winners": 3
+      },
+      {
+       "tier": 2,
+       "prize": 141700,
+       "winners": 48
+      },
+      {
+       "tier": 3,
+       "prize": 12700,
+       "winners": 535
+      },
+      {
+       "tier": 4,
+       "prize": 1320,
+       "winners": 3394
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1589,
+     "salesStart": "2025-11-17",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-22",
+     "salesEndTime": null,
+     "resultDate": "2025-11-23",
+     "sales": 124423400,
+     "units": 622117,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 12442340,
+       "winners": 3
+      },
+      {
+       "tier": 2,
+       "prize": 139260,
+       "winners": 67
+      },
+      {
+       "tier": 3,
+       "prize": 11700,
+       "winners": 797
+      },
+      {
+       "tier": 4,
+       "prize": 1340,
+       "winners": 4588
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1588,
+     "salesStart": "2025-11-13",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-17",
+     "salesEndTime": null,
+     "resultDate": "2025-11-19",
+     "sales": 111033400,
+     "units": 555167,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 8327500,
+       "winners": 4
+      },
+      {
+       "tier": 2,
+       "prize": 112520,
+       "winners": 74
+      },
+      {
+       "tier": 3,
+       "prize": 12560,
+       "winners": 663
+      },
+      {
+       "tier": 4,
+       "prize": 1300,
+       "winners": 4268
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1586,
+     "salesStart": "2025-11-08",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-13",
+     "salesEndTime": null,
+     "resultDate": "2025-11-15",
+     "sales": 119549400,
+     "units": 597747,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 35864820,
+       "winners": 1
+      },
+      {
+       "tier": 2,
+       "prize": 124520,
+       "winners": 72
+      },
+      {
+       "tier": 3,
+       "prize": 11900,
+       "winners": 753
+      },
+      {
+       "tier": 4,
+       "prize": 1320,
+       "winners": 4490
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1585,
+     "salesStart": "2025-11-04",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-08",
+     "salesEndTime": null,
+     "resultDate": "2025-11-09",
+     "sales": 121927000,
+     "units": 609635,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 18289040,
+       "winners": 2
+      },
+      {
+       "tier": 2,
+       "prize": 103900,
+       "winners": 88
+      },
+      {
+       "tier": 3,
+       "prize": 12220,
+       "winners": 748
+      },
+      {
+       "tier": 4,
+       "prize": 1300,
+       "winners": 4637
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1584,
+     "salesStart": "2025-11-01",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-04",
+     "salesEndTime": null,
+     "resultDate": "2025-11-05",
+     "sales": 96677000,
+     "units": 483385,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 7250760,
+       "winners": 4
+      },
+      {
+       "tier": 2,
+       "prize": 125000,
+       "winners": 58
+      },
+      {
+       "tier": 3,
+       "prize": 12000,
+       "winners": 604
+      },
+      {
+       "tier": 4,
+       "prize": 1320,
+       "winners": 3625
+      }
+     ],
+     "carryoverOut": 0
     }
    ],
-   "fetchedAt": "2026-10-12T04:10:00+09:00",
+   "fetchedAt": "2026-10-12T09:59:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "minibig": {
@@ -10037,11 +11607,11 @@
     "salesEnd": "2026-10-13",
     "salesEndTime": "19:00",
     "resultDate": "2026-10-15",
-    "salesSoFar": 33359000,
+    "salesSoFar": 49496000,
     "carryoverIn": 0,
-    "firstPool": 8339750,
-    "asOf": "2026-10-12T04:10:00+09:00",
-    "fetchedAt": "2026-10-12T04:10:00+09:00"
+    "firstPool": 12374000,
+    "asOf": "2026-10-12T09:59:00+09:00",
+    "fetchedAt": "2026-10-12T09:59:00+09:00"
    },
    "results": [
     {
@@ -11639,9 +13209,289 @@
       }
      ],
      "carryoverOut": 0
+    },
+    {
+     "round": 1595,
+     "salesStart": "2025-12-09",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-13",
+     "salesEndTime": null,
+     "resultDate": "2025-12-15",
+     "sales": 101492600,
+     "units": 507463,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 768880,
+       "winners": 33
+      },
+      {
+       "tier": 2,
+       "prize": 20960,
+       "winners": 484
+      },
+      {
+       "tier": 3,
+       "prize": 4120,
+       "winners": 3691
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1594,
+     "salesStart": "2025-12-06",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-09",
+     "salesEndTime": null,
+     "resultDate": "2025-12-10",
+     "sales": 82811400,
+     "units": 414057,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 1293920,
+       "winners": 16
+      },
+      {
+       "tier": 2,
+       "prize": 21960,
+       "winners": 377
+      },
+      {
+       "tier": 3,
+       "prize": 3980,
+       "winners": 3116
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1593,
+     "salesStart": "2025-11-29",
+     "salesStartTime": null,
+     "salesEnd": "2025-12-06",
+     "salesEndTime": null,
+     "resultDate": "2025-12-07",
+     "sales": 133124400,
+     "units": 665622,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 1040020,
+       "winners": 32
+      },
+      {
+       "tier": 2,
+       "prize": 20800,
+       "winners": 640
+      },
+      {
+       "tier": 3,
+       "prize": 4180,
+       "winners": 4769
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1591,
+     "salesStart": "2025-11-25",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-29",
+     "salesEndTime": null,
+     "resultDate": "2025-11-30",
+     "sales": 101680400,
+     "units": 508402,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 794360,
+       "winners": 32
+      },
+      {
+       "tier": 2,
+       "prize": 20320,
+       "winners": 500
+      },
+      {
+       "tier": 3,
+       "prize": 4040,
+       "winners": 3771
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1590,
+     "salesStart": "2025-11-22",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-25",
+     "salesEndTime": null,
+     "resultDate": "2025-11-26",
+     "sales": 74974000,
+     "units": 374870,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 1171460,
+       "winners": 16
+      },
+      {
+       "tier": 2,
+       "prize": 22920,
+       "winners": 327
+      },
+      {
+       "tier": 3,
+       "prize": 4120,
+       "winners": 2722
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1589,
+     "salesStart": "2025-11-17",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-22",
+     "salesEndTime": null,
+     "resultDate": "2025-11-23",
+     "sales": 101558400,
+     "units": 507792,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 819000,
+       "winners": 31
+      },
+      {
+       "tier": 2,
+       "prize": 22760,
+       "winners": 446
+      },
+      {
+       "tier": 3,
+       "prize": 4200,
+       "winners": 3620
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1588,
+     "salesStart": "2025-11-13",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-17",
+     "salesEndTime": null,
+     "resultDate": "2025-11-19",
+     "sales": 91001600,
+     "units": 455008,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 2275040,
+       "winners": 10
+      },
+      {
+       "tier": 2,
+       "prize": 20300,
+       "winners": 448
+      },
+      {
+       "tier": 3,
+       "prize": 4120,
+       "winners": 3308
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1586,
+     "salesStart": "2025-11-08",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-13",
+     "salesEndTime": null,
+     "resultDate": "2025-11-15",
+     "sales": 98178000,
+     "units": 490890,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 818140,
+       "winners": 30
+      },
+      {
+       "tier": 2,
+       "prize": 21960,
+       "winners": 447
+      },
+      {
+       "tier": 3,
+       "prize": 4040,
+       "winners": 3630
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1585,
+     "salesStart": "2025-11-04",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-08",
+     "salesEndTime": null,
+     "resultDate": "2025-11-09",
+     "sales": 101907800,
+     "units": 509539,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 909880,
+       "winners": 28
+      },
+      {
+       "tier": 2,
+       "prize": 21960,
+       "winners": 464
+      },
+      {
+       "tier": 3,
+       "prize": 4040,
+       "winners": 3777
+      }
+     ],
+     "carryoverOut": 0
+    },
+    {
+     "round": 1584,
+     "salesStart": "2025-11-01",
+     "salesStartTime": null,
+     "salesEnd": "2025-11-04",
+     "salesEndTime": null,
+     "resultDate": "2025-11-05",
+     "sales": 80207400,
+     "units": 401037,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 802060,
+       "winners": 25
+      },
+      {
+       "tier": 2,
+       "prize": 20720,
+       "winners": 387
+      },
+      {
+       "tier": 3,
+       "prize": 4060,
+       "winners": 2951
+      }
+     ],
+     "carryoverOut": 0
     }
    ],
-   "fetchedAt": "2026-10-12T04:10:00+09:00",
+   "fetchedAt": "2026-10-12T09:59:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "dunk10": {
@@ -11652,11 +13502,11 @@
     "salesEnd": "2026-10-17",
     "salesEndTime": "12:55",
     "resultDate": "2026-10-18",
-    "salesSoFar": 11363700,
+    "salesSoFar": 12522600,
     "carryoverIn": 78487537,
-    "firstPool": 82748924,
-    "asOf": "2026-10-12T04:11:00+09:00",
-    "fetchedAt": "2026-10-12T04:10:00+09:00"
+    "firstPool": 83183512,
+    "asOf": "2026-10-12T09:59:00+09:00",
+    "fetchedAt": "2026-10-12T09:59:00+09:00"
    },
    "results": [
     {
@@ -11698,7 +13548,7 @@
      "carryoverOut": 56746687
     }
    ],
-   "fetchedAt": "2026-10-12T04:10:00+09:00",
+   "fetchedAt": "2026-10-12T09:59:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "dunk6a": {
@@ -11724,7 +13574,7 @@
     "resultDate": "2026-10-17",
     "salesSoFar": null,
     "asOf": null,
-    "fetchedAt": "2026-10-12T04:10:00+09:00"
+    "fetchedAt": "2026-10-12T09:59:00+09:00"
    },
    "results": [
     {
@@ -11784,7 +13634,7 @@
      "carryoverOut": 0
     }
    ],
-   "fetchedAt": "2026-10-12T04:10:00+09:00",
+   "fetchedAt": "2026-10-12T09:59:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "dunk6b": {
@@ -11797,7 +13647,7 @@
     "resultDate": "2026-10-18",
     "salesSoFar": null,
     "asOf": null,
-    "fetchedAt": "2026-10-12T04:10:00+09:00"
+    "fetchedAt": "2026-10-12T09:59:00+09:00"
    },
    "results": [
     {
@@ -11829,7 +13679,7 @@
      "carryoverOut": 0
     }
    ],
-   "fetchedAt": "2026-10-12T04:10:00+09:00",
+   "fetchedAt": "2026-10-12T09:59:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   }
  },
@@ -11843,7 +13693,9 @@
     1617,
     1612,
     1607,
-    1601
+    1601,
+    1592,
+    1587
    ]
   },
   "dunk": {
