@@ -64,8 +64,7 @@ static/               CSS・アイコン・OGP画像
 
 **1. GitHub でトークン（合い鍵）を作る**
 
-1. 次のリンクを開きます。名前・期限（366日）・権限（Actions の Read and write）が入った状態で、トークンの作成画面が開きます。
-   `https://github.com/settings/personal-access-tokens/new?name=cron-job.org+takarakuji+update&description=Run+update.yml+from+cron-job.org&expires_in=366&actions=write`
+1. [トークンの作成画面（入力済み）](https://github.com/settings/personal-access-tokens/new?name=cron-job.org+takarakuji+update&description=Run+update.yml+from+cron-job.org&expires_in=366&actions=write) を開きます。名前・期限（366日）・権限（Actions の Read and write）が入った状態で開きます。
 2. **Repository access** で **Only select repositories** を選び、**Select repositories** で `takarakuji-payout-rate` を選びます。
 3. **Permissions** に **Actions**（Read and write）と **Metadata**（Read-only）だけがあることを確認します。
 4. 一番下の **Generate token** を押し、表示された `github_pat_` で始まる文字列をコピーします（画面を閉じると二度と表示されません。分からなくなったら作り直します）。
@@ -74,25 +73,25 @@ static/               CSS・アイコン・OGP画像
 
 **2. cron-job.org に予約を作る**
 
-1. [cron-job.org の登録ページ](https://console.cron-job.org/signup) で、First name・Last name・Email address・Password・Password (repeat) を入れ、2つの同意（Terms of Service・Privacy Policy）にチェックして **Create account** を押します。届いたメールのリンクで有効にしてから、[ログインページ](https://console.cron-job.org/login) で **Sign in** します。
-2. 左のメニューの **Cronjobs** を開き、**Create cronjob** を押します。
-3. **Common** タブの **Title** に `宝くじ還元率の定時更新` と入れます。**URL** 欄にはじめから入っている `http://` を消し、次の1行をそのまま貼り付けます（`YOUR_TOKEN` はこの時点ではそのまま）。
+1. [cron-job.org の登録ページ](https://console.cron-job.org/signup) で、First name・Last name・Email address・Password・Password (repeat) を入れ、2つの同意（Terms of Service・Privacy Policy）にチェックして **CREATE ACCOUNT** を押します。届いたメールのリンクで有効にしてから、[ログインページ](https://console.cron-job.org/login) で **SIGN IN** します。
+2. 左のメニューの **Cronjobs** を開き、**CREATE CRONJOB** を押します（メニューが閉じているときは、左上の ☰ を押すと開きます）。
+3. **COMMON** タブの **Title** に `宝くじ還元率の定時更新` と入れます。**URL** 欄にはじめから入っている `http://` を消し、次の1行をそのまま貼り付けます（`YOUR_TOKEN` はこの時点ではそのまま）。
 
    ```
    47 7,12,19,21,23 * * * curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: Bearer YOUR_TOKEN" -H "X-GitHub-Api-Version: 2022-11-28" -H "Content-Type: application/json" -d '{"ref":"main"}' https://api.github.com/repos/yngambling/takarakuji-payout-rate/actions/workflows/update.yml/dispatches
    ```
 
-   「This looks like a crontab line」と出たら、**Import command** を押します。URL・送り方（POST）・ヘッダー4つ・本文・実行時刻がまとめて入ります。
-4. **Advanced** タブを開きます。
+   「This looks like a crontab line」と出たら、**IMPORT COMMAND** を押します。画面の下に「Imported: URL, request method, 4 headers, request body, execution schedule.」と出れば、URL・送り方（POST）・ヘッダー4つ・本文・実行時刻がまとめて入っています。
+4. **ADVANCED** タブを開きます。
    - **Headers** の `Authorization` の **Value** を消し、`Bearer `（Bearer と半角スペース）に続けて、1でコピーしたトークンを貼り付けます。
    - **Time zone** が `Asia/Tokyo` になっていることを確認します（違っていたら選び直します）。
    - **Request method** が `POST`、**Request body** が `{"ref":"main"}` になっていることを確認します。
-5. **Notifications** タブで、**execution of the cronjob fails**・**execution of the cronjob succeeds after it failed before**・**the cronjob will be disabled because of too many failures** の3つをオンにします。失敗したとき（トークンの期限切れなど）にメールが届きます。
-6. **Common** タブに戻り、**Execution schedule** の下に次の実行予定（7:47・12:47・19:47・21:47・23:47）と「In this job's individual timezone (Asia/Tokyo).」が出ていることを確認します。
-7. 下の **Test run** → **Start test run** を押します。**204 No Content** と出れば成功で、GitHub の Actions タブに「workflow_dispatch」の実行が1つ増えます。
-8. **Create** を押して保存します。
+5. **NOTIFICATIONS** タブで、**execution of the cronjob fails**・**execution of the cronjob succeeds after it failed before**・**the cronjob will be disabled because of too many failures** の3つをオンにします。失敗したとき（トークンの期限切れなど）にメールが届きます。
+6. **COMMON** タブに戻り、**Execution schedule** の下に次の実行予定が5つ（「12:47 PM」「7:47 PM」のように午前・午後で表示。7:47・12:47・19:47・21:47・23:47 のどれか）と、「In this job's individual timezone (Asia/Tokyo).」が出ていることを確認します。
+7. 下の **TEST RUN** → **START TEST RUN** を押します。結果に **204** と出れば成功で、GitHub の Actions タブに「workflow_dispatch」の実行が1つ増えます（401・403・404 と出たら、トークンの貼り付け、トークンで選んだリポジトリ、URL のどれかが違っています）。
+8. **CREATE** を押して保存します。
 
-**トークンの期限（1年）が近づいたら**：GitHub からメールが届きます。上の1と同じ手順で新しいトークンを作り、cron-job.org の **Cronjobs** でこのジョブの **Edit** を押し、**Advanced** タブの `Authorization` を `Bearer 新しいトークン` に書き換えて **Save** します。古いトークンは GitHub の **Settings → Developer settings → Personal access tokens → Fine-grained tokens** で削除します。期限が切れたままでも、更新は GitHub の予約（遅れることがある）で続きます。
+**トークンの期限（1年）が近づいたら**：GitHub からメールが届きます。上の1と同じ手順で新しいトークンを作り、cron-job.org の **Cronjobs** でこのジョブの **EDIT** を押し、**ADVANCED** タブの `Authorization` を `Bearer 新しいトークン` に書き換えて **SAVE** を押します。古いトークンは GitHub の **Settings → Developer settings → Personal access tokens → Fine-grained tokens** で削除します。期限が切れたままでも、更新は GitHub の予約（遅れることがある）で続きます。
 
 ### 3. 自分の情報に書き換える
 
