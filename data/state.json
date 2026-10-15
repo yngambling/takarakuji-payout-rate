@@ -1,6 +1,6 @@
 {
  "_note": "scripts/fetch.mjs が公式サイトから自動で更新します。取得に失敗した項目は前回の値が残り、error に理由が入ります。",
- "updatedAt": "2026-10-15T09:57:00+09:00",
+ "updatedAt": "2026-10-15T12:47:00+09:00",
  "games": {
   "loto7": {
    "draws": [
@@ -535,7 +535,7 @@
      "complete": true
     }
    ],
-   "fetchedAt": "2026-10-15T09:57:00+09:00",
+   "fetchedAt": "2026-10-15T12:47:00+09:00",
    "source": "みずほ銀行 当せん番号データ（CSV）"
   },
   "loto6": {
@@ -1047,7 +1047,7 @@
      "complete": true
     }
    ],
-   "fetchedAt": "2026-10-15T09:57:00+09:00",
+   "fetchedAt": "2026-10-15T12:47:00+09:00",
    "source": "みずほ銀行 当せん番号データ（CSV）"
   },
   "big": {
@@ -1058,13 +1058,56 @@
     "salesEnd": "2026-10-17",
     "salesEndTime": "12:50",
     "resultDate": "2026-10-18",
-    "salesSoFar": 221224200,
-    "carryoverIn": null,
-    "firstPool": null,
-    "asOf": "2026-10-15T09:57:00+09:00",
-    "fetchedAt": "2026-10-15T09:57:00+09:00"
+    "salesSoFar": 238460100,
+    "carryoverIn": 4792814100,
+    "firstPool": 4888198140,
+    "asOf": "2026-10-15T12:47:00+09:00",
+    "fetchedAt": "2026-10-15T12:47:00+09:00"
    },
    "results": [
+    {
+     "round": 1662,
+     "salesStart": "2026-10-10",
+     "salesStartTime": null,
+     "salesEnd": "2026-10-13",
+     "salesEndTime": null,
+     "resultDate": "2026-10-15",
+     "sales": 463735500,
+     "units": 1545785,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 2318670,
+       "winners": 7
+      },
+      {
+       "tier": 3,
+       "prize": 37380,
+       "winners": 124
+      },
+      {
+       "tier": 4,
+       "prize": 7380,
+       "winners": 942
+      },
+      {
+       "tier": 5,
+       "prize": 1350,
+       "winners": 5123
+      },
+      {
+       "tier": 6,
+       "prize": 540,
+       "winners": 20785
+      }
+     ],
+     "carryoverOut": 4792814100
+    },
     {
      "round": 1660,
      "salesStart": "2026-10-03",
@@ -4205,7 +4248,7 @@
      "carryoverOut": 3383123640
     }
    ],
-   "fetchedAt": "2026-10-15T09:57:00+09:00",
+   "fetchedAt": "2026-10-15T12:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "megabig": {
@@ -4216,13 +4259,56 @@
     "salesEnd": "2026-10-17",
     "salesEndTime": "12:50",
     "resultDate": "2026-10-18",
-    "salesSoFar": 160395600,
-    "carryoverIn": null,
-    "firstPool": null,
-    "asOf": "2026-10-15T09:57:00+09:00",
-    "fetchedAt": "2026-10-15T09:57:00+09:00"
+    "salesSoFar": 176996100,
+    "carryoverIn": 8915819685,
+    "firstPool": 8977768320,
+    "asOf": "2026-10-15T12:47:00+09:00",
+    "fetchedAt": "2026-10-15T12:47:00+09:00"
    },
    "results": [
+    {
+     "round": 1662,
+     "salesStart": "2026-10-10",
+     "salesStartTime": null,
+     "salesEnd": "2026-10-13",
+     "salesEndTime": null,
+     "resultDate": "2026-10-15",
+     "sales": 351793500,
+     "units": 1172645,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 0,
+       "winners": 0
+      },
+      {
+       "tier": 2,
+       "prize": 8208510,
+       "winners": 3
+      },
+      {
+       "tier": 3,
+       "prize": 74820,
+       "winners": 47
+      },
+      {
+       "tier": 4,
+       "prize": 12300,
+       "winners": 429
+      },
+      {
+       "tier": 5,
+       "prize": 3090,
+       "winners": 2836
+      },
+      {
+       "tier": 6,
+       "prize": 780,
+       "winners": 13402
+      }
+     ],
+     "carryoverOut": 8915819685
+    },
     {
      "round": 1660,
      "salesStart": "2026-10-03",
@@ -7363,7 +7449,7 @@
      "carryoverOut": 5911728630
     }
    ],
-   "fetchedAt": "2026-10-15T09:57:00+09:00",
+   "fetchedAt": "2026-10-15T12:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "big100": {
@@ -7374,13 +7460,51 @@
     "salesEnd": "2026-10-17",
     "salesEndTime": "12:50",
     "resultDate": "2026-10-18",
-    "salesSoFar": 98481600,
-    "carryoverIn": null,
-    "firstPool": null,
-    "asOf": "2026-10-15T09:57:00+09:00",
-    "fetchedAt": "2026-10-15T09:57:00+09:00"
+    "salesSoFar": 104926000,
+    "carryoverIn": 1398150900,
+    "firstPool": 1438022780,
+    "asOf": "2026-10-15T12:47:00+09:00",
+    "fetchedAt": "2026-10-15T12:47:00+09:00"
    },
    "results": [
+    {
+     "round": 1662,
+     "salesStart": "2026-10-10",
+     "salesStartTime": null,
+     "salesEnd": "2026-10-13",
+     "salesEndTime": null,
+     "resultDate": "2026-10-15",
+     "sales": 206307300,
+     "units": 2063073,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 200000000,
+       "winners": 2
+      },
+      {
+       "tier": 2,
+       "prize": 793480,
+       "winners": 13
+      },
+      {
+       "tier": 3,
+       "prize": 27140,
+       "winners": 152
+      },
+      {
+       "tier": 4,
+       "prize": 3340,
+       "winners": 1235
+      },
+      {
+       "tier": 5,
+       "prize": 890,
+       "winners": 6907
+      }
+     ],
+     "carryoverOut": 1398150900
+    },
     {
      "round": 1660,
      "salesStart": "2026-10-03",
@@ -10156,7 +10280,7 @@
      "carryoverOut": 87288888
     }
    ],
-   "fetchedAt": "2026-10-15T09:57:00+09:00",
+   "fetchedAt": "2026-10-15T12:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "big1000": {
@@ -10167,13 +10291,46 @@
     "salesEnd": "2026-10-17",
     "salesEndTime": "12:50",
     "resultDate": "2026-10-18",
-    "salesSoFar": 44652800,
-    "carryoverIn": null,
-    "firstPool": null,
-    "asOf": "2026-10-15T09:57:00+09:00",
-    "fetchedAt": "2026-10-15T09:57:00+09:00"
+    "salesSoFar": 48473200,
+    "carryoverIn": 0,
+    "firstPool": 14541960,
+    "asOf": "2026-10-15T12:47:00+09:00",
+    "fetchedAt": "2026-10-15T12:47:00+09:00"
    },
    "results": [
+    {
+     "round": 1662,
+     "salesStart": "2026-10-10",
+     "salesStartTime": null,
+     "salesEnd": "2026-10-13",
+     "salesEndTime": null,
+     "resultDate": "2026-10-15",
+     "sales": 87939800,
+     "units": 439699,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 8793980,
+       "winners": 3
+      },
+      {
+       "tier": 2,
+       "prize": 146560,
+       "winners": 45
+      },
+      {
+       "tier": 3,
+       "prize": 11600,
+       "winners": 568
+      },
+      {
+       "tier": 4,
+       "prize": 1340,
+       "winners": 3235
+      }
+     ],
+     "carryoverOut": 0
+    },
     {
      "round": 1660,
      "salesStart": "2026-10-03",
@@ -12584,7 +12741,7 @@
      "carryoverOut": 0
     }
    ],
-   "fetchedAt": "2026-10-15T09:57:00+09:00",
+   "fetchedAt": "2026-10-15T12:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "minibig": {
@@ -12595,13 +12752,41 @@
     "salesEnd": "2026-10-17",
     "salesEndTime": "12:50",
     "resultDate": "2026-10-18",
-    "salesSoFar": 34325200,
-    "carryoverIn": null,
-    "firstPool": null,
-    "asOf": "2026-10-15T09:57:00+09:00",
-    "fetchedAt": "2026-10-15T09:57:00+09:00"
+    "salesSoFar": 37338600,
+    "carryoverIn": 0,
+    "firstPool": 9334650,
+    "asOf": "2026-10-15T12:47:00+09:00",
+    "fetchedAt": "2026-10-15T12:47:00+09:00"
    },
    "results": [
+    {
+     "round": 1662,
+     "salesStart": "2026-10-10",
+     "salesStartTime": null,
+     "salesEnd": "2026-10-13",
+     "salesEndTime": null,
+     "resultDate": "2026-10-15",
+     "sales": 69523200,
+     "units": 347616,
+     "tiers": [
+      {
+       "tier": 1,
+       "prize": 1241480,
+       "winners": 14
+      },
+      {
+       "tier": 2,
+       "prize": 22140,
+       "winners": 314
+      },
+      {
+       "tier": 3,
+       "prize": 4020,
+       "winners": 2589
+      }
+     ],
+     "carryoverOut": 0
+    },
     {
      "round": 1660,
      "salesStart": "2026-10-03",
@@ -14647,7 +14832,7 @@
      "carryoverOut": 0
     }
    ],
-   "fetchedAt": "2026-10-15T09:57:00+09:00",
+   "fetchedAt": "2026-10-15T12:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "dunk10": {
@@ -14658,11 +14843,11 @@
     "salesEnd": "2026-10-17",
     "salesEndTime": "12:55",
     "resultDate": "2026-10-18",
-    "salesSoFar": 37469400,
+    "salesSoFar": 39079200,
     "carryoverIn": 78487537,
-    "firstPool": 92538562,
-    "asOf": "2026-10-15T09:57:00+09:00",
-    "fetchedAt": "2026-10-15T09:57:00+09:00"
+    "firstPool": 93142237,
+    "asOf": "2026-10-15T12:47:00+09:00",
+    "fetchedAt": "2026-10-15T12:47:00+09:00"
    },
    "results": [
     {
@@ -14704,7 +14889,7 @@
      "carryoverOut": 56746687
     }
    ],
-   "fetchedAt": "2026-10-15T09:57:00+09:00",
+   "fetchedAt": "2026-10-15T12:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "dunk6a": {
@@ -14715,11 +14900,11 @@
     "salesEnd": "2026-10-17",
     "salesEndTime": "12:55",
     "resultDate": "2026-10-17",
-    "salesSoFar": 2379400,
+    "salesSoFar": 3095900,
     "carryoverIn": 0,
-    "firstPool": 594850,
-    "asOf": "2026-10-15T09:57:00+09:00",
-    "fetchedAt": "2026-10-15T09:57:00+09:00"
+    "firstPool": 773975,
+    "asOf": "2026-10-15T12:47:00+09:00",
+    "fetchedAt": "2026-10-15T12:47:00+09:00"
    },
    "results": [
     {
@@ -14779,7 +14964,7 @@
      "carryoverOut": 0
     }
    ],
-   "fetchedAt": "2026-10-15T09:57:00+09:00",
+   "fetchedAt": "2026-10-15T12:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "dunk6b": {
@@ -14790,11 +14975,11 @@
     "salesEnd": "2026-10-18",
     "salesEndTime": "13:50",
     "resultDate": "2026-10-18",
-    "salesSoFar": 1693300,
+    "salesSoFar": 2230100,
     "carryoverIn": 0,
-    "firstPool": 423325,
-    "asOf": "2026-10-15T09:57:00+09:00",
-    "fetchedAt": "2026-10-15T09:57:00+09:00"
+    "firstPool": 557525,
+    "asOf": "2026-10-15T12:47:00+09:00",
+    "fetchedAt": "2026-10-15T12:47:00+09:00"
    },
    "results": [
     {
@@ -14826,7 +15011,7 @@
      "carryoverOut": 0
     }
    ],
-   "fetchedAt": "2026-10-15T09:57:00+09:00",
+   "fetchedAt": "2026-10-15T12:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   }
  },
@@ -14858,7 +15043,7 @@
  },
  "products": {
   "big": {
-   "at": "2026-10-15T09:57:00+09:00",
+   "at": "2026-10-15T12:47:00+09:00",
    "labels": [
     "BIG",
     "MEGA BIG",
@@ -14868,7 +15053,7 @@
    ]
   },
   "dunk": {
-   "at": "2026-10-15T09:57:00+09:00",
+   "at": "2026-10-15T12:47:00+09:00",
    "labels": [
     "DUNK10",
     "DUNK6-A",
