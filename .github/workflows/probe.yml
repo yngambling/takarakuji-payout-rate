@@ -1,0 +1,36 @@
+name: 一時的な確認（表示速度）
+
+# 表示速度の点検の一時的な確認。プルリクエストを出す前に消します。
+on:
+  push:
+    branches: [perf-ux]
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: 今の main と、このブランチのサイトを作って配信
+        run: |
+          git fetch --depth=1 origin main
+          git worktree add "$RUNNER_TEMP/main-src" FETCH_HEAD
+          node "$RUNNER_TEMP/main-src/scripts/build.mjs" --no-history --out "$RUNNER_TEMP/site-main"
+          node scripts/build.mjs --no-history --out "$RUNNER_TEMP/site-new"
+          (cd "$RUNNER_TEMP/site-main" && nohup python3 -m http.server 8001 >/dev/null 2>&1 &)
+          (cd "$RUNNER_TEMP/site-new" && nohup python3 -m http.server 8002 >/dev/null 2>&1 &)
+          sleep 3
+          curl -sI http://localhost:8001/ | head -1
+          curl -sI http://localhost:8002/ | head -1
+      - name: 公開中のサイト
+        run: node scripts/lh-probe.mjs live-top=https://takarakuji-kangen.com/ live-loto6=https://takarakuji-kangen.com/kuji/loto6.html live-ichiran=https://takarakuji-kangen.com/ichiran.html
+      - name: main を手元で配信したもの
+        run: node scripts/lh-probe.mjs main-top=http://localhost:8001/ main-loto6=http://localhost:8001/kuji/loto6.html main-ichiran=http://localhost:8001/ichiran.html
+      - name: このブランチ
+        run: node scripts/lh-probe.mjs new-top=http://localhost:8002/ new-loto6=http://localhost:8002/kuji/loto6.html new-ichiran=http://localhost:8002/ichiran.html
