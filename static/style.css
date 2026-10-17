@@ -1,9 +1,15 @@
 /* Layout: 白地・1200pxの2カラム（本文＋右サイドバー300px）。赤いナビと黄色の速報帯、順位は王冠つきで大きく見せる */
+
+/* フォント：数字は Oswald（太字）、ロゴは Dela Gothic One。どちらも SIL Open Font License 1.1（fonts/OFL-*.txt）。
+   使う文字だけに絞って、このサイトから配信する（Google Fonts を使わないので速く、閲覧の情報も送らない）。作り方は README の「フォント」 */
+@font-face { font-family: "Oswald"; src: url("fonts/oswald-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Dela Gothic One"; src: url("fonts/dela-gothic-one-logo.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+
 :root {
   --bg: #ffffff;
   --ink: #222222;
   --sub: #5f5f5f;
-  --mute: #888888;
+  --mute: #767676;
   --line: #e2e2e2;
   --soft: #f6f6f4;
   --red: #d7000f;
@@ -16,7 +22,7 @@
   --bronze: #c27a3c;
   --navy: #22324f;
   --blue: #0a58ca;
-  --green: #11a04a;
+  --green: #0c873d;
   --green-dk: #0a7a37;
   --green-soft: #f1faf4;
   --white: #ffffff;
@@ -98,6 +104,8 @@ p { margin: 0 0 14px; }
 .lead { font-size: 15.5px; }
 .note { font-size: 13px; color: var(--sub); line-height: 1.75; }
 .note p { margin: 0 0 6px; }
+ul.note li + li { margin-top: 3px; }
+.vh { position: absolute !important; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .sub { display: block; font-size: 12px; color: var(--sub); line-height: 1.5; font-weight: 400; }
 .marker { background: linear-gradient(transparent 58%, var(--marker) 58%); }
 .red { color: var(--red); }
@@ -119,7 +127,7 @@ p { margin: 0 0 14px; }
 .badge.wait { background: var(--white); color: var(--red); border: 1px solid var(--red); }
 .ptb { display: inline-block; margin-left: 8px; font-size: 12px; line-height: 1; padding: 4px 8px 3px; border-radius: 4px; background: var(--gold-soft); color: #8a6200; border: 1px solid #f1d27a; font-weight: 700; white-space: nowrap; vertical-align: 2px; }
 .ptb.gray { background: var(--soft); color: var(--sub); border-color: var(--line); font-weight: 400; }
-.ptv { color: #b07c00; font-family: var(--font-num); font-weight: 700; font-size: 1.1em; }
+.ptv { color: #8a6200; font-family: var(--font-num); font-weight: 700; font-size: 1.1em; }
 .delta { display: inline-block; font-size: 12.5px; font-weight: 700; line-height: 1; padding: 5px 9px 4px; border-radius: 999px; background: var(--soft); color: var(--sub); white-space: nowrap; }
 .delta.up { background: var(--red-soft); color: var(--red); }
 .delta.down { background: #eef2f8; color: var(--navy); }
@@ -130,7 +138,7 @@ p { margin: 0 0 14px; }
 .cd-l { color: var(--sub); font-size: 12.5px; }
 .cd-t { font-weight: 700; }
 .cd-r { color: var(--red); font-weight: 700; font-variant-numeric: tabular-nums; }
-.cd-r:empty { display: none; }
+.cd-r:empty::before { content: "あと00時間00分"; visibility: hidden; } /* 書き込む前から幅を取っておき、まわりがずれないようにする */
 .cd.soon .cd-r { background: var(--red); color: var(--white); border-radius: 3px; padding: 0 6px; animation: blink 1.6s ease-in-out infinite; }
 .cd.over .cd-r { color: var(--sub); }
 
@@ -160,7 +168,7 @@ p { margin: 0 0 14px; }
 .chip-pt { border-color: #f1d27a; background: var(--gold-soft); }
 .chip-pt a { color: var(--ink); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; }
 .chip-pt a:hover { color: var(--red); }
-.chip-pt b { color: #b07c00; }
+.chip-pt b { color: #8a6200; }
 .c-list { list-style: none; margin: 14px 0 0; padding: 12px 0 0; border-top: 1px dashed var(--line); display: flex; flex-wrap: wrap; gap: 4px 20px; font-size: 14.5px; }
 .c-list a { color: var(--ink); }
 .c-list a:hover { color: var(--red); }
@@ -171,12 +179,12 @@ p { margin: 0 0 14px; }
 /* ---------- ボタン ---------- */
 .btns { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; text-decoration: none; font-weight: 700; border-radius: 6px; line-height: 1.35; text-align: center; transition: transform .15s var(--ease), background-color .2s, color .2s, box-shadow .2s, border-color .2s; }
-.btn-main { position: relative; overflow: hidden; background: var(--green); color: var(--white); border-bottom: 4px solid var(--green-dk); padding: 13px 22px 11px; font-size: 17px; flex: 1 1 100%; box-shadow: 0 6px 16px rgba(17, 160, 74, .25); }
+.btn-main { position: relative; overflow: hidden; background: var(--green); color: var(--white); border-bottom: 4px solid var(--green-dk); padding: 13px 22px 11px; font-size: 17px; flex: 1 1 100%; box-shadow: 0 6px 16px rgba(12, 135, 61, .25); }
 .btn-main::before { content: ""; position: absolute; top: 0; bottom: 0; left: -45%; width: 30%; background: linear-gradient(100deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, .42), rgba(255, 255, 255, 0)); transform: skewX(-20deg); animation: shine 5.5s ease-in-out 1.2s infinite; pointer-events: none; }
 .btn-main::after { content: "▶"; font-size: .75em; transition: transform .2s var(--ease); }
-.btn-main:hover { color: var(--white); background: #13ad51; transform: translateY(-1px); box-shadow: 0 9px 22px rgba(17, 160, 74, .32); }
+.btn-main:hover { color: var(--white); background: #0b7d39; transform: translateY(-1px); box-shadow: 0 9px 22px rgba(12, 135, 61, .32); }
 .btn-main:hover::after { transform: translateX(4px); }
-.btn-main:active { transform: translateY(1px); box-shadow: 0 3px 8px rgba(17, 160, 74, .25); }
+.btn-main:active { transform: translateY(1px); box-shadow: 0 3px 8px rgba(12, 135, 61, .25); }
 .btn-sub { background: var(--white); color: var(--green-dk); border: 2px solid var(--green); padding: 9px 16px; font-size: 15px; flex: 0 1 auto; }
 .btn-sub:hover { background: var(--green); color: var(--white); transform: translateY(-1px); }
 .btn-ghost { background: var(--white); color: var(--navy); border: 1.5px solid #c9d1de; padding: 7px 12px; font-size: 13.5px; flex: 0 1 auto; }
@@ -198,7 +206,7 @@ p { margin: 0 0 14px; }
 /* ---------- シェア・目次 ---------- */
 .share { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 20px; }
 .share a { flex: 1 1 110px; text-align: center; color: var(--white); text-decoration: none; font-weight: 700; font-size: 13.5px; padding: 8px 6px; border-radius: 4px; transition: transform .15s var(--ease), filter .15s; }
-.share .sx { background: #111111; } .share .sl { background: #06c755; } .share .sf { background: #1877f2; } .share .sh { background: #00a4de; }
+.share .sx { background: #111111; } .share .sl { background: #00873c; } .share .sf { background: #166fe5; } .share .sh { background: #007aa6; }
 .share a:hover { color: var(--white); filter: brightness(1.12); transform: translateY(-1px); }
 .toc { border: 2px solid var(--line); background: var(--soft); border-radius: 6px; padding: 14px 20px; margin: 0 0 22px; }
 .toc-title { margin: 0 0 6px; font-weight: 700; font-size: 16px; }
@@ -240,7 +248,7 @@ p { margin: 0 0 14px; }
 .rc-pt { margin: 8px 0 0; font-size: 13px; }
 .rc-pt a { color: var(--ink); text-decoration: none; border: 1px solid #f1d27a; background: var(--gold-soft); border-radius: 999px; padding: 3px 10px; display: inline-block; }
 .rc-pt a:hover { color: var(--red); }
-.rc-pt b { color: #b07c00; font-family: var(--font-num); font-size: 15px; }
+.rc-pt b { color: #8a6200; font-family: var(--font-num); font-size: 15px; }
 .facts { margin: 0; display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 4px 14px; font-size: 14.5px; }
 .facts dt { color: var(--sub); font-weight: 700; }
 .facts dd { margin: 0; min-width: 0; }
@@ -284,7 +292,7 @@ table.t { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 
 .t.rank .co { font-size: 13px; }
 .t.rank .sub.pt { color: #8a6200; font-weight: 700; }
 .t.rank .k-by .minis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
-.t.rank .k-by .btn-mini { text-align: center; padding: 3px 2px; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; }
+.t.rank .k-by .btn-mini { text-align: center; padding: 4px 2px; font-size: 11.5px; overflow: hidden; text-overflow: ellipsis; }
 .t.rank .k-by .btn-mini.first { grid-column: 1 / -1; font-size: 12.5px; padding: 4px 4px; }
 .t.tiers { min-width: 720px; }
 .t.tiers tbody.g:nth-of-type(even) td, .t.tiers tbody.g:nth-of-type(even) th { background: #fafafa; }
@@ -362,7 +370,7 @@ table.t { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 
 .rt-card .btn-ghost { flex: 1 1 auto; }
 .parts { list-style: none; margin: 4px 0; padding: 8px 0 0; border-top: 1px dashed var(--line); display: grid; gap: 4px; font-size: 13.5px; }
 .parts li { display: grid; grid-template-columns: 4em minmax(0, 1fr); gap: 6px; align-items: start; }
-.parts b { font-family: var(--font-num); color: #b07c00; font-size: 16px; line-height: 1.4; }
+.parts b { font-family: var(--font-num); color: #8a6200; font-size: 16px; line-height: 1.4; }
 
 /* 目的別のおすすめ */
 .picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }
@@ -397,7 +405,7 @@ table.t { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 
 .gd-card { --c: var(--red); --c-soft: var(--red-soft); border: 1px solid var(--line); border-top: 4px solid var(--c); border-radius: 8px; padding: 12px 18px 16px; background: var(--white); box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
 .gd-rules { --c: var(--navy); --c-soft: #eef1f7; }
 .gd-rate { --c: var(--red); --c-soft: var(--red-soft); }
-.gd-odds { --c: #9a6a00; --c-soft: var(--gold-soft); border-top-color: var(--gold); }
+.gd-odds { --c: #8a6200; --c-soft: var(--gold-soft); border-top-color: var(--gold); }
 .gd-buy { --c: var(--green-dk); --c-soft: var(--green-soft); }
 .gd-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 8px; }
 .gd-ic { display: grid; place-items: center; flex: none; width: 34px; height: 34px; border-radius: 50%; background: var(--c-soft); color: var(--c); }
@@ -474,6 +482,11 @@ table.t { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 
 .ad-ph { border: 2px dashed #d5d5d5; color: var(--mute); font-size: 12.5px; padding: 34px 10px; border-radius: 4px; background: var(--white); }
 .side .ad { margin: 0 0 24px; }
 .side .ad-ph { padding: 90px 10px; }
+/* 広告が入ったときに本文がずれないよう、広告が届く前から高さを取っておく（スマホは 300×250 などの四角い広告、パソコンの本文は横長の広告を想定）。
+   広告が届かなかった枠は畳む。実際の広告の大きさが分かったら、ここの高さを合わせる */
+.ad ins.adsbygoogle { min-height: 280px; }
+@media (min-width: 701px) { main .ad ins.adsbygoogle { min-height: 100px; } .side .ad ins.adsbygoogle { min-height: 250px; } }
+.ad:has(> ins.adsbygoogle[data-ad-status="unfilled"]) { display: none; }
 
 /* ---------- サイドバー ---------- */
 .widget { margin: 0 0 24px; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
@@ -503,7 +516,7 @@ table.t { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 
 .foot { border-top: 5px solid var(--red); background: var(--soft); color: var(--sub); font-size: 13px; }
 .foot .wrap { padding-block: 22px 30px; }
 .foot nav { display: flex; flex-wrap: wrap; gap: 6px 18px; margin-bottom: 12px; }
-.foot nav a { color: var(--ink); font-weight: 700; }
+.foot nav a { display: inline-block; padding: 3px 0; color: var(--ink); font-weight: 700; }
 .foot p { margin: 0 0 6px; }
 .foot .copy { margin-top: 10px; font-weight: 700; color: var(--ink); }
 

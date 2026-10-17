@@ -241,6 +241,23 @@ IndexNow は、内容が変わったページを検索エンジンにすぐ知�
 - 「必ず当たる」「一番儲かる」のような表現は使わないでください（ASPの禁止表現にあたります）。
 - 海外のオンラインカジノへの誘導は法律で禁止されています。カジノ系のアフィリエイトは載せないでください。
 
+### 表示の速さと使いやすさ
+
+2026年10月18日に、Lighthouse（Google の表示速度の点検。スマホの設定）と axe（アクセシビリティの自動点検）で全ページを点検し、次のようにしています。
+
+- **フォント**：数字の Oswald（太字）とロゴの Dela Gothic One は、使う文字だけに絞って、このサイトから配信しています（`static/fonts/`。合わせて約9KB）。Google Fonts の読み込みを待たずに表示できるので、スマホで最初に表示されるまでが速くなり、閲覧の情報を Google Fonts に送ることもありません。どちらも SIL Open Font License 1.1 のフォントで、ライセンスの文（`OFL-*.txt`）をいっしょに置いています。
+- **表示の途中でずれない**：締切までの残り時間は書き込む前から幅を取り、数字のカウントアップは数えているあいだも幅を固定し、キャリーオーバー速報の帯は帯のすぐ後ろで横に流すかを決めます。
+- **広告の枠**：広告ユニット（`adsense.slots`）を使うと、広告が届く前から高さを取っておきます（スマホ280px・パソコンの本文100px・サイドバー250px。`static/style.css` の「広告が入ったときに」の所）。届かなかった枠は畳みます。実際の広告の大きさが分かったら、高さを合わせてください。自動広告は Google が場所を決めて差し込むので、ずれが出やすくなります。
+- **読み上げ・キーボード・色**：文字と背景の色の濃さの差は 4.5:1 以上（`node scripts/test.mjs` で確かめます）、横にスクロールする表はキーボードでも操作でき、ページの上の帯・ロゴ・メニュー・速報の帯はページの見出し部分（header）にまとめています。
+
+**フォントを作り直すとき**（ロゴの文字を変えたときなど。ふだんは不要です）：[google/fonts](https://github.com/google/fonts) の `ofl/oswald/Oswald[wght].ttf` と `ofl/delagothicone/DelaGothicOne-Regular.ttf` を使い、Python の fonttools（`pip install fonttools brotli`）で次のように作ります。ロゴの文字は `scripts/test.mjs` の `LOGO_FONT_TEXT` にも入れます。
+
+```
+python3 -m fontTools.varLib.instancer "Oswald[wght].ttf" wght=700 -o Oswald-700.ttf
+python3 -m fontTools.subset Oswald-700.ttf --unicodes="U+0020-007E,U+00A0" --name-IDs='*' --name-languages='*' --flavor=woff2 --output-file=static/fonts/oswald-700.woff2
+python3 -m fontTools.subset DelaGothicOne-Regular.ttf --text="宝くじ還元率ランキング" --name-IDs='*' --name-languages='*' --flavor=woff2 --output-file=static/fonts/dela-gothic-one-logo.woff2
+```
+
 ## 問題が起きたときのお知らせ（自動チェック）
 
 サイトは、確認が必要なことを自動で見つけて、GitHub の **Issue**（課題の一覧）に書き込みます。Issue には運営者あての @メンションが付くので、GitHub から**メールで通知**が届きます。Issue には「何が起きたか」「どのファイルを直すか」「直し方」が書いてあります。
