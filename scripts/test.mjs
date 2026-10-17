@@ -450,7 +450,7 @@ t('解説ページ（content/guide の本物の原稿・一覧のページ・サ
       if (!u || /^(https?:|mailto:)/.test(mm[1])) continue;
       if (u.endsWith('/')) u += 'index.html';
       const target = path.posix.normalize(path.posix.join(dir, u));
-      if (['style.css', 'favicon.svg', 'apple-touch-icon.png'].includes(target)) continue;
+      if (!target.endsWith('.html')) continue; // CSS・アイコン・フォントなどはページではないので数えない
       assert.ok(paths.has(target), `${p.path} のリンク先 ${mm[1]} がありません`);
     }
   }
