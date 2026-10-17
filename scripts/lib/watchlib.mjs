@@ -12,6 +12,8 @@ const DATE_RE = /(?:\d{4}\s*年\s*)?\d{1,2}\s*月\s*\d{1,2}\s*日(?:\s*[(（][^)
  *   keywords のどれかを含む行（digit が true なら、さらに数字を含む行）
  *   ポイント・支払い・購入場所・ルールのページは、日付や時刻を消してから比べる（「更新日」だけの変化で知らせないため）
  *   ルールのページ（kind: rule）は、長い注意書きを「※」ごとに分け、年（「2026年に発生した…」）も消す。
+ *   行の頭の「キャリーオーバー有」の印も消す（数字を選ぶ宝くじのページで、キャリーオーバーのある回だけに出ると考えられるため。
+ *   BIG・DUNK の「キャリーオーバーあり 1等 最高」はルールの説明なので残す）
  *   同じ行が何度出てきても残す（BIG と 100円BIG の確率のように、同じ行が別のくじにあるため）
  */
 export function extractLines(html, page) {
@@ -27,7 +29,7 @@ export function extractLines(html, page) {
       if (page.digit && !/\d/.test(line)) continue;
       line = line.replace(/(?:あと|残り)\s*\d+\s*(?:日|時間|分)/g, '');
       if (page.kind !== 'jumbo') line = line.replace(DATE_RE, '');
-      if (rule) line = line.replace(/\d{4}\s*年(?!\s*\d{1,2}\s*月)/g, '');
+      if (rule) line = line.replace(/\d{4}\s*年(?!\s*\d{1,2}\s*月)/g, '').replace(/^キャリーオーバー[有無]\s*/, '');
       line = line.replace(/\s+/g, ' ').trim();
       if (line && (rule || !keep.includes(line))) keep.push(line);
       if (keep.length >= max) return keep;
@@ -37,6 +39,21 @@ export function extractLines(html, page) {
 }
 
 export const hashLines = (lines) => createHash('sha256').update(lines.join('\n')).digest('hex').slice(0, 16);
+
+/** ページの題名（<title>） */
+export const pageTitle = (html) => htmlToText((String(html ?? '').match(/<title[^>]*>([\s\S]*?)<\/title>/i) || [])[1] || '').replace(/\s+/g, ' ').trim();
+
+/**
+ * 「ページが見つかりません」のページか。
+ * 宝くじ公式サイトは、ないページにも「NOT FOUND【宝くじ公式サイト】」のページを正常な応答（HTTP 200）で返すため、
+ * 題名と本文で見分ける（見分けないと「見張る行が見つからない」として3日後まで気付けない）。
+ */
+const MISSING_BODY = /お探しのページ(?:は|が)見つかりません|指定されたページ(?:は|が)(?:見つかりません|存在しません)/;
+export function pageMissing(html) {
+  const title = pageTitle(html);
+  if (/NOT\s*FOUND|(?:^|[^\d])404(?:[^\d]|$)|ページが見つかりません|ページがみつかりません/i.test(title)) return true;
+  return MISSING_BODY.test(htmlToText(html));
+}
 
 export function diffLines(before = [], after = []) {
   const b = new Set(before);
@@ -91,13 +108,23 @@ export function changeIssue(page, before, after, today) {
   };
 }
 
-export function downIssue(page, error, fails) {
-  const layout = /見張る行/.test(String(error));
+/** 公式サイトが「ページが見つかりません」のページを返したときのエラー（その日のうちに知らせる） */
+export const MISSING_ERROR = 'ページが見つかりません（公式サイトが「NOT FOUND」のページを返しました）';
+
+/**
+ * 公式ページを見張れないときのお知らせ。
+ *   「ページが見つかりません」（missing）はその日のうちに、開けない・見張る行がないは3日続いたら知らせる（watch.mjs）
+ */
+export function downIssue(page, error, fails, { missing = false } = {}) {
+  const layout = !missing && /見張る行/.test(String(error));
   return {
     key: `watchdown-${page.id}`,
-    title: layout ? `【確認のお願い】${page.name}の作りが変わった可能性があります` : `【確認のお願い】${page.name}を開けません`,
+    title: missing ? `【確認のお願い】${page.name}が見つかりません（URL が変わった可能性）`
+      : layout ? `【確認のお願い】${page.name}の作りが変わった可能性があります` : `【確認のお願い】${page.name}を開けません`,
     body: [
-      layout
+      missing
+        ? `毎日の自動チェックで次の公式ページを開くと、「ページが見つかりません（NOT FOUND）」と表示されました。ページのURLが変わったか、なくなった可能性があります。直すまで、このページの見張りは止まっています。`
+        : layout
         ? `毎日の自動チェックで、次の公式ページから${fails}日続けて、見張る行（${(page.keywords || []).join('・')}を含む行）が見つかりませんでした。ページの作りや言葉が変わったか、別のページに移った可能性があります。`
         : `毎日の自動チェックで、次の公式ページを${fails}日続けて開けませんでした。ページのURLが変わったか、なくなった可能性があります。`,
       '',
