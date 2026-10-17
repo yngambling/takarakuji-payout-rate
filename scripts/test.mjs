@@ -337,6 +337,157 @@ t('くじ別ページの解説とよくある質問（data/guides.json）', () =
   }
 });
 
+/* ---------- 解説ページ（宝くじの基礎知識：content/guide/*.md） ---------- */
+
+const GD = await import('./lib/guide.mjs');
+const { readdirSync } = await import('node:fs');
+const guideFiles = readdirSync(path.join(ROOT, 'content/guide')).filter((f) => /^[a-z0-9-]+\.md$/.test(f)).sort();
+const guidePagesT = guideFiles.map((f) => GD.parseGuide(readFileSync(path.join(ROOT, 'content/guide', f), 'utf8'), f));
+
+t('解説ページの書き方（Markdown・自動の数字と表・よくある質問・書き間違いは止める）', () => {
+  const src = `---
+title: 見本の題名
+h1: 見本の見出し
+short: 見本
+description: 見本の説明
+checkedOn: 2026-10-18
+order: 2
+sources:
+- 見本の法律 | https://example.org/law
+---
+リード文です。**太字**と<b>記号</b>。
+
+## 最初の見出し {#first}
+段落の1行目
+続きの行。[ロト6](kuji/loto6.html)と[外部](https://example.org/x)と[トップ](/)と[目次](#first)。今日のロト6は{{rate:loto6}}。
+
+- 項目1
+- 項目2
+  続き
+1. 番号1
+2. 番号2
+
+| くじ | 値段 |
+|---|---:|
+| ロト6 | 200円 |
+
+> 注意書き
+!> お知らせ
+
+{{table:sample}}
+
+### 小見出し
+Q: 質問1？
+A: 答え1。[リンク](guide/net.html)
+
+Q: 質問2？
+A: 答え2。
+`;
+  const g = GD.parseGuide(src, 'content/guide/sample.md');
+  assert.equal(g.slug, 'sample');
+  assert.deepEqual([g.meta.title, g.meta.h1, g.meta.short, g.meta.checkedOn, g.meta.order], ['見本の題名', '見本の見出し', '見本', '2026-10-18', 2]);
+  assert.deepEqual(g.meta.sources, [{ title: '見本の法律', url: 'https://example.org/law' }]);
+  const token = (n, a) => (n === 'rate' && a === 'loto6' ? '50.8%' : null);
+  const block = (n, a) => (n === 'table' && a === 'sample' ? '<div class="x">表</div>' : null);
+  const r = GD.renderGuideBody(g.body, { rel: '../', top: '../', token, block });
+  assert.equal(r.lead, '<p class="lead">リード文です。<strong>太字</strong>と&lt;b&gt;記号&lt;/b&gt;。</p>', 'リード文・太字・HTML は文字のまま');
+  assert.deepEqual(r.toc, [['first', '最初の見出し']]);
+  assert.ok(r.html.includes('<h2 id="first">最初の見出し</h2>'));
+  assert.ok(r.html.includes('<p>段落の1行目続きの行。<a href="../kuji/loto6.html">ロト6</a>と<a href="https://example.org/x" target="_blank" rel="noopener">外部</a>と<a href="../">トップ</a>と<a href="#first">目次</a>。今日のロト6は50.8%。</p>'), '段落・リンク・自動の数字');
+  assert.ok(r.html.includes('<ul><li>項目1</li><li>項目2続き</li></ul>') && r.html.includes('<ol><li>番号1</li><li>番号2</li></ol>'), '箇条書き');
+  assert.ok(r.html.includes('<thead><tr><th>くじ</th><th>値段</th></tr></thead>') && r.html.includes('<tr><th scope="row">ロト6</th><td class="r">200円</td></tr>'), '表（右寄せ）');
+  assert.ok(r.html.includes('<div class="note"><p>注意書き</p></div>') && r.html.includes('<div class="notice"><p>お知らせ</p></div>'), '注意書き・お知らせ');
+  assert.ok(r.html.includes('<div class="x">表</div>') && r.html.includes('<h3>小見出し</h3>'), '自動の表・小見出し');
+  assert.ok(r.html.includes('<dl class="faq"><dt>質問1？</dt><dd>答え1。<a href="../guide/net.html">リンク</a></dd><dt>質問2？</dt><dd>答え2。</dd></dl>'), 'よくある質問');
+  assert.deepEqual(r.faq.map(([q, , a]) => [q, a]), [['質問1？', '答え1。リンク'], ['質問2？', '答え2。']], '構造化データ用の文字');
+  // 書き間違いは止めて知らせる（自動更新では、マージ前の「変更の確認」で気付ける）
+  const R = (body) => () => GD.renderGuideBody(body, { token, block });
+  assert.throws(R('今日は{{rete:loto6}}'), /知らない自動の数字/);
+  assert.throws(R('{{table:nai}}'), /知らない自動の表/);
+  assert.throws(R('## 見出しだけ'), /id がありません/);
+  assert.throws(R('## A {#a}\n## B {#a}'), /重なっています/);
+  assert.throws(R('Q: 質問？\n本文'), /「A:」/);
+  assert.throws(R('| a | b |\n| c | d |'), /2行目/);
+  assert.throws(() => GD.parseGuide('本文だけ', 'x.md'), /設定/);
+  // 贈与税の早見表（国税庁 No.4408 の速算表）
+  assert.deepEqual([GD.giftTax(1100000), GD.giftTax(2e6), GD.giftTax(5e6), GD.giftTax(1e7), GD.giftTax(3e7), GD.giftTax(1e8)], [0, 90000, 530000, 2310000, 11950000, 50395000]);
+  assert.deepEqual([GD.giftTax(5e6, { special: true }), GD.giftTax(1e7, { special: true }), GD.giftTax(3e7, { special: true }), GD.giftTax(1e8, { special: true })], [485000, 1770000, 10355000, 47995000]);
+});
+
+t('解説ページ（content/guide の本物の原稿・一覧のページ・サイドバー・ほかのページからのリンク）', () => {
+  assert.ok(guidePagesT.length >= 5, '解説ページが5本以上');
+  for (const g of guidePagesT) {
+    const m = g.meta;
+    assert.ok(m.title && m.description && m.short, `${g.slug} の title・description・short`);
+    assert.ok(`${m.title}｜宝くじ還元率ランキング`.length <= 60, `${g.slug} の題名が長すぎます（検索結果で切れます）`);
+    assert.ok(m.description.length <= 160, `${g.slug} の description が長すぎます（${m.description.length}字）`);
+    assert.match(m.checkedOn || '', /^\d{4}-\d{2}-\d{2}$/, `${g.slug} の checkedOn（確認日）`);
+    assert.ok(Number.isFinite(m.order), `${g.slug} の order`);
+    assert.ok(m.sources.length >= 1 && m.sources.every((s) => s.title && /^https:\/\//.test(s.url)), `${g.slug} の sources（出典）`);
+    for (const bad of ['必ず当たる', '絶対に当たる', '一番儲かる', '儲かる', '毎日自動更新']) assert.ok(!g.body.includes(bad) && !JSON.stringify(m).includes(bad), `${g.slug} に「${bad}」が入っています`);
+  }
+  const ctxP = {
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} },
+    links, points, rows: rowsT, byId: Object.fromEntries(rowsT.map((r) => [r.id, r])), log: [], history: { days: {} },
+    catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])),
+    preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x', guidePages: guidePagesT,
+  };
+  const rg = createRenderer(ctxP);
+  const gpages = rg.guides();
+  assert.deepEqual(gpages.map((p) => p.path), ['guide.html', ...[...guidePagesT].sort((a, b) => a.meta.order - b.meta.order).map((g) => `guide/${g.slug}.html`)]);
+  // サイトのすべてのページ（リンク先があるかを確かめるため）
+  const all = [rg.index(), ...rowsT.filter((r) => r.def.model !== 'none').map((r) => rg.game(r)), rg.point(), rg.ichiran(), rg.keisan(), rg.kaikata(), rg.suii(), rg.about(), rg.privacy(), ...gpages];
+  const paths = new Set(all.map((p) => p.path));
+  for (const p of gpages) {
+    const text = p.html.replace(/<script[\s\S]*?<\/script>/g, '');
+    for (const bad of ['{{', '}}', '**', 'undefined', 'NaN', 'Infinity', '[object']) assert.ok(!text.includes(bad), `${p.path} に「${bad}」が出ています`);
+    assert.ok(p.html.includes('楽しみの範囲で買うために') && p.html.includes('19歳未満'), `${p.path} にのめり込みへの注意`);
+    assert.ok(p.html.includes('"@type":"BreadcrumbList"'), `${p.path} のパンくず`);
+    // サイト内のリンクは、すべて作られるページにつながる
+    const dir = path.posix.dirname(p.path);
+    for (const mm of p.html.matchAll(/\shref="([^"]*)"/g)) {
+      let u = mm[1].split('#')[0].split('?')[0];
+      if (!u || /^(https?:|mailto:)/.test(mm[1])) continue;
+      if (u.endsWith('/')) u += 'index.html';
+      const target = path.posix.normalize(path.posix.join(dir, u));
+      if (['style.css', 'favicon.svg', 'apple-touch-icon.png'].includes(target)) continue;
+      assert.ok(paths.has(target), `${p.path} のリンク先 ${mm[1]} がありません`);
+    }
+  }
+  const page = (slug) => gpages.find((p) => p.path === `guide/${slug}.html`).html;
+  // 解説ページ：パンくず（トップ ＞ 宝くじの基礎知識 ＞ ページ）・出典・記事の構造化データ・よくある質問
+  const z = page('zeikin');
+  assert.ok(z.includes('<p class="crumbs"><a href="../">トップ</a> ＞ <a href="../guide.html">宝くじの基礎知識</a> ＞ 宝くじ・スポーツくじの当せん金と税金</p>'), 'パンくず');
+  assert.ok(z.includes('"position":2,"name":"宝くじの基礎知識","item":"https://example.com/guide.html"') && z.includes('"@type":"Article"') && z.includes('"@type":"FAQPage"'), '構造化データ');
+  assert.ok(z.includes('https://laws.e-gov.go.jp/law/323AC0000000144') && z.includes('内容の確認日'), '出典と確認日');
+  assert.ok(!z.includes('<span class="badge">毎日更新</span>'), '税金のページは毎日は変わらないので「毎日更新」の印を出さない');
+  assert.ok(z.includes('<td class="r">231万円</td><td class="r">177万円</td>'), '贈与税の早見表（1,000万円）');
+  // 自動の表：当選確率（ナンバーズはいちばん高くなる申込タイプ）・還元率と期待値
+  const k = page('kakuritsu');
+  assert.ok(k.includes('<span class="badge">毎日更新</span>'), '毎日の数字を使うページは「毎日更新」');
+  assert.ok(k.includes('<a class="gname" href="../kuji/loto6.html">ロト6</a>') && k.includes('1/6,096,454'), 'ロト6の1等');
+  assert.ok(/<a class="gname" href="\.\.\/kuji\/numbers3\.html">ナンバーズ3<\/a>[\s\S]*?約1\/167<span class="sub">0\.6%・ボックス<\/span>/.test(k), 'ナンバーズ3の1万円以上はボックス');
+  assert.ok(k.includes('1等（ナンバーズはストレート）がいちばん当たりやすいのは<a href="../kuji/numbers3.html">ナンバーズ3</a>で、1/1,000です。'), '当たりやすいくじ');
+  assert.ok(k.includes('約5万8,600年に1回'), 'ロト6の1等は平均で約5万8,600年に1回（年104回）');
+  const e = page('kangenritsu');
+  assert.ok(e.includes('<table class="t evtbl">') && e.includes('還元率がいちばん高いのは'), '還元率と期待値の表');
+  assert.ok(!/\{\{|\}\}/.test(e.replace(/<script[\s\S]*?<\/script>/g, '')) && /ロト6の期待値は約\d+円、還元率は\d+\.\d%/.test(e), '本文の自動の数字');
+  // 一覧のページ・サイドバー・フッター・宝くじ一覧・トップ・購入場所・計算方法からリンクする
+  const hub = gpages[0].html;
+  for (const g of guidePagesT) assert.ok(hub.includes(`href="guide/${g.slug}.html"`), `一覧のページに ${g.slug}`);
+  const top = rg.index().html;
+  assert.ok(top.includes('<section class="widget plain"><h2 class="widget-title">宝くじの基礎知識</h2>') && top.includes('<a href="guide.html">宝くじの基礎知識の一覧 ›</a>'), 'サイドバー');
+  assert.ok(top.includes('<a href="guide.html">宝くじの基礎知識</a></nav>'), 'フッター');
+  assert.ok(top.includes('<h3>宝くじの基礎知識</h3>'), 'トップページの下');
+  assert.ok(rg.ichiran().html.includes('<h2 id="guide">宝くじの基礎知識</h2>'), '宝くじ一覧');
+  assert.ok(rg.kaikata().html.includes('<a href="guide/net.html">宝くじをネットで買う方法（始め方） ›</a>'), '購入場所 → ネットで買う方法');
+  assert.ok(rg.keisan().html.includes('<a href="guide/kangenritsu.html">'), '計算方法 → 還元率・期待値');
+  assert.ok(rg.game(rowsT.find((r) => r.id === 'loto6')).html.includes('<a href="../guide/zeikin.html">'), 'くじ別ページのサイドバー（../ から）');
+  // 解説ページがないとき（content/guide がない）は、今までどおり
+  assert.deepEqual(renderT.guides(), []);
+  assert.ok(!renderT.index().html.includes('href="guide.html"') && !renderT.ichiran().html.includes('id="guide"'), '解説ページがなければリンクも出さない');
+});
+
 t('404ページ（存在しない深い階層のURLでも、CSSとリンクがずれない）', () => {
   // GitHub Pages は /kuji/abc/def.html のような存在しないURLでも 404.html の中身を返すので、相対パスを使わない
   const base = 'https://yngambling.github.io/takarakuji-payout-rate';
