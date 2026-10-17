@@ -293,7 +293,7 @@ t('購入ボタンのクリックの計測（GA4 の shop_click：購入場所�
   assert.ok(/<article class="rank-card c1" data-kuji="[a-z0-9]+">/.test(top) && /<tbody class="g" data-kuji="loto6">/.test(top) && /<tr( class="first")? data-kuji="loto6">/.test(top), 'TOP3・等級の表・ランキングの表のくじ');
   assert.ok(top.includes(`<script>\n(function(){\n  document.addEventListener('click'`) && top.includes("window.gtag('event', 'shop_click', p);"), '計測のスクリプト');
   const l6 = R.game(rowsT.find((r) => r.id === 'loto6')).html;
-  assert.ok(l6.includes('<main id="main" data-kuji="loto6">') && l6.includes('data-place="cta_top"') && l6.includes('data-place="cta_bottom"') && l6.includes('data-place="sticky" data-kuji="loto6"'), 'くじ別ページ：上下の購入ボタン・画面の下のボタン');
+  assert.ok(l6.includes('<main id="main" data-kuji="loto6">') && l6.includes('data-place="cta_top"') && l6.includes('data-place="cta_bottom"') && l6.includes('<div class="sticky-cta" role="region" aria-label="購入ボタン" data-place="sticky" data-kuji="loto6">'), 'くじ別ページ：上下の購入ボタン・画面の下のボタン（名前付きの領域）');
   assert.ok(/<a class="btn btn-sub" href="[^"]+" target="_blank" rel="noopener" data-shop="rakutenbank_kuji" data-kind="buy">公式サイトへ<\/a>/.test(l6), 'くじ別の購入先（楽天銀行）');
   assert.ok(/data-shop="paypay_card" data-kind="signup"/.test(l6), 'カードの申し込み');
   assert.ok(/data-shop="takarakuji" data-kind="buy"/.test(R.kaikata().html) && /<tr( class="first")? data-kuji="[a-z0-9]+"><td class="c">/.test(R.point().html), '購入場所・ポイント還元のページ');

@@ -446,7 +446,7 @@ ${about.map((a) => {
     const ls = shopLinks(r.id);
     if (!ls.length) return '';
     const dl = deadlineOf(r);
-    return `<div class="sticky-cta" aria-label="購入ボタン" data-place="sticky" data-kuji="${r.id}"><div class="sc-info"><b>${esc(r.def.name)}</b><span>還元率 ${pct(r.rate)}${dl ? `・締切 ${esc(dl.label)}` : ''}</span></div>${aBtn(ls[0], 'btn-main', 'ネットで買う')}</div>`;
+    return `<div class="sticky-cta" role="region" aria-label="購入ボタン" data-place="sticky" data-kuji="${r.id}"><div class="sc-info"><b>${esc(r.def.name)}</b><span>還元率 ${pct(r.rate)}${dl ? `・締切 ${esc(dl.label)}` : ''}</span></div>${aBtn(ls[0], 'btn-main', 'ネットで買う')}</div>`;
   }
 
   /** 買い方のカード（トップ・購入場所・ポイント還元のページで共通） */
@@ -1550,7 +1550,7 @@ ${crumbs('', [{ name: 'プライバシーポリシー・免責事項' }])}
 <thead><tr><th>送信先</th><th>送信される情報</th><th>目的</th></tr></thead>
 <tbody>
 <tr><td>Google LLC（Google AdSense）</td><td>閲覧したページのURL、Cookie ID、IPアドレス、ブラウザの情報など</td><td>広告の配信と効果測定</td></tr>
-<tr><td>Google LLC（Google アナリティクス）</td><td>閲覧したページのURL、押したボタン（購入場所など）、Cookie ID、ブラウザの情報など</td><td>アクセス解析</td></tr>
+<tr><td>Google LLC（Google アナリティクス）</td><td>閲覧したページのURL、Cookie ID、ブラウザの情報など</td><td>アクセス解析</td></tr>
 <tr><td>Google LLC（Google Fonts）</td><td>IPアドレス、ブラウザの情報</td><td>見出しと数字のフォントの表示</td></tr>
 </tbody></table></div>
 ${hasContact ? '<h2>個人情報の取り扱い</h2><p>お問い合わせでいただいたメールアドレスなどの個人情報は、返信のためだけに使い、法令に基づく場合を除いて第三者に提供しません。</p>' : ''}
