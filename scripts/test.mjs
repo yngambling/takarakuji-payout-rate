@@ -321,7 +321,7 @@ t('ASP のコードをそのまま載せる広告リンク（楽天toto・楽天
   const n = all.split(tg.html).length - 1;
   assert.ok(n >= 10, `楽天toto のボタン（${n}か所）`);
   assert.equal(all.split(tg.url).length - 1, n, '楽天toto のリンクは、すべて ASP のコードのまま');
-  assert.ok(new RegExp(`<span class="btn [^"]*aff" data-shop="rakuten_toto" data-kind="buy">${reEsc(tg.html)} <span class="badge pr">PR</span></span>`).test(all), '外側の枠と PR');
+  assert.ok(new RegExp(`<span class="btn [^"]*aff is-ad" data-shop="rakuten_toto" data-kind="buy">${reEsc(tg.html)}</span>`).test(all), '外側の枠');
   // 楽天カード（楽天アフィリエイトの「テキストのみ」）：コードの文字だけを、カードの名前を含むボタンの文字にする
   const card = links.signups.rakuten_card;
   const texts = [...all.matchAll(new RegExp(`${reEsc(card.html.match(/<a\b[^>]*>/)[0])}([^<]*)</a>`, 'g'))].map((m) => m[1]);
@@ -331,6 +331,33 @@ t('ASP のコードをそのまま載せる広告リンク（楽天toto・楽天
   assert.ok(!all.includes(links.signups.rakuten_member.label), '楽天totoをはじめる');
   // 押されたことの計測は、ASP のコードのリンクでも外側の枠の印（data-shop）から読む
   assert.ok(renderWith({ ga4: 'G-TEST123' }).index().html.includes("var a = link ? link.closest('[data-shop]') : null;"), '計測のスクリプト');
+});
+
+t('広告のボタンを含む並びや表の上に1行だけ「PR（広告を含みます）」（ボタンごとには付けない）', () => {
+  const pages = [renderT.index(), renderT.point(), renderT.kaikata(), renderT.ichiran(), renderT.game(rowsT.find((r) => r.id === 'big')), renderT.game(rowsT.find((r) => r.id === 'loto6'))].map((p) => p.html);
+  assert.ok(!pages.join('\n').includes('badge pr'), 'ボタンの中の「PR」はなくした');
+  // ボタンの並び：広告のボタンを含むときだけ、すぐ上に1行
+  let withAd = 0;
+  let withoutAd = 0;
+  for (const h of pages) {
+    for (const m of h.matchAll(/(<p class="pr-note"><b>PR<\/b>（広告を含みます）<\/p>\n)?<div class="btns">([\s\S]*?)<\/div>/g)) {
+      const ad = /class="btn [^"]*\bis-ad\b/.test(m[2]);
+      assert.equal(!!m[1], ad, `並びの上の「PR」：${m[2].slice(0, 80)}`);
+      if (ad) withAd++; else withoutAd++;
+    }
+  }
+  assert.ok(withAd >= 5 && withoutAd >= 1, `広告を含む並び ${withAd}・含まない並び ${withoutAd}`);
+  // 表と一覧：広告のボタンがあれば、表や一覧の上に1行
+  for (const [name, h, re] of [
+    ['トップのランキングの表', pages[0], /<p class="pr-note"><b>PR<\/b>（表のボタンには広告を含みます）<\/p>\n<div class="rank-wrap">/],
+    ['ポイント還元ランキングの表', pages[1], /<h2 id="ranking">[^<]*<\/h2>\n<p class="pr-note"><b>PR<\/b>（表のボタンには広告を含みます）<\/p>/],
+    ['購入場所の比較表', pages[2], /<p class="pr-note"><b>PR<\/b>（表のボタンには広告を含みます）<\/p>\n<p class="scroll-hint">表は横にスクロールできます →<\/p>\n<div class="tbl-wrap"><table class="t shoptbl">/],
+    ['くじ別ページの購入場所の一覧', pages[4], /<p class="pr-note"><b>PR<\/b>（購入場所のボタンには広告を含みます）<\/p>\n<ul class="shops">/],
+  ]) assert.match(h, re, name);
+  assert.ok(!/<p class="pr-note">[^\n]*<\/p>\n<ul class="shops">/.test(pages[5]), '広告のボタンがない一覧（ロト6）には出さない');
+  // 画面の下のボタン（ボタンが1つのまとまり）は、ボタンの横に小さく「PR」
+  assert.ok(/<span class="pr-mark">PR<\/span><span class="btn btn-main aff is-ad"/.test(pages[4]), '画面の下のボタン（BIG）');
+  assert.ok(renderT.privacy().html.includes('「PR（広告を含みます）」と表示しています'), 'プライバシーポリシーの説明');
 });
 
 t('くじ別ページの解説とよくある質問（data/guides.json）', () => {

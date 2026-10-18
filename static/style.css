@@ -123,7 +123,6 @@ ul.note li + li { margin-top: 3px; }
 .badge.hot { background: var(--red); box-shadow: 0 0 0 0 rgba(215, 0, 15, .4); animation: pulse 2.2s ease-out infinite; }
 .badge.gold { background: var(--gold); color: var(--ink); }
 .badge.gray { background: var(--soft); color: var(--sub); border: 1px solid var(--line); }
-.badge.pr { background: var(--white); color: var(--mute); border: 1px solid var(--line); font-weight: 400; padding: 3px 6px 2px; font-size: 11px; animation: none; }
 .badge.wait { background: var(--white); color: var(--red); border: 1px solid var(--red); }
 .ptb { display: inline-block; margin-left: 8px; font-size: 12px; line-height: 1; padding: 4px 8px 3px; border-radius: 4px; background: var(--gold-soft); color: #8a6200; border: 1px solid #f1d27a; font-weight: 700; white-space: nowrap; vertical-align: 2px; }
 .ptb.gray { background: var(--soft); color: var(--sub); border-color: var(--line); font-weight: 400; }
@@ -196,7 +195,10 @@ ul.note li + li { margin-top: 3px; }
 .btn-mini:hover { background: var(--green); color: var(--white); }
 .btn-mini.first { background: var(--green); color: var(--white); }
 .btn-mini.first:hover { background: var(--green-dk); }
-.btn .badge.pr { vertical-align: 0; }
+/* 広告（アフィリエイト）のボタンを含むまとまりの上に1行だけ出す「PR（広告を含みます）」。ボタンごとには付けない。小さすぎる文字や見分けにくい色にしない（ASP の案内） */
+.pr-note { margin: 0 0 6px; font-size: 14px; line-height: 1.5; color: var(--sub); }
+.pr-note b { color: var(--ink); }
+.sticky-cta .pr-mark { flex: 0 0 auto; font-size: 12px; font-weight: 700; color: var(--sub); }
 /* ASP のコードをそのまま入れる広告リンク（links.json の html）：外側の枠をボタンの形にし、中のリンクをボタン全体に広げる */
 .btn.aff { position: relative; }
 .btn.aff > a { color: inherit; text-decoration: none; }
