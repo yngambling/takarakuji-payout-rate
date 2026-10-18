@@ -233,10 +233,18 @@ export function createRenderer(ctx) {
     if (sn) {
       // ASP のコードの中には手を加えず、ボタンの形・計測の印（data-shop）・PR は外側の枠に付ける
       const code = sn.editText ? sn.html.replace(/(<a\b[^>]*>)[\s\S]*?(<\/a>)/, (m, open, close) => `${open}${esc(label)}${close}`) : sn.html;
-      return `<span class="btn ${cls} aff"${data}>${code} <span class="badge pr">PR</span></span>`;
+      return `<span class="btn ${cls} aff is-ad"${data}>${code}</span>`;
     }
-    return `<a class="btn ${cls}" href="${esc(l.url)}" target="_blank" rel="${rel}"${data}>${esc(label)}${l.affiliate ? ' <span class="badge pr">PR</span>' : ''}</a>`;
+    return `<a class="btn ${cls}${l.affiliate ? ' is-ad' : ''}" href="${esc(l.url)}" target="_blank" rel="${rel}"${data}>${esc(label)}</a>`;
   }
+
+  /**
+   * 広告（アフィリエイト）のボタンを含むまとまりの上に、1行だけ「PR（広告を含みます）」と書く（ボタンごとには付けない）。
+   * 文字はサイトのふつうの文字に近い大きさにする（ASP の案内：小さすぎる文字や、背景と見分けにくい色はだめ）
+   */
+  const hasAd = (html) => /class="btn [^"]*\bis-ad\b/.test(html);
+  const prLine = (text = '広告を含みます') => `<p class="pr-note"><b>PR</b>（${text}）</p>\n`;
+  const prNote = (html, text) => (hasAd(html) ? prLine(text) : '') + html;
 
   function signupBtn(key, cls, label) {
     const s = signups[key];
@@ -270,7 +278,7 @@ export function createRenderer(ctx) {
     const shown = ls.slice(0, max + 1);
     const rest = ls.length - shown.length;
     const more = rest > 0 ? `<a class="btn-more" href="${self ? '' : `${rel}kuji/${id}.html`}#buy">ほか${rest}か所の購入場所 ›</a>` : '';
-    return `<div class="btns">${shown.map((l, i) => (i === 0 ? aBtn(l, 'btn-main', `${l.name}で${name}を買う`) : aBtn(l, 'btn-sub', l.name))).join('')}${more}</div>`;
+    return prNote(`<div class="btns">${shown.map((l, i) => (i === 0 ? aBtn(l, 'btn-main', `${l.name}で${name}を買う`) : aBtn(l, 'btn-sub', l.name))).join('')}${more}</div>`);
   }
 
   /** 締切（分かる場合だけ）。iso があればカウントダウンする */
@@ -470,7 +478,7 @@ ${about.map((a) => {
     const ls = shopLinks(r.id);
     if (!ls.length) return '';
     const dl = deadlineOf(r);
-    return `<div class="sticky-cta" role="region" aria-label="購入ボタン" data-place="sticky" data-kuji="${r.id}"><div class="sc-info"><b>${esc(r.def.name)}</b><span>還元率 ${pct(r.rate)}${dl ? `・締切 ${esc(dl.label)}` : ''}</span></div>${aBtn(ls[0], 'btn-main', 'ネットで買う')}</div>`;
+    return `<div class="sticky-cta" role="region" aria-label="購入ボタン" data-place="sticky" data-kuji="${r.id}"><div class="sc-info"><b>${esc(r.def.name)}</b><span>還元率 ${pct(r.rate)}${dl ? `・締切 ${esc(dl.label)}` : ''}</span></div>${(() => { const b = aBtn(ls[0], 'btn-main', 'ネットで買う'); return `${hasAd(b) ? '<span class="pr-mark">PR</span>' : ''}${b}`; })()}</div>`;
   }
 
   /** 買い方のカード（トップ・購入場所・ポイント還元のページで共通） */
@@ -488,7 +496,7 @@ ${about.map((a) => {
 <p class="rt-games">${esc(games)}</p>
 <p class="rt-desc">${esc(rt.feature || '')}</p>
 ${compact ? '' : `<ul class="parts">${(rt.parts || []).map((p) => { const v = partRate(p, Math.min(...(shopGames[rt.shop] || []).map((g) => ctx.defs[g].price))); return `<li><b>${v == null ? '＋α' : fmtPt(v)}</b><span>${esc(p.name)}<span class="sub">${esc(p.detail || '')}</span></span></li>`; }).join('')}</ul>`}
-<div class="btns">${btns.join('')}</div>
+${prNote(`<div class="btns">${btns.join('')}</div>`)}
 </article>`;
   }
 
@@ -614,7 +622,7 @@ ${UI_JS}${!preview && site.ga4 ? `\n${CLICK_JS}` : ''}`;
 <td class="k-by">${miniButtons(r.id)}</td>
 </tr>`;
     }).join('\n');
-    return `<div class="rank-wrap"><p class="scroll-hint">表は横にスクロールできます →</p>
+    return `${hasAd(body) ? prLine('表のボタンには広告を含みます') : ''}<div class="rank-wrap"><p class="scroll-hint">表は横にスクロールできます →</p>
 <div class="tbl-wrap"><table class="t rank">
 <colgroup><col style="width:46px"><col style="width:96px"><col style="width:96px"><col style="width:112px"><col style="width:104px"><col style="width:92px"><col style="width:88px"><col style="width:172px"></colgroup>
 <thead><tr><th>順位</th><th>くじ</th><th>還元率</th><th>キャリー<br>オーバー</th><th>1等の金額</th><th>1等の<br>当せん確率</th><th>次の回</th><th>購入場所</th></tr></thead>
@@ -689,7 +697,7 @@ ${body}
       const trs = lines.map((l, i) => `<tr>${i === 0 ? head : ''}<th scope="row">${esc(l.name)}</th><td class="r">${odds(l.p)}<span class="sub">${probPct(l.p)}</span></td><td class="r"><b>${l.prize}</b><span class="sub">${esc(l.sub)}</span></td><td class="r">${pct2(l.contrib)}</td>${i === 0 ? tail : ''}</tr>`).join('\n');
       return `<tbody class="g" data-kuji="${r.id}">\n${trs}\n</tbody>`;
     }).join('\n');
-    return `<p class="scroll-hint">表は横にスクロールできます →</p>
+    return `${hasAd(body) ? prLine('表のボタンには広告を含みます') : ''}<p class="scroll-hint">表は横にスクロールできます →</p>
 <div class="tbl-wrap"><table class="t tiers">
 <thead><tr><th>くじ・購入場所</th><th>等級</th><th>当せん確率</th><th>1口の当せん金</th><th>還元率への寄与</th><th>還元率</th></tr></thead>
 ${body}
@@ -1096,7 +1104,7 @@ ${about.length ? `<h2 id="about">${esc(d.name)}の特徴と還元率</h2>
 ${guideCards(about)}
 ${gdNote ? `<p class="note">${esc(gdNote)}</p>` : ''}` : ''}
 <h2 id="buy">${esc(d.name)}の購入場所</h2>
-${shopList}
+${prNote(shopList, '購入場所のボタンには広告を含みます')}
 ${ev.computable ? `<h2 id="tiers">等級ごとの当せん金と確率</h2>
 <p class="scroll-hint">表は横にスクロールできます →</p>
 <div class="tbl-wrap"><table class="t detail">
@@ -1313,11 +1321,12 @@ ${ad('bottom')}
     };
     const row = (sid) => `<tr><th scope="row">${esc(shops[sid].name)}</th><td>${esc(gamesLabel(shopGames[sid]))}</td><td class="c">${shopPointCell(sid)}</td><td>${esc(shops[sid].note || '')}</td><td class="c lk">${linkCell(sid)}</td></tr>`;
     const ids = shopIdsAll();
-    return `<p class="scroll-hint">表は横にスクロールできます →</p>
+    const trs = [...sortByPoint(ids.filter((s) => !isSportsShop(s))), ...sortByPoint(ids.filter(isSportsShop))].map(row).join('\n');
+    return `${hasAd(trs) ? prLine('表のボタンには広告を含みます') : ''}<p class="scroll-hint">表は横にスクロールできます →</p>
 <div class="tbl-wrap"><table class="t shoptbl">
 <thead><tr><th>購入場所</th><th>買えるくじ</th><th>ポイント</th><th>特徴</th><th>リンク</th></tr></thead>
 <tbody>
-${[...sortByPoint(ids.filter((s) => !isSportsShop(s))), ...sortByPoint(ids.filter(isSportsShop))].map(row).join('\n')}
+${trs}
 </tbody></table></div>`;
   }
 
@@ -1340,7 +1349,7 @@ ${[...sortByPoint(ids.filter((s) => !isSportsShop(s))), ...sortByPoint(ids.filte
       const s = shops[x.rt.shop];
       const keys = (x.rt.signups || []).filter((k) => signups[k] && signups[k].kind !== 'site');
       const rateLine = x.rate > 0 ? (x.rt.how ? `${x.rt.how}と、ポイントは合計${fmtPt(x.rate)}。` : `ポイントは購入額の${fmtPt(x.rate)}。`) : '';
-      return `<article class="pick"><p class="pick-q">${esc(p.title)}</p><p class="pick-a">${esc(s.name)}${x.rate > 0 ? `<span class="ptb">ポイント最大${fmtPt(x.rate)}</span>` : ''}</p><p>${esc(x.rt.feature || '')}。${esc(rateLine)}</p><div class="btns">${aBtn({ url: s.url, affiliate: !!s.affiliate }, 'btn-sub', `${s.name}へ`)}${keys.map((k) => signupBtn(k, 'btn-sub')).join('')}</div></article>`;
+      return `<article class="pick"><p class="pick-q">${esc(p.title)}</p><p class="pick-a">${esc(s.name)}${x.rate > 0 ? `<span class="ptb">ポイント最大${fmtPt(x.rate)}</span>` : ''}</p><p>${esc(x.rt.feature || '')}。${esc(rateLine)}</p>${prNote(`<div class="btns">${aBtn({ url: s.url, affiliate: !!s.affiliate }, 'btn-sub', `${s.name}へ`)}${keys.map((k) => signupBtn(k, 'btn-sub')).join('')}</div>`)}</article>`;
     }).join('');
     const nShops = shopIds.length;
     const body = `
@@ -1357,10 +1366,10 @@ ${shopCompareTable()}
 <p>ポイントの率と買えるくじの数から選んでいます。広告の有無で順番は変えていません。</p>
 <div class="picks">${picks}</div>
 <h2 id="kuji">宝くじ（ロト・ナンバーズ・ジャンボ）の購入場所</h2>
-${cards(shopIds.filter((s) => !isSports(s)))}
+${prNote(cards(shopIds.filter((s) => !isSports(s))), '購入場所のボタンには広告を含みます')}
 ${ad('middle')}
 <h2 id="sports">スポーツくじ（BIG・DUNK）の購入場所</h2>
-${cards(shopIds.filter(isSports))}
+${prNote(cards(shopIds.filter(isSports)), '購入場所のボタンには広告を含みます')}
 <p class="note">※スポーツくじの提携サイトは、スポーツくじオフィシャルサイトの「提携サイトで購入」に載っている販売先です。各サイトで買えるくじは、各社の公式ページに書かれているものだけを載せています。</p>
 <h2 id="steps">ネットで買う3ステップ</h2>
 <ol class="steps">
@@ -1447,7 +1456,7 @@ ${share(path, top ? `宝くじ・totoのポイント還元ランキング：1位
 ${toc([['ranking', '購入場所のポイント還元ランキング'], ['today', 'くじ別：ポイント込みの還元率（今日）'], ['detail', '買い方ごとのくわしい条件'], ['combine', 'ポイントの組み合わせ方'], ['card', '宝くじ公式サイトで使えるクレジットカード'], ['faq', 'よくある質問']])}
 ${ad('top')}
 <h2 id="ranking">購入場所のポイント還元ランキング</h2>
-<p class="scroll-hint">表は横にスクロールできます →</p>
+${hasAd(ranking) ? prLine('表のボタンには広告を含みます') : ''}<p class="scroll-hint">表は横にスクロールできます →</p>
 <div class="tbl-wrap"><table class="t ptrank">
 <thead><tr><th>順位</th><th>購入場所</th><th>ポイント<br>（最大）</th><th>内訳</th><th>買えるくじ</th><th>リンク</th></tr></thead>
 <tbody>
@@ -1457,7 +1466,7 @@ ${noPts.length ? `<p class="note">※くじの購入で貯まる独自のポイ�
 ${campaigns.length ? `<div class="notice">${campaigns.map((c) => `<p><b>期間限定</b>：${esc(c.title || '')}${c.until ? `（${fmtMd(c.until)}まで）` : ''}${c.url ? ` <a href="${esc(c.url)}" target="_blank" rel="noopener">くわしく</a>` : ''}</p>`).join('')}</div>` : ''}
 <h2 id="today">くじ別：ポイント込みの還元率（今日）</h2>
 <p>今日の還元率に、そのくじをいちばんポイントが付く買い方で買った分を足しました。ポイントは1ポイント＝1円として計算しています。</p>
-<p class="scroll-hint">表は横にスクロールできます →</p>
+${hasAd(effRows) ? prLine('表のボタンには広告を含みます') : ''}<p class="scroll-hint">表は横にスクロールできます →</p>
 <div class="tbl-wrap"><table class="t efftbl">
 <thead><tr><th>順位</th><th>くじ</th><th>還元率</th><th>ポイント</th><th>ポイント込み</th><th>いちばん貯まる買い方</th><th>購入</th></tr></thead>
 <tbody>
@@ -1572,7 +1581,7 @@ ${contact ? `<h2>お問い合わせ</h2><p>数値の誤りのご指摘や、掲�
 <h2>情報の確認</h2>
 <p>還元率のもとになる販売額やキャリーオーバーは、公式発表から1日に数回自動で取得しています。購入場所とポイントの情報は、各社の公式ページで確認し、確認日をページに載せています（最終確認：${esc(fmtYmd(checkedOn))}）。ポイント・購入場所・くじのルール（1口の値段・賞金・確率・1等の上限）が書かれた公式ページは毎日自動で変化をチェックし、変わったときは内容を確かめて直しています。新しいジャンボ宝くじの賞金表は、宝くじ公式サイトの発表から自動で読み取り、本数と金額の検算に通ったものだけを載せています。運営者が公式発表と見比べて確認するまでは、くじ別ページにその旨を表示します。</p>
 <h2>広告について</h2>
-<p>当サイトは、運営費をまかなうために広告（Google AdSense などの広告配信と、アフィリエイト広告）を掲載しています。アフィリエイト広告のリンクには「PR」と表示しています。</p>
+<p>当サイトは、運営費をまかなうために広告（Google AdSense などの広告配信と、アフィリエイト広告）を掲載しています。アフィリエイト広告のボタンを含む所には、その近くに「PR（広告を含みます）」と表示しています。</p>
 <h2>楽しみの範囲で買うために</h2>
 <p>宝くじとスポーツくじは、当せん金の総額が売上の半分ほどまでと法律で決められていて、還元率はキャリーオーバーがあるときを除いて45〜50%ほどです。たくさん買うほど、平均すると損が大きくなります。このサイトの還元率は「同じお金で、どのくじが少しでも割がよいか」を比べるためのもので、当たりやすさやもうけを約束するものではありません。</p>
 <p>生活に必要なお金は使わず、あらかじめ決めた金額の範囲で楽しんでください。スポーツくじ（BIG・DUNK など）は、19歳未満の方は購入できません。のめり込みが心配なときは、お住まいの地域の精神保健福祉センターなどに相談できます。</p>
@@ -1591,7 +1600,7 @@ ${crumbs('', [{ name: 'プライバシーポリシー・免責事項' }])}
 <p>当サイトは、第三者配信の広告サービス「Google AdSense」を利用しています（利用を始める前は表示されません）。広告配信事業者は、ユーザーの興味に応じた広告を表示するために Cookie を使用することがあります。Cookie を使うことで、当サイトや他のサイトへの過去のアクセス情報に基づいて広告が配信されます。</p>
 <p>Google が広告 Cookie を使用することにより、Google やそのパートナーは当サイトや他のサイトへのアクセス情報に基づいて広告を配信できます。パーソナライズ広告は、<a href="https://adssettings.google.com/" target="_blank" rel="noopener">広告設定</a>で無効にできます。詳しくは<a href="https://policies.google.com/technologies/ads?hl=ja" target="_blank" rel="noopener">Google のポリシーと規約（広告）</a>をご覧ください。</p>
 <h2>アフィリエイトについて</h2>
-<p>当サイトは、アフィリエイトプログラム（成果報酬型の広告）に参加しています。リンク先で申し込みや購入があると、当サイトに報酬が支払われることがあります。該当するリンクには「PR」と表示しています。</p>
+<p>当サイトは、アフィリエイトプログラム（成果報酬型の広告）に参加しています。リンク先で申し込みや購入があると、当サイトに報酬が支払われることがあります。該当するボタンを含む所には、その近くに「PR（広告を含みます）」と表示しています。</p>
 <h2>アクセス解析について</h2>
 <p>当サイトは、アクセス状況を把握するために Google アナリティクスを利用することがあります。Google アナリティクスは Cookie を使って匿名のトラフィックデータを収集します。個人を特定する情報は含みません。ページの改善のため、購入場所などの外部のサイトへのボタンが押されたこと（どのページのどのボタンか）も記録しています。収集を止めたい場合は、<a href="https://tools.google.com/dlpage/gaoptout?hl=ja" target="_blank" rel="noopener">Google アナリティクス オプトアウト アドオン</a>を利用できます。</p>
 <h2>外部に送信される情報</h2>
