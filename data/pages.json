@@ -2,8 +2,8 @@
  "_note": "ページごとの内容のハッシュと、内容が最後に変わった日時（build.mjs が更新）。sitemap.xml の lastmod と、検索エンジンへの通知（scripts/indexnow.mjs）に使います。",
  "pages": {
   "index.html": {
-   "hash": "08b20ba49e685a31",
-   "changed": "2026-10-18T09:34+09:00"
+   "hash": "943500957baf9439",
+   "changed": "2026-10-18T12:47+09:00"
   },
   "kuji/loto6.html": {
    "hash": "8cab35194f8fa4b3",
