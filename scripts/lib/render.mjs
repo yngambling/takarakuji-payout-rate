@@ -481,7 +481,7 @@ ${compact ? '' : `<ul class="parts">${(rt.parts || []).map((p) => { const v = pa
 
   /* ---------------- サイドバー・ヘッダー・フッター ---------------- */
 
-  function sidebar(rel) {
+  function sidebar(rel, ads = true) {
     const top5 = listed.slice(0, 5).map((r) => `<li><a href="${rel}kuji/${r.id}.html">${rankMark(rankOf[r.id])}<span>${esc(r.def.name)}</span><span class="val">${pct(r.rate)}</span></a></li>`).join('');
     const cos = coList.map((r) => `<li><a href="${rel}kuji/${r.id}.html"><span>${esc(r.def.name)}</span><span class="val small">${yen(r.carryover)}</span></a></li>`).join('');
     const pts = topRoutes.slice(0, 3).map((x) => `<li><a href="${rel}point.html">${rankMark(routeRank(x))}<span>${esc(shops[x.rt.shop].name)}<span class="sub">${esc(x.rt.how || '')}</span></span><span class="val">${fmtPt(x.rate)}</span></a></li>`).join('');
@@ -491,7 +491,7 @@ ${compact ? '' : `<ul class="parts">${(rt.parts || []).map((p) => { const v = pa
 <section class="widget"><h2 class="widget-title red">今日の還元率TOP5</h2><ol>${top5}</ol></section>
 ${cos ? `<section class="widget plain"><h2 class="widget-title">キャリーオーバー発生中</h2><ul>${cos}</ul></section>` : ''}
 ${pts ? `<section class="widget"><h2 class="widget-title gold">ポイント還元TOP3</h2><ol>${pts}</ol><p class="w-more"><a href="${rel}point.html">ポイント還元ランキングを見る ›</a></p></section>` : ''}
-${ad('sidebar')}
+${ads ? ad('sidebar') : ''}
 <section class="widget plain"><h2 class="widget-title">くじ別の還元率</h2><ul>${all}</ul></section>
 ${guideList.length ? `<section class="widget plain"><h2 class="widget-title">${HUB_NAME}</h2><ul>${guideList.map((g) => `<li><a href="${rel}${guidePath(g)}"><span>${esc(g.meta.short || guideName(g))}</span></a></li>`).join('')}</ul><p class="w-more"><a href="${rel}${HUB_PATH}">${HUB_NAME}の一覧 ›</a></p></section>` : ''}
 <section class="widget"><h2 class="widget-title">このサイトについて</h2><div class="w-body"><p>宝くじとスポーツくじの還元率を、キャリーオーバーや売上をもとに毎日計算し直しています。</p><p><a href="${rel}keisan.html">計算方法を見る</a>・<a href="${rel}about.html">運営者情報</a></p></div></section>
@@ -501,8 +501,11 @@ ${guideList.length ? `<section class="widget plain"><h2 class="widget-title">${H
   /** CSS をページに埋め込むとき（共有プレビュー）は、フォントの場所をページの階層に合わせる */
   const cssFor = (rel) => String(ctx.css || '').replace(/url\("fonts\//g, `url("${rel}fonts/`);
 
-  /** linkBase を渡すと、サイト内のリンクと CSS をその文字列から書く（404 ページ用）。渡さなければページの階層からの相対パス */
-  function layout({ path, title, description, body, current = null, jsonld = [], noindex = false, scripts = '', stickyHtml = '', linkBase = null, kuji = null }) {
+  /**
+   * linkBase を渡すと、サイト内のリンクと CSS をその文字列から書く（404 ページ用）。渡さなければページの階層からの相対パス。
+   * ads を false にすると、AdSense のコードを入れない（エラーのページのような中身のない画面には広告を置けない。Google のポリシー）
+   */
+  function layout({ path, title, description, body, current = null, jsonld = [], noindex = false, scripts = '', stickyHtml = '', linkBase = null, kuji = null, ads = true }) {
     const rel = linkBase ?? relOf(path);
     const url = pageUrl(path);
     const a = site.adsense || {};
@@ -530,7 +533,7 @@ ${guideList.length ? `<section class="widget plain"><h2 class="widget-title">${H
       ctx.inlineCss ? `<style>${cssFor(rel)}</style>` : `<link rel="stylesheet" href="${rel}style.css?v=${ctx.cssVersion}">`,
       !preview && ctx.verification ? `<meta name="google-site-verification" content="${esc(ctx.verification)}">` : '',
       !preview && a.client ? `<meta name="google-adsense-account" content="${esc(a.client)}">` : '',
-      !preview && a.client ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${esc(a.client)}" crossorigin="anonymous"></script>` : '',
+      !preview && a.client && ads ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${esc(a.client)}" crossorigin="anonymous"></script>` : '',
       !preview && site.ga4 ? `<script async src="https://www.googletagmanager.com/gtag/js?id=${esc(site.ga4)}"></script><script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','${esc(site.ga4)}');</script>` : '',
       ...jsonld.map((j) => `<script type="application/ld+json">${JSON.stringify(j)}</script>`),
     ].filter(Boolean).join('\n');
@@ -562,7 +565,7 @@ ${ticker}
 <main id="main"${kuji ? ` data-kuji="${esc(kuji)}"` : ''}>
 ${body}
 </main>
-${sidebar(rel)}
+${sidebar(rel, ads)}
 </div>
 <footer class="foot"><div class="wrap">
 <nav aria-label="サイト情報"><a href="${rel}about.html">このサイトについて${hasContact ? '・お問い合わせ' : ''}</a><a href="${rel}privacy.html">プライバシーポリシー・免責事項</a><a href="${rel}keisan.html">還元率の計算方法</a><a href="${rel}point.html">ポイント還元ランキング</a><a href="${rel}kaikata.html">購入場所</a><a href="${rel}ichiran.html">宝くじ一覧</a>${guideList.length ? `<a href="${rel}${HUB_PATH}">${HUB_NAME}</a>` : ''}</nav>
@@ -1836,7 +1839,7 @@ ${ad('bottom')}
     // 独自ドメインに移ったあとも baseUrl に合わせて変わる（共有プレビューはファイルを直接開くので相対パスのまま）
     const linkBase = preview ? '' : `${base}/`;
     const body = `<h1 class="page-title">ページが見つかりません</h1><p>URLが変わったか、ページが削除された可能性があります。<a href="${home(linkBase)}">トップページ</a>から探してください。</p>`;
-    return { path, html: layout({ path, title: `ページが見つかりません｜${site.siteName}`, description: 'ページが見つかりません。', body, noindex: true, linkBase }) };
+    return { path, html: layout({ path, title: `ページが見つかりません｜${site.siteName}`, description: 'ページが見つかりません。', body, noindex: true, linkBase, ads: false }) };
   }
 
   return { index, game, ichiran, keisan, kaikata, point, suii, about, privacy, notFound, guides: guides_ };
@@ -1985,6 +1988,9 @@ const UI_JS = `<script>
   onView(all('svg.spark'), function(el){ el.classList.add('draw'); }, { threshold: 0.25 });
 })();
 </script>`;
+
+/** ads.txt の中身。サイト運営者 ID が「ca-pub- と数字」の形のときだけ作り、それ以外（空・pub- だけなど）は空にする */
+export const adsTxt = (client) => (/^ca-pub-\d+$/.test(String(client || '')) ? `google.com, ${String(client).slice(3)}, DIRECT, f08c47fec0942fa0\n` : '');
 
 /* ---------------- フォント・キャリーオーバー速報の帯 ---------------- */
 

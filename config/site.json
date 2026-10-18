@@ -1,5 +1,5 @@
 {
-  "_note": "公開前に baseUrl・operatorName・contactEmail（または contactFormUrl）を自分のものに変えてください。AdSense の審査に通ったら adsense.client（ca-pub-から始まるID）と各広告ユニットのIDを入れます。スロットIDが空でも client だけ入れれば自動広告が使えます。ga4 は G- から始まる測定ID。indexNowKey は検索エンジン（Bing など）に更新を知らせる IndexNow のキー（英数字32文字。空にすると通知しない）。timerTokenExpires は外部タイマー（cron-job.org）のトークンの期限（30日前から Issue でお知らせ。作り直したら新しい期限に書き換える）。",
+  "_note": "公開前に baseUrl・operatorName・contactEmail（または contactFormUrl）を自分のものに変えてください。AdSense に登録したら adsense.client に ca-pub- から始まる ID（AdSense の アカウント → 設定 → アカウント情報 の サイト運営者 ID の頭に ca- を付けたもの）を入れます。入れると審査用のメタタグ・AdSense のコード・ads.txt が出ます。審査に通ったら、広告ユニットを使うときは slots に各広告ユニットの ID を入れます（空のままでも自動広告は使えます）。ga4 は G- から始まる測定ID。indexNowKey は検索エンジン（Bing など）に更新を知らせる IndexNow のキー（英数字32文字。空にすると通知しない）。timerTokenExpires は外部タイマー（cron-job.org）のトークンの期限（30日前から Issue でお知らせ。作り直したら新しい期限に書き換える）。",
   "siteName": "宝くじ還元率ランキング",
   "tagline": "どの宝くじが狙い目か一目で分かるサイト",
   "baseUrl": "https://takarakuji-kangen.com",
@@ -9,7 +9,7 @@
   "xAccount": "",
   "startedOn": "2026-10-10",
   "adsense": {
-    "client": "",
+    "client": "ca-pub-4293884731926504",
     "slots": {
       "top": "",
       "middle": "",
