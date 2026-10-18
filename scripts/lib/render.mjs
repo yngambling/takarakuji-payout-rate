@@ -209,15 +209,27 @@ export function createRenderer(ctx) {
     return list.sort((a, b) => (b.pt?.rate || 0) - (a.pt?.rate || 0) || a.i - b.i);
   }
 
+  /** リンク先の URL から、どの購入場所・申し込み先かを引く（ボタンに店のキーを渡していない所のため） */
+  const linkKey = new Map();
+  for (const [sid, s] of Object.entries(shops)) if (s.url) linkKey.set(s.url, { shop: sid, kind: 'buy' });
+  for (const list of [...Object.values(links.games || {}), links.jumboDefault || []]) for (const l of list) if (l.url && l.shop && !linkKey.has(l.url)) linkKey.set(l.url, { shop: l.shop, kind: 'buy' });
+  for (const [k, s] of Object.entries(signups)) if (s.url && !linkKey.has(s.url)) linkKey.set(s.url, { shop: k, kind: 'signup' });
+  /**
+   * 購入場所・申し込みのボタン。クリックの計測（GA4 の shop_click）のため、どこへのリンクかを data-shop・data-kind に書く。
+   *   data-shop … config/links.json の shops のキー（申し込みは signups のキー）。data-kind … buy（購入場所）か signup（口座開設・カード・会員登録）
+   *   ページ内の場所（data-place）とくじ（data-kuji）は、ボタンを囲む要素から計測のスクリプトが読む
+   */
   function aBtn(l, cls, label) {
     const rel = l.affiliate ? 'sponsored noopener' : 'noopener';
-    return `<a class="btn ${cls}" href="${esc(l.url)}" target="_blank" rel="${rel}">${esc(label)}${l.affiliate ? ' <span class="badge pr">PR</span>' : ''}</a>`;
+    const key = l.signup ? { shop: l.signup, kind: 'signup' } : l.key || l.shop ? { shop: l.key || l.shop, kind: 'buy' } : linkKey.get(l.url);
+    const data = key ? ` data-shop="${esc(key.shop)}" data-kind="${key.kind}"` : '';
+    return `<a class="btn ${cls}" href="${esc(l.url)}" target="_blank" rel="${rel}"${data}>${esc(label)}${l.affiliate ? ' <span class="badge pr">PR</span>' : ''}</a>`;
   }
 
   function signupBtn(key, cls, label) {
     const s = signups[key];
     if (!s?.url) return '';
-    return aBtn({ url: s.url, affiliate: !!s.affiliate }, cls, label || s.label || s.name);
+    return aBtn({ url: s.url, affiliate: !!s.affiliate, signup: key }, cls, label || s.label || s.name);
   }
 
   /** 店のリンクのほかに出す、口座開設・カードのボタン */
@@ -272,7 +284,7 @@ export function createRenderer(ctx) {
     const b = bigButtons(id, { max: 3, self: true });
     if (!b) return '';
     const title = isJumbo(d) && kind === 'upcoming' ? `${esc(d.name)}は${fmtMd(d.salesStart)}から買えます` : `${esc(d.name)}をネットで買う`;
-    return `<div class="cta-box"${r ? ' data-sticky-anchor' : ''}><p class="cta-title">${title}</p>${r ? cdHtml(r) : ''}${b}${MICRO}</div>`;
+    return `<div class="cta-box"${r ? ' data-sticky-anchor' : ''} data-place="${r ? 'cta_top' : 'cta_bottom'}"><p class="cta-title">${title}</p>${r ? cdHtml(r) : ''}${b}${MICRO}</div>`;
   }
 
   /** 発売が終わったジャンボのページの上に出すお知らせ（いま買えるジャンボへの案内つき） */
@@ -446,7 +458,7 @@ ${about.map((a) => {
     const ls = shopLinks(r.id);
     if (!ls.length) return '';
     const dl = deadlineOf(r);
-    return `<div class="sticky-cta" aria-label="購入ボタン"><div class="sc-info"><b>${esc(r.def.name)}</b><span>還元率 ${pct(r.rate)}${dl ? `・締切 ${esc(dl.label)}` : ''}</span></div>${aBtn(ls[0], 'btn-main', 'ネットで買う')}</div>`;
+    return `<div class="sticky-cta" role="region" aria-label="購入ボタン" data-place="sticky" data-kuji="${r.id}"><div class="sc-info"><b>${esc(r.def.name)}</b><span>還元率 ${pct(r.rate)}${dl ? `・締切 ${esc(dl.label)}` : ''}</span></div>${aBtn(ls[0], 'btn-main', 'ネットで買う')}</div>`;
   }
 
   /** 買い方のカード（トップ・購入場所・ポイント還元のページで共通） */
@@ -489,7 +501,7 @@ ${guideList.length ? `<section class="widget plain"><h2 class="widget-title">${H
   const displayChars = () => encodeURIComponent([...new Set(`宝くじ還元率ランキング${site.siteName || ''}`)].join(''));
 
   /** linkBase を渡すと、サイト内のリンクと CSS をその文字列から書く（404 ページ用）。渡さなければページの階層からの相対パス */
-  function layout({ path, title, description, body, current = null, jsonld = [], noindex = false, scripts = '', stickyHtml = '', linkBase = null }) {
+  function layout({ path, title, description, body, current = null, jsonld = [], noindex = false, scripts = '', stickyHtml = '', linkBase = null, kuji = null }) {
     const rel = linkBase ?? relOf(path);
     const url = pageUrl(path);
     const a = site.adsense || {};
@@ -545,7 +557,7 @@ ${guideList.length ? `<section class="widget plain"><h2 class="widget-title">${H
 <nav class="gnav" aria-label="メニュー"><div class="wrap">${nav}</div></nav>
 ${ticker}
 <div class="wrap layout">
-<main id="main">
+<main id="main"${kuji ? ` data-kuji="${esc(kuji)}"` : ''}>
 ${body}
 </main>
 ${sidebar(rel)}
@@ -558,7 +570,7 @@ ${sidebar(rel)}
 </div></footer>
 ${stickyHtml}
 ${scripts}
-${UI_JS}`;
+${UI_JS}${!preview && site.ga4 ? `\n${CLICK_JS}` : ''}`;
 
     if (preview && path === 'index.html') {
       return `<title>${esc(site.siteName)}</title>\n${fonts}\n<style>${ctx.css}</style>\n${inner}\n`;
@@ -573,7 +585,7 @@ ${UI_JS}`;
       const d = r.def;
       const fp = firstPrize(r);
       const br = bestRoute(r.id);
-      return `<tr${rankOf[r.id] === 1 ? ' class="first"' : ''}>
+      return `<tr${rankOf[r.id] === 1 ? ' class="first"' : ''} data-kuji="${r.id}">
 <td class="c k-rk">${rankMark(rankOf[r.id])}</td>
 <td class="k-nm"><a class="gname" href="${rel}kuji/${r.id}.html">${esc(d.name)}</a><span class="sub">${GROUP_LABEL[d.group] || ''}・1口${yen(d.price)}</span></td>
 <td class="k-rt"><span class="rate${r.rate >= 0.5 ? ' hi' : ''}">${pct(r.rate)}</span>${bar(r.rate)}${br ? `<span class="sub pt">ポイント込み${pct(effRate(r))}</span>` : ''}</td>
@@ -601,7 +613,7 @@ ${body}
       const rank = rankOf[r.id];
       const br = bestRoute(r.id);
       const cd = cdHtml(r, { short: true });
-      return `<article class="rank-card c${rank}">
+      return `<article class="rank-card c${rank}" data-kuji="${r.id}">
 <div class="rc-head">${rankMark(rank)}<a class="rc-name" href="${rel}kuji/${r.id}.html">${esc(r.def.name)}</a>${statusBadges(r)}</div>
 <div class="rc-body">
 <div class="rc-rate"><span class="lbl">還元率</span><span class="num">${cuPct(r.rate)}<small>%</small></span>${bar(r.rate)}${delta(r)}${br ? `<p class="rc-pt"><a href="${rel}point.html">ポイント込み <b>${pct(effRate(r))}</b></a></p>` : ''}</div>
@@ -657,7 +669,7 @@ ${body}
       const head = `<td class="gcell" rowspan="${n}"><a class="gname" href="${rel}kuji/${r.id}.html">${esc(d.name)}</a><span class="sub">1口${yen(d.price)}・${esc(r.status.short || '')}</span><span class="sub">${esc(r.status.shortSub || '')}</span>${miniButtons(r.id)}</td>`;
       const tail = `<td class="c" rowspan="${n}"><span class="rate${r.rate >= 0.5 ? ' hi' : ''}">${pct(r.rate)}</span><span class="sub">キャリーオーバー</span><span class="sub"><b class="${r.carryover > 0 ? 'red' : ''}">${r.hasCO ? yen(r.carryover) : 'なし'}</b>${r.provisional ? '（暫定）' : ''}</span>${r.capCO ? `<span class="sub">1等の上限 ${yen(r.capCO)}</span>` : ''}</td>`;
       const trs = lines.map((l, i) => `<tr>${i === 0 ? head : ''}<th scope="row">${esc(l.name)}</th><td class="r">${odds(l.p)}<span class="sub">${probPct(l.p)}</span></td><td class="r"><b>${l.prize}</b><span class="sub">${esc(l.sub)}</span></td><td class="r">${pct2(l.contrib)}</td>${i === 0 ? tail : ''}</tr>`).join('\n');
-      return `<tbody class="g">\n${trs}\n</tbody>`;
+      return `<tbody class="g" data-kuji="${r.id}">\n${trs}\n</tbody>`;
     }).join('\n');
     return `<p class="scroll-hint">表は横にスクロールできます →</p>
 <div class="tbl-wrap"><table class="t tiers">
@@ -830,7 +842,7 @@ ${sparse ? `<p class="note">記録があるのは${fmtShort(pts[0].d)}以降で�
       ? `${fmtMd(now.iso)}時点のロト6・ロト7・BIG・MEGA BIG・DUNKなどの還元率をキャリーオーバー込みで計算したランキングです。1位は${best.def.name}（${pct(best.rate)}）。等級ごとの当せん金と確率、ポイントが付く購入場所も載せています。`
       : '宝くじとスポーツくじの還元率を、キャリーオーバー込みで毎日計算しています。';
     const bbr = best ? bestRoute(best.id) : null;
-    const conclusion = best ? `<section class="conclusion" id="today" data-sticky-anchor>
+    const conclusion = best ? `<section class="conclusion" id="today" data-sticky-anchor data-place="conclusion" data-kuji="${best.id}">
 <p class="c-label">結論</p>
 <p class="c-kicker">今日いちばん還元率が高いくじ</p>
 <div class="c-main">
@@ -1109,7 +1121,7 @@ ${related(rel, r.id)}
         : `${d.name}の還元率は${pct(r.rate)}（${fmtMd(now.iso)}時点）。${r.hasCO ? `キャリーオーバー${yen(r.carryover)}を含めて計算。` : ''}等級ごとの当せん金と当せん確率、ポイントが付く購入場所をまとめています。`;
     return {
       path,
-      html: layout({ path, title, description: desc, body, jsonld: [breadcrumbLd(path, d.name), ...(faq.length ? [faqLd(faq)] : [])], scripts: showTrend ? CHART_JS : '', stickyHtml: ev.computable && r.listed ? sticky(r) : '' }),
+      html: layout({ path, title, description: desc, body, jsonld: [breadcrumbLd(path, d.name), ...(faq.length ? [faqLd(faq)] : [])], scripts: showTrend ? CHART_JS : '', stickyHtml: ev.computable && r.listed ? sticky(r) : '', kuji: r.id }),
     };
   }
 
@@ -1385,7 +1397,7 @@ ${ad('bottom')}
     const eff = [...listed].map((r) => ({ r, br: bestRoute(r.id) })).sort((a, b) => effRate(b.r) - effRate(a.r) || ctx.order[a.r.id] - ctx.order[b.r.id]);
     const effRows = eff.map(({ r, br }, i) => {
       const l = br ? shopLinks(r.id).find((x) => x.key === br.route.shop) : null;
-      return `<tr${i === 0 ? ' class="first"' : ''}><td class="c">${rankMark(1 + eff.filter((y) => Math.round(effRate(y.r) * 1000) > Math.round(effRate(r) * 1000)).length)}</td><td><a class="gname" href="${rel}kuji/${r.id}.html">${esc(r.def.name)}</a></td><td class="r">${pct(r.rate)}</td><td class="r">${br ? `＋${fmtPt(br.rate)}` : '—'}</td><td class="r"><span class="rate${effRate(r) >= 0.5 ? ' hi' : ''}">${pct(effRate(r))}</span></td><td>${br ? `${esc(shops[br.route.shop].name)}${br.route.how ? `<span class="sub">${esc(br.route.how)}</span>` : ''}` : '—'}</td><td class="lk">${l ? aBtn(l, 'btn-mini first', `${l.short}で買う`) : ''}</td></tr>`;
+      return `<tr${i === 0 ? ' class="first"' : ''} data-kuji="${r.id}"><td class="c">${rankMark(1 + eff.filter((y) => Math.round(effRate(y.r) * 1000) > Math.round(effRate(r) * 1000)).length)}</td><td><a class="gname" href="${rel}kuji/${r.id}.html">${esc(r.def.name)}</a></td><td class="r">${pct(r.rate)}</td><td class="r">${br ? `＋${fmtPt(br.rate)}` : '—'}</td><td class="r"><span class="rate${effRate(r) >= 0.5 ? ' hi' : ''}">${pct(effRate(r))}</span></td><td>${br ? `${esc(shops[br.route.shop].name)}${br.route.how ? `<span class="sub">${esc(br.route.how)}</span>` : ''}` : '—'}</td><td class="lk">${l ? aBtn(l, 'btn-mini first', `${l.short}で買う`) : ''}</td></tr>`;
     }).join('\n');
     const allSources = [];
     for (const x of routesRanked) for (const s of x.rt.sources || []) if (!allSources.some((y) => y.url === s.url)) allSources.push(s);
@@ -1563,7 +1575,7 @@ ${crumbs('', [{ name: 'プライバシーポリシー・免責事項' }])}
 <h2>アフィリエイトについて</h2>
 <p>当サイトは、アフィリエイトプログラム（成果報酬型の広告）に参加しています。リンク先で申し込みや購入があると、当サイトに報酬が支払われることがあります。該当するリンクには「PR」と表示しています。</p>
 <h2>アクセス解析について</h2>
-<p>当サイトは、アクセス状況を把握するために Google アナリティクスを利用することがあります。Google アナリティクスは Cookie を使って匿名のトラフィックデータを収集します。個人を特定する情報は含みません。収集を止めたい場合は、<a href="https://tools.google.com/dlpage/gaoptout?hl=ja" target="_blank" rel="noopener">Google アナリティクス オプトアウト アドオン</a>を利用できます。</p>
+<p>当サイトは、アクセス状況を把握するために Google アナリティクスを利用することがあります。Google アナリティクスは Cookie を使って匿名のトラフィックデータを収集します。個人を特定する情報は含みません。ページの改善のため、購入場所などの外部のサイトへのボタンが押されたこと（どのページのどのボタンか）も記録しています。収集を止めたい場合は、<a href="https://tools.google.com/dlpage/gaoptout?hl=ja" target="_blank" rel="noopener">Google アナリティクス オプトアウト アドオン</a>を利用できます。</p>
 <h2>外部に送信される情報</h2>
 <div class="tbl-wrap"><table class="t">
 <thead><tr><th>送信先</th><th>送信される情報</th><th>目的</th></tr></thead>
@@ -1828,6 +1840,35 @@ ${ad('bottom')}
 
   return { index, game, ichiran, keisan, kaikata, point, suii, about, privacy, notFound, guides: guides_ };
 }
+
+/* ---------------- 購入ボタンのクリックの計測（GA4 を設定したときだけ。全ページ共通） ---------------- */
+
+// 購入場所・申し込みのボタン（data-shop が付いたリンク）が押されたら、GA4 にイベント shop_click を送る。
+//   shop … 購入場所（config/links.json の shops のキー。申し込みは signups のキー）
+//   kind … buy（購入場所）か signup（口座開設・カード・会員登録）
+//   place … ページ内の場所（囲む要素の data-place。なければ直前の大見出し h2 の id）
+//   kuji … くじの ID（囲む要素か <main> の data-kuji。分からなければ送らない）
+// ページの URL は GA4 が自動で記録する。外部のサイトは新しいタブで開くので、送る前にページが閉じることはない。
+export const CLICK_JS = `<script>
+(function(){
+  document.addEventListener('click', function(e){
+    var a = e.target && e.target.closest ? e.target.closest('a[data-shop]') : null;
+    if (!a || typeof window.gtag !== 'function') return;
+    var holder = a.closest('[data-place]');
+    var place = holder ? holder.getAttribute('data-place') : '';
+    if (!place) {
+      var main = document.getElementById('main'), el = a;
+      while (el.parentElement && el.parentElement !== main) el = el.parentElement;
+      for (var s = el; s && !place; s = s.previousElementSibling) if (s.tagName === 'H2' && s.id) place = s.id;
+      if (!place) place = 'top';
+    }
+    var k = a.closest('[data-kuji]');
+    var p = { shop: a.getAttribute('data-shop'), kind: a.getAttribute('data-kind') || 'buy', place: place };
+    if (k) p.kuji = k.getAttribute('data-kuji');
+    window.gtag('event', 'shop_click', p);
+  }, true);
+})();
+</script>`;
 
 /* ---------------- 動き・カウントダウン・追従ボタン（全ページ共通） ---------------- */
 

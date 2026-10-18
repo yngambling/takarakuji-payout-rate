@@ -275,6 +275,35 @@ t('グラフの期間（推移は30日・くじ別は1年）と名前の変更',
   assert.ok(!all.includes('買える所'), '「買える所」は残さない');
 });
 
+/** 設定を変えた見本のページ（site に項目を足す。preview は共有プレビュー） */
+const renderWith = (siteExtra = {}, preview = false) => createRenderer({
+  site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {}, ...siteExtra },
+  links, points, rows: rowsT, byId: Object.fromEntries(rowsT.map((r) => [r.id, r])), log: [], history: { days: {} },
+  catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])),
+  preview, placeholders: false, inlineCss: preview, css: '', cssVersion: 'x',
+});
+
+t('購入ボタンのクリックの計測（GA4 の shop_click：購入場所・種類・ページ内の場所・くじ）', () => {
+  const R = renderWith({ ga4: 'G-TEST123' });
+  const top = R.index().html;
+  // どのボタンにも、どこへのリンクか（data-shop・data-kind）が付く
+  const btns = [...top.matchAll(/<a class="btn [^"]*"[^>]*>/g)].map((m) => m[0]);
+  assert.ok(btns.length > 20 && btns.every((b) => /data-shop="[a-z0-9_]+" data-kind="(buy|signup)"/.test(b)), 'トップページの購入・申し込みのボタン');
+  assert.ok(top.includes('<section class="conclusion" id="today" data-sticky-anchor data-place="conclusion" data-kuji="'), '結論ボックス');
+  assert.ok(/<article class="rank-card c1" data-kuji="[a-z0-9]+">/.test(top) && /<tbody class="g" data-kuji="loto6">/.test(top) && /<tr( class="first")? data-kuji="loto6">/.test(top), 'TOP3・等級の表・ランキングの表のくじ');
+  assert.ok(top.includes(`<script>\n(function(){\n  document.addEventListener('click'`) && top.includes("window.gtag('event', 'shop_click', p);"), '計測のスクリプト');
+  const l6 = R.game(rowsT.find((r) => r.id === 'loto6')).html;
+  assert.ok(l6.includes('<main id="main" data-kuji="loto6">') && l6.includes('data-place="cta_top"') && l6.includes('data-place="cta_bottom"') && l6.includes('<div class="sticky-cta" role="region" aria-label="購入ボタン" data-place="sticky" data-kuji="loto6">'), 'くじ別ページ：上下の購入ボタン・画面の下のボタン（名前付きの領域）');
+  assert.ok(/<a class="btn btn-sub" href="[^"]+" target="_blank" rel="noopener" data-shop="rakutenbank_kuji" data-kind="buy">公式サイトへ<\/a>/.test(l6), 'くじ別の購入先（楽天銀行）');
+  assert.ok(/data-shop="paypay_card" data-kind="signup"/.test(l6), 'カードの申し込み');
+  assert.ok(/data-shop="takarakuji" data-kind="buy"/.test(R.kaikata().html) && /<tr( class="first")? data-kuji="[a-z0-9]+"><td class="c">/.test(R.point().html), '購入場所・ポイント還元のページ');
+  // GA4 を設定していないとき・共有プレビューでは、計測のスクリプトを入れない
+  assert.ok(!renderT.index().html.includes("'shop_click'"), 'GA4 なし');
+  assert.ok(!renderWith({ ga4: 'G-TEST123' }, true).index().html.includes("'shop_click'"), '共有プレビュー');
+  // プライバシーポリシーに書く
+  assert.ok(R.privacy().html.includes('購入場所などの外部のサイトへのボタンが押されたこと'));
+});
+
 t('くじ別ページの解説とよくある質問（data/guides.json）', () => {
   const guides = JSON.parse(readFileSync(path.join(ROOT, 'data/guides.json'), 'utf8'));
   // 書き方の確認：あるくじだけ・確認日・段落と質問が空でない・出典は https・使わない言い回しがない
