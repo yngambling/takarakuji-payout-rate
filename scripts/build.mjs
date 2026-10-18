@@ -12,7 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { jstParts, weekdayOf, verificationCode } from './lib/util.mjs';
 import { resolveGames, computeAll } from './lib/model.mjs';
-import { createRenderer } from './lib/render.mjs';
+import { createRenderer, adsTxt } from './lib/render.mjs';
 import { validKey, contentHash, trackPages } from './lib/indexnow.mjs';
 import { parseGuide } from './lib/guide.mjs';
 
@@ -122,10 +122,8 @@ if (!PREVIEW) {
   await writeFile(path.join(OUT, 'robots.txt'), `User-agent: *\nAllow: /\n\nSitemap: ${base}/sitemap.xml\n`, 'utf8');
   // IndexNow のキーのファイル（検索エンジンが、このサイトの持ち主からの通知か確かめるのに使う）
   if (validKey(indexNowKey)) await writeFile(path.join(OUT, `${indexNowKey}.txt`), indexNowKey, 'utf8');
-  const client = site.adsense?.client || '';
-  if (/^ca-pub-\d+$/.test(client)) {
-    await writeFile(path.join(OUT, 'ads.txt'), `google.com, ${client.replace('ca-', '')}, DIRECT, f08c47fec0942fa0\n`, 'utf8');
-  }
+  const ads = adsTxt(site.adsense?.client);
+  if (ads) await writeFile(path.join(OUT, 'ads.txt'), ads, 'utf8');
 }
 
 const listed = rows.filter((r) => r.listed).sort((a, b) => b.rate - a.rate);

@@ -722,6 +722,39 @@ t('Search Console の確認タグ（貼ったタグから取り出して全ペ�
   assert.ok(!page('').index().html.includes('google-site-verification'), 'コードがなければ入れない');
 });
 
+t('AdSense のコード（審査用のメタタグ・AdSense のコード・ads.txt。エラーのページには広告のコードを入れない）', () => {
+  // 本物の設定：空か「ca-pub- と16桁の数字」（AdSense の画面に出る pub- だけだと ads.txt が出ない）
+  const real = JSON.parse(readFileSync(path.join(ROOT, 'config/site.json'), 'utf8')).adsense?.client || '';
+  assert.ok(real === '' || /^ca-pub-\d{16}$/.test(real), `config/site.json の adsense.client は ca-pub- と16桁の数字にする（いまは「${real}」）`);
+  const id = 'ca-pub-1234567890123456';
+  assert.equal(RD.adsTxt(id), 'google.com, pub-1234567890123456, DIRECT, f08c47fec0942fa0\n', 'ads.txt の1行（Google の決まった形）');
+  for (const bad of ['', 'pub-1234567890123456', 'ca-pub-12a4', ' ca-pub-1234567890123456', undefined]) assert.equal(RD.adsTxt(bad), '', `形が違えば ads.txt を作らない（${bad}）`);
+  const r = (client, preview = false, slots = {}) => createRenderer({
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: { client, slots } },
+    links, points, rows: rowsT, byId: Object.fromEntries(rowsT.map((x) => [x.id, x])), log: [], history: { days: {} },
+    catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])),
+    preview, placeholders: false, inlineCss: preview, css: '', cssVersion: 'x',
+  });
+  const meta = `<meta name="google-adsense-account" content="${id}">`;
+  const code = `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${id}" crossorigin="anonymous"></script>`;
+  const count = (h, s) => h.split(s).length - 1;
+  const ra = r(id);
+  for (const [name, h] of [['トップ', ra.index().html], ['くじ別', ra.game(rowsT.find((x) => x.id === 'loto6')).html], ['宝くじ一覧', ra.ichiran().html], ['このサイトについて', ra.about().html], ['プライバシーポリシー', ra.privacy().html]]) {
+    const head = h.slice(0, h.indexOf('</head>'));
+    assert.equal(count(head, meta), 1, `${name}の head に審査用のメタタグが1つ`);
+    assert.equal(count(head, code), 1, `${name}の head に AdSense のコードが1つ`);
+    assert.ok(!h.includes('<ins class="adsbygoogle"'), `${name}：広告ユニットの ID が空なら、広告の枠は出さない（自動広告だけ）`);
+  }
+  const nf = ra.notFound().html;
+  assert.ok(nf.includes(meta) && !nf.includes('adsbygoogle.js'), 'エラーのページ（404）には広告のコードを入れない');
+  // 審査のあとで広告ユニットの ID を入れたとき：ふつうのページには枠が出て、404 には出ない
+  const rs = r(id, false, { sidebar: '1234567890' });
+  assert.ok(rs.index().html.includes('data-ad-slot="1234567890"'), '広告ユニットの ID を入れると、サイドバーに広告の枠が出る');
+  assert.ok(!rs.notFound().html.includes('<ins class="adsbygoogle"'), 'エラーのページ（404）には広告の枠も出さない');
+  assert.ok(!r(id, true).index().html.includes('google-adsense-account') && !r(id, true).index().html.includes('adsbygoogle'), '共有プレビューには入れない');
+  assert.ok(!r('').index().html.includes('google-adsense-account') && !r('').index().html.includes('adsbygoogle'), 'ID が空なら入れない');
+});
+
 /* ---------- BIG777（毎月7日を含む週の回は、1等の上限が7億7万7千円） ---------- */
 
 const { weekWith7, specialOf, withSpecialCap } = await import('./lib/special.mjs');
