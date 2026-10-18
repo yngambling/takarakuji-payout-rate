@@ -5,7 +5,7 @@
 //   node scripts/build.mjs --now 2026-10-10T19:30 … 日時を指定して生成（日本時間）
 //   node scripts/build.mjs --preview --out preview … 共有プレビュー用（CSSを各ページに埋め込む）
 
-import { readFile, writeFile, mkdir, copyFile, rm } from 'node:fs/promises';
+import { readFile, writeFile, mkdir, copyFile, rm, readdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import path from 'node:path';
@@ -14,6 +14,7 @@ import { jstParts, weekdayOf, verificationCode } from './lib/util.mjs';
 import { resolveGames, computeAll } from './lib/model.mjs';
 import { createRenderer } from './lib/render.mjs';
 import { validKey, contentHash, trackPages } from './lib/indexnow.mjs';
+import { parseGuide } from './lib/guide.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const P = (...a) => path.join(ROOT, ...a);
@@ -49,6 +50,13 @@ const overrides = await readJson('data/overrides.json', { games: {} });
 const catalog = await readJson('data/catalog.json');
 // くじ別ページの解説とよくある質問（ファイルがなければ出さない。書き方の誤りは止めて知らせる）
 const guides = existsSync(P('data/guides.json')) ? await readJson('data/guides.json') : { games: {} };
+// 解説ページ（宝くじの基礎知識）：content/guide/*.md（書き方は README の「解説ページ」。書き方の誤りは止めて知らせる）
+const guidePages = [];
+if (existsSync(P('content/guide'))) {
+  for (const f of (await readdir(P('content/guide'))).filter((x) => /^[a-z0-9-]+\.md$/.test(x)).sort()) {
+    guidePages.push(parseGuide(await readFile(P('content/guide', f), 'utf8'), f));
+  }
+}
 const css = await readFile(P('static/style.css'), 'utf8');
 // Google Search Console の確認コード（config/google-site-verification.txt に貼ったタグから取り出す。なければ空）
 const gsvText = existsSync(P('config/google-site-verification.txt')) ? await readFile(P('config/google-site-verification.txt'), 'utf8') : '';
@@ -72,17 +80,18 @@ if (RECORD) {
 }
 
 const render = createRenderer({
-  site, links, points, rows, byId, log, history, catalog, guides, now, state, defs, order, overrides, verification,
+  site, links, points, rows, byId, log, history, catalog, guides, guidePages, now, state, defs, order, overrides, verification,
   preview: PREVIEW, placeholders: PLACEHOLDERS || PREVIEW, inlineCss: PREVIEW, css,
   cssVersion: createHash('md5').update(css).digest('hex').slice(0, 8),
 });
 
 const pages = [render.index()];
 for (const r of rows) if (r.def.model !== 'none') pages.push(render.game(r));
-pages.push(render.point(), render.ichiran(), render.keisan(), render.kaikata(), render.suii(), render.about(), render.privacy(), render.notFound());
+pages.push(render.point(), render.ichiran(), render.keisan(), render.kaikata(), render.suii(), render.about(), render.privacy(), ...render.guides(), render.notFound());
 
 if (existsSync(OUT)) await rm(OUT, { recursive: true, force: true });
 await mkdir(path.join(OUT, 'kuji'), { recursive: true });
+await mkdir(path.join(OUT, 'guide'), { recursive: true });
 for (const p of pages) await writeFile(path.join(OUT, p.path), p.html, 'utf8');
 
 for (const f of ['style.css', 'favicon.svg', 'og.png', 'apple-touch-icon.png']) {

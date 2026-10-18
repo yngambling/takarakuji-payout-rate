@@ -2,6 +2,7 @@
 import { esc, num, yenJa, pct, odds, fmtMd, fmtMdPlain, fmtYmd, fmtShort } from './util.mjs';
 import { carryoverTable, rateSeries } from './model.mjs';
 import { autoGuide, autoLead, autoSourceNote, buyChances, jumboSibling, compareSentence, chanceText, chanceAtLeast, chanceOfN, oddsJa, dynamicFaq } from './jumbo.mjs';
+import { renderGuideBody, giftTax, GIFT_AMOUNTS } from './guide.mjs';
 
 const GROUP_LABEL = { takarakuji: '宝くじ', sports: 'スポーツくじ' };
 
@@ -79,6 +80,18 @@ export function createRenderer(ctx) {
   const signups = links.signups || {};
   /** くじの購入先（config/links.json の games。書いていないジャンボは jumboDefault） */
   const gameLinks = (id) => links.games?.[id] || (isJumbo(ctx.defs[id]) ? links.jumboDefault || [] : []);
+
+  /** 解説ページ（content/guide/*.md を build.mjs が読んで渡す。order の順） */
+  const HUB_NAME = '宝くじの基礎知識';
+  const HUB_PATH = 'guide.html';
+  const guideList = [...(ctx.guidePages || [])].sort((a, b) => (a.meta.order ?? 99) - (b.meta.order ?? 99) || a.slug.localeCompare(b.slug));
+  const guideBySlug = Object.fromEntries(guideList.map((g) => [g.slug, g]));
+  const guidePath = (g) => `guide/${g.slug}.html`;
+  const guideName = (g) => g.meta.h1 || g.meta.title || g.slug;
+  /** ほかのページから解説ページへの「くわしく」のリンク（そのページがなければ何も出さない） */
+  const guideMore = (slug, rel) => (guideBySlug[slug] ? `<p class="more-link"><a href="${rel}${guidePath(guideBySlug[slug])}">${esc(guideName(guideBySlug[slug]))} ›</a></p>` : '');
+  const guideLinks = (rel, exclude = null) => `<div class="related guides">${guideList.filter((g) => g.slug !== exclude).map((g) => `<a href="${rel}${guidePath(g)}"><span>${esc(g.meta.short || guideName(g))}</span></a>`).join('')}</div>`;
+  const guideListCards = (rel) => `<div class="guide-list">${guideList.map((g) => `<a class="gl-card" href="${rel}${guidePath(g)}"><b>${esc(guideName(g))}</b><span>${esc(g.meta.description || '')}</span><span class="gl-more">読む ›</span></a>`).join('')}</div>`;
 
   /* ---------------- ポイント ---------------- */
 
@@ -383,13 +396,12 @@ export function createRenderer(ctx) {
     return `<p class="crumbs">${all.map((c, i) => (i < all.length - 1 ? `<a href="${c.href}">${esc(c.name)}</a>` : esc(c.name))).join(' ＞ ')}</p>`;
   }
 
-  function breadcrumbLd(path, name) {
+  /** パンくずの構造化データ。parent（{ name, path }）を渡すと、トップとページの間に入れる */
+  function breadcrumbLd(path, name, parent = null) {
+    const items = [{ name: 'トップ', item: `${base}/` }, ...(parent ? [{ name: parent.name, item: pageUrl(parent.path) }] : []), { name, item: pageUrl(path) }];
     return {
       '@context': 'https://schema.org', '@type': 'BreadcrumbList',
-      itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'トップ', item: `${base}/` },
-        { '@type': 'ListItem', position: 2, name, item: pageUrl(path) },
-      ],
+      itemListElement: items.map((x, i) => ({ '@type': 'ListItem', position: i + 1, ...x })),
     };
   }
 
@@ -469,6 +481,7 @@ ${cos ? `<section class="widget plain"><h2 class="widget-title">キャリーオ�
 ${pts ? `<section class="widget"><h2 class="widget-title gold">ポイント還元TOP3</h2><ol>${pts}</ol><p class="w-more"><a href="${rel}point.html">ポイント還元ランキングを見る ›</a></p></section>` : ''}
 ${ad('sidebar')}
 <section class="widget plain"><h2 class="widget-title">くじ別の還元率</h2><ul>${all}</ul></section>
+${guideList.length ? `<section class="widget plain"><h2 class="widget-title">${HUB_NAME}</h2><ul>${guideList.map((g) => `<li><a href="${rel}${guidePath(g)}"><span>${esc(g.meta.short || guideName(g))}</span></a></li>`).join('')}</ul><p class="w-more"><a href="${rel}${HUB_PATH}">${HUB_NAME}の一覧 ›</a></p></section>` : ''}
 <section class="widget"><h2 class="widget-title">このサイトについて</h2><div class="w-body"><p>宝くじとスポーツくじの還元率を、キャリーオーバーや売上をもとに毎日計算し直しています。</p><p><a href="${rel}keisan.html">計算方法を見る</a>・<a href="${rel}about.html">運営者情報</a></p></div></section>
 </aside>`;
   }
@@ -538,7 +551,7 @@ ${body}
 ${sidebar(rel)}
 </div>
 <footer class="foot"><div class="wrap">
-<nav aria-label="サイト情報"><a href="${rel}about.html">このサイトについて${hasContact ? '・お問い合わせ' : ''}</a><a href="${rel}privacy.html">プライバシーポリシー・免責事項</a><a href="${rel}keisan.html">還元率の計算方法</a><a href="${rel}point.html">ポイント還元ランキング</a><a href="${rel}kaikata.html">購入場所</a><a href="${rel}ichiran.html">宝くじ一覧</a></nav>
+<nav aria-label="サイト情報"><a href="${rel}about.html">このサイトについて${hasContact ? '・お問い合わせ' : ''}</a><a href="${rel}privacy.html">プライバシーポリシー・免責事項</a><a href="${rel}keisan.html">還元率の計算方法</a><a href="${rel}point.html">ポイント還元ランキング</a><a href="${rel}kaikata.html">購入場所</a><a href="${rel}ichiran.html">宝くじ一覧</a>${guideList.length ? `<a href="${rel}${HUB_PATH}">${HUB_NAME}</a>` : ''}</nav>
 <p>還元率は公式発表のデータから自動で計算していますが、誤りを含むことがあります。当せん番号・当せん金は、宝くじは発売元、スポーツくじは日本スポーツ振興センターの発表を確認してください。ポイントの条件は各社の公式ページで確認してください。</p>
 <p>スポーツくじは19歳未満の方は購入できません。のめり込みが心配なときは、お住まいの地域の精神保健福祉センターなどに相談できます（<a href="https://www.ncasa-japan.jp/you-do/treatment/treatment-map/" target="_blank" rel="noopener">全国の相談窓口を探す：依存症対策全国センター</a>）。</p>
 <p class="copy">© ${esc(String(now.y))} ${esc(site.siteName)}</p>
@@ -868,6 +881,7 @@ ${faqHtml(faqs)}
 ${ad('bottom')}
 <h3>くじ別の還元率を見る</h3>
 ${related(rel, null)}
+${guideList.length ? `<h3>${HUB_NAME}</h3>\n${guideLinks(rel)}` : ''}
 `;
     return {
       path: 'index.html',
@@ -1168,11 +1182,14 @@ ${crumbs(rel, [{ name: '宝くじ一覧' }])}
 <h1 class="page-title">宝くじ一覧</h1>
 ${updatedLine()}
 <p class="lead">当サイトで扱っている宝くじとスポーツくじのしくみを、くじごとにまとめました。名前を押すと、くじ別のページに移動します。</p>
-${toc([...ids.map((id) => [`k-${id}`, ctx.defs[id].name]), ...(pastIds.length ? [['past', '終わったジャンボ宝くじ']] : [])])}
+${toc([...ids.map((id) => [`k-${id}`, ctx.defs[id].name]), ...(pastIds.length ? [['past', '終わったジャンボ宝くじ']] : []), ...(guideList.length ? [['guide', HUB_NAME]] : [])])}
 ${ad('top')}
 <h2 id="list">くじごとのしくみ</h2>
 ${sections}
-${pastHtml}${ad('bottom')}
+${pastHtml}${guideList.length ? `<h2 id="guide">${HUB_NAME}</h2>
+<p>還元率（期待値）の意味、当たる確率の比べ方、当せん金の税金と受け取り方、ネットでの買い方を、くじをまたいでまとめています。</p>
+${guideListCards(rel)}` : ''}
+${ad('bottom')}
 `;
     return {
       path,
@@ -1237,6 +1254,7 @@ ${ad('middle')}
 <p>1日に数回、自動で取得して計算し直しています。取得できなかったときは前回の値のまま表示し、くじ別ページに注意書きを出します。</p>
 <h2 id="caution">注意</h2>
 <p>還元率は「たくさん買ったときの平均」で、1回ごとの結果を約束するものではありません。また、当せん金の受け取りにかかる手間や税金（宝くじ・スポーツくじの当せん金は非課税）は計算に入れていません。購入は、自分で決めた範囲の金額にとどめてください。</p>
+${guideMore('kangenritsu', rel)}${guideMore('zeikin', rel)}
 ${ad('bottom')}
 `;
     return {
@@ -1254,17 +1272,31 @@ ${ad('bottom')}
     return '<span class="sub">—</span>';
   }
 
-  function kaikata() {
-    const path = 'kaikata.html';
-    const rel = '';
-    const shopIds = Object.keys(shops).filter((sid) => shopGames[sid]?.length);
-    const isSports = (sid) => shopGames[sid].every((g) => ctx.defs[g].group === 'sports');
+  /** 購入場所の比較表（購入場所のページと、解説ページの {{table:shops}}）。宝くじが先、スポーツくじが後で、それぞれポイントの多い順 */
+  const shopIdsAll = () => Object.keys(shops).filter((sid) => shopGames[sid]?.length);
+  const isSportsShop = (sid) => shopGames[sid].every((g) => ctx.defs[g].group === 'sports');
+  const sortByPoint = (list) => [...list].sort((a, b) => (shopPoint(b)?.rate || 0) - (shopPoint(a)?.rate || 0));
+  function shopCompareTable() {
     const linkCell = (sid) => {
       const s = shops[sid];
       return `${aBtn({ url: s.url, affiliate: !!s.affiliate }, 'btn-mini first', '公式サイトへ')}${extraSignups(sid).map((k) => signupBtn(k, 'btn-mini', signups[k].kind === 'bank' ? '口座を開く' : `${signups[k].name}を見る`)).join('')}`;
     };
     const row = (sid) => `<tr><th scope="row">${esc(shops[sid].name)}</th><td>${esc(gamesLabel(shopGames[sid]))}</td><td class="c">${shopPointCell(sid)}</td><td>${esc(shops[sid].note || '')}</td><td class="c lk">${linkCell(sid)}</td></tr>`;
-    const sorted = (list) => [...list].sort((a, b) => (shopPoint(b)?.rate || 0) - (shopPoint(a)?.rate || 0));
+    const ids = shopIdsAll();
+    return `<p class="scroll-hint">表は横にスクロールできます →</p>
+<div class="tbl-wrap"><table class="t shoptbl">
+<thead><tr><th>購入場所</th><th>買えるくじ</th><th>ポイント</th><th>特徴</th><th>リンク</th></tr></thead>
+<tbody>
+${[...sortByPoint(ids.filter((s) => !isSportsShop(s))), ...sortByPoint(ids.filter(isSportsShop))].map(row).join('\n')}
+</tbody></table></div>`;
+  }
+
+  function kaikata() {
+    const path = 'kaikata.html';
+    const rel = '';
+    const shopIds = shopIdsAll();
+    const isSports = isSportsShop;
+    const sorted = sortByPoint;
     const cards = (list) => `<ul class="shops">${sorted(list).map((sid) => {
       const s = shops[sid];
       const x = shopPoint(sid);
@@ -1289,12 +1321,7 @@ ${updatedLine(`<span>確認日：${fmtYmd(checkedOn)}</span>`)}
 ${toc([['list', '購入場所の一覧（比較表）'], ['pick', '目的別のおすすめ'], ['kuji', '宝くじ（ロト・ナンバーズ・ジャンボ）の購入場所'], ['sports', 'スポーツくじ（BIG・DUNK）の購入場所'], ['steps', 'ネットで買う3ステップ'], ['offline', 'ネット以外の購入場所'], ['before', 'ネットで買う前に']])}
 ${ad('top')}
 <h2 id="list">購入場所の一覧（比較表）</h2>
-<p class="scroll-hint">表は横にスクロールできます →</p>
-<div class="tbl-wrap"><table class="t shoptbl">
-<thead><tr><th>購入場所</th><th>買えるくじ</th><th>ポイント</th><th>特徴</th><th>リンク</th></tr></thead>
-<tbody>
-${[...sorted(shopIds.filter((s) => !isSports(s))), ...sorted(shopIds.filter(isSports))].map(row).join('\n')}
-</tbody></table></div>
+${shopCompareTable()}
 <p class="note">※ポイントは、くじの購入で付くポイントの最大の率です（${fmtYmd(checkedOn)}に各社の公式ページで確認）。「—」は、公式ページにくじの購入で貯まる独自のポイントの記載がないものです。支払いに使うカードのポイントは別に付く場合があります。</p>
 <h2 id="pick">目的別のおすすめ</h2>
 <p>ポイントの率と買えるくじの数から選んでいます。広告の有無で順番は変えていません。</p>
@@ -1311,6 +1338,7 @@ ${cards(shopIds.filter(isSports))}
 <li><b>支払い方法を登録</b><span>クレジットカード・PayPay・銀行口座などを登録します。ポイントが付く支払い方法を選ぶと、そのぶん得になります。</span></li>
 <li><b>くじを選んで買う</b><span>数字を選ぶか、コンピュータに選ばせて申し込みます。当せんしたかどうかは購入履歴で確認でき、当せん金は登録した口座などで受け取ります。</span></li>
 </ol>
+${guideMore('net', rel)}
 <h2 id="offline">ネット以外の購入場所</h2>
 <ul class="offline">
 <li><b>宝くじ売り場</b>：ジャンボ・ロト・ナンバーズなど。宝くじポイントカードを見せると、売り場でも宝くじポイントが貯まります。<a href="https://www.takarakuji-official.jp/map/" target="_blank" rel="noopener">宝くじ売り場を探す（宝くじ公式サイト）</a></li>
@@ -1557,6 +1585,237 @@ ${hasContact ? '<h2>個人情報の取り扱い</h2><p>お問い合わせでい�
     return { path, html: layout({ path, title: `プライバシーポリシー・免責事項｜${site.siteName}`, description: `${site.siteName}のプライバシーポリシー、広告とCookie、免責事項です。`, body }) };
   }
 
+  /* ---------------- 解説ページ（宝くじの基礎知識。content/guide/*.md） ---------------- */
+
+  /** 解説ページの自動の数字（{{rate:loto6}} など）。くじが見つからないときは「—」にして、止めずに知らせる */
+  const gRow = (id) => (byId[id]?.computable && byId[id].ev?.computable ? byId[id] : null);
+  const warnedGames = new Set();
+  function noGame(id) {
+    if (warnedGames.has(id)) return;
+    warnedGames.add(id);
+    console.log(`::warning::解説ページ（content/guide）で使っているくじ「${id}」が、data/games.json にないか計算できません。「—」と表示しています`);
+  }
+  const GUIDE_TOKENS = ['date', 'rate', 'ev', 'price', 'p1', 'max', 'name'];
+  function guideToken(name, arg) {
+    if (!GUIDE_TOKENS.includes(name)) return null;
+    if (name === 'date') return fmtYmd(now.iso);
+    const r = gRow(arg);
+    if (!r) { noGame(arg); return '—'; }
+    if (name === 'rate') return pct(r.rate);
+    if (name === 'ev') return `約${num(r.ev.ev)}円`;
+    if (name === 'price') return yen(r.def.price);
+    if (name === 'p1') return odds(chanceTop(r).p);
+    if (name === 'max') return pct(Number.isFinite(r.maxRate) ? r.maxRate : r.rate);
+    return r.def.name;
+  }
+
+  /** 解説ページの表に出すくじ：計算できて、発売が終わっていないもの（宝くじ一覧の順） */
+  const guideRows = () => rows.filter((r) => r.computable && r.ev?.computable && r.def.model !== 'none' && r.status.kind !== 'ended' && !isPastJumbo(r.def, now.iso))
+    .sort((a, b) => ctx.order[a.id] - ctx.order[b.id]);
+  const kujiLink = (rel, r) => `<a href="${rel}kuji/${r.id}.html">${esc(r.def.name)}</a>`;
+
+  /** 当せんの分け方：申込タイプごとの [{ p, prize }]（ナンバーズ以外はタイプが1つ。先頭が1等＝ナンバーズはストレート） */
+  function hitTypes(r) {
+    const d = r.def;
+    if (d.model === 'numbers') return d.types.map((t) => ({ name: t.name, hits: t.hits.map((h) => ({ p: h.count / d.combos, prize: h.prize })) }));
+    return [{ name: '', hits: (r.ev.rows || []).map((x) => ({ p: x.p, prize: Number.isFinite(x.theo) ? x.theo : x.expected })) }];
+  }
+  /** 1口で min 円以上が当たる確率（当せん金が変わるくじは理論値で分ける。ナンバーズは、いちばん高くなる申込タイプ） */
+  function chanceMin(r, min) {
+    let best = { p: 0, type: '' };
+    for (const t of hitTypes(r)) {
+      const p = t.hits.filter((h) => h.prize >= min).reduce((s, h) => s + h.p, 0);
+      if (p > best.p * (1 + 1e-9)) best = { p, type: t.name };
+    }
+    return best;
+  }
+  const chanceTop = (r) => { const t = hitTypes(r)[0]; return { p: t.hits[0]?.p || 0, type: t.name }; };
+  const chanceCell = (c) => (c.p > 0 ? `${odds(c.p)}<span class="sub">${probPct(c.p)}${c.type ? `・${esc(c.type)}` : ''}</span>` : '<span class="sub">—</span>');
+  /** 確率がいちばん高いくじ（同じ確率のくじは全部） */
+  function topBy(list, fn) {
+    const best = Math.max(...list.map(fn));
+    return best > 0 ? list.filter((r) => fn(r) >= best * (1 - 1e-9)) : [];
+  }
+  /** 年数を読みやすく（上から3けた）：58,620 → 5万8,600年 */
+  const yearsJa = (y) => {
+    const k = 10 ** Math.max(0, Math.floor(Math.log10(Math.max(y, 1))) - 2);
+    return yenJa(Math.round(y / k) * k).replace(/円$/, '年');
+  };
+
+  function evTable(rel) {
+    const list = [...guideRows()].sort((a, b) => b.rate - a.rate || ctx.order[a.id] - ctx.order[b.id]);
+    if (!list.length) return '<p>データを取得できていません。</p>';
+    const trs = list.map((r) => `<tr><th scope="row"><a class="gname" href="${rel}kuji/${r.id}.html">${esc(r.def.name)}</a>${r.status.kind === 'upcoming' ? '<span class="sub">発売前</span>' : ''}</th><td class="r">${yen(r.def.price)}</td><td class="r"><b>約${num(r.ev.ev)}円</b></td><td class="r"><span class="rate${r.rate >= 0.5 ? ' hi' : ''}">${pct(r.rate)}</span></td><td class="r">約${num(Math.round(r.rate * 1000) * 10)}円</td></tr>`).join('\n');
+    const hi = list[0];
+    const lo = list[list.length - 1];
+    return `<p>${fmtYmd(now.iso)}の時点で、還元率がいちばん高いのは${kujiLink(rel, hi)}（${pct(hi.rate)}）、いちばん低いのは${kujiLink(rel, lo)}（${pct(lo.rate)}）です。</p>
+<p class="scroll-hint">表は横にスクロールできます →</p>
+<div class="tbl-wrap"><table class="t evtbl">
+<thead><tr><th>くじ</th><th>1口の値段</th><th>期待値<br>（1口で平均して戻る額）</th><th>還元率</th><th>1万円分買うと<br>平均で戻る額</th></tr></thead>
+<tbody>
+${trs}
+</tbody></table></div>
+<div class="note"><p>※還元率の高い順です。発売中と発売前のくじを、毎日計算し直しています。ロト・BIG系・DUNKは、キャリーオーバーと今回の販売額の見込みから計算した値です。ポイントを足した「ポイント込みの還元率」は<a href="${rel}point.html">ポイント還元ランキング</a>に載せています。</p></div>`;
+  }
+
+  function chanceTable(rel) {
+    const list = guideRows();
+    if (!list.length) return '<p>データを取得できていません。</p>';
+    const trs = list.map((r) => {
+      const fp = firstPrize(r);
+      return `<tr><th scope="row"><a class="gname" href="${rel}kuji/${r.id}.html">${esc(r.def.name)}</a><span class="sub">1口${yen(r.def.price)}${fp ? `・1等${yen(fp.amount)}` : ''}</span></th><td class="r">${chanceCell(chanceTop(r))}</td><td class="r">${chanceCell(chanceMin(r, 1e6))}</td><td class="r">${chanceCell(chanceMin(r, 1e4))}</td><td class="r">${chanceCell(chanceMin(r, 0))}</td><td class="r"><b>${pct(r.rate)}</b></td></tr>`;
+    }).join('\n');
+    return `<p class="scroll-hint">表は横にスクロールできます →</p>
+<div class="tbl-wrap"><table class="t chtbl">
+<thead><tr><th>くじ</th><th>1等</th><th>100万円以上</th><th>1万円以上</th><th>何か当たる<br>（いちばん下の賞まで）</th><th>還元率</th></tr></thead>
+<tbody>
+${trs}
+</tbody></table></div>
+<div class="note"><p>※1口（ジャンボは1枚）を買ったときに当たる確率です（${fmtYmd(now.iso)}時点で発売中・発売前のくじ）。当せん金が回ごとに変わるくじは、平均どおりに当たった場合の額（理論値）で「100万円以上」「1万円以上」に分けています。くじの名前の下の1等の金額は、キャリーオーバーと山分けを織り込んだ今の見込みです。</p><p>※ナンバーズは、その欄の確率がいちばん高くなる申込タイプ（ストレート・ボックスなど）で計算しています。1等の欄はストレートです。</p></div>`;
+  }
+
+  function chanceSummary(rel) {
+    const list = guideRows();
+    if (!list.length) return '';
+    const names = (rs) => rs.map((r) => kujiLink(rel, r)).join('・');
+    const top1 = topBy(list, (r) => chanceTop(r).p);
+    const low1 = topBy(list, (r) => 1 / (chanceTop(r).p || 1));
+    const m100 = topBy(list, (r) => chanceMin(r, 1e6).p);
+    const m1 = topBy(list, (r) => chanceMin(r, 1e4).p);
+    const prize = (r) => { const fp = firstPrize(r); return fp ? yen(fp.amount) : '—'; };
+    const items = [];
+    if (top1.length) items.push(`1等（ナンバーズはストレート）がいちばん当たりやすいのは${names(top1)}で、${odds(chanceTop(top1[0]).p)}です。そのかわり、1等の金額は${prize(top1[0])}です。`);
+    if (low1.length) items.push(`1等がいちばん当たりにくいのは${names(low1)}で、${odds(chanceTop(low1[0]).p)}です。1等の金額は${prize(low1[0])}です。`);
+    if (m100.length) items.push(`100万円以上がいちばん当たりやすいのは${names(m100)}で、${odds(chanceMin(m100[0], 1e6).p)}です。`);
+    if (m1.length) { const c = chanceMin(m1[0], 1e4); items.push(`1万円以上がいちばん当たりやすいのは${names(m1)}${c.type ? `の${esc(c.type)}` : ''}で、${odds(c.p)}です。`); }
+    return `<ul class="points">${items.map((x) => `<li>${x}</li>`).join('')}</ul>`;
+  }
+
+  function yearsText(rel) {
+    const items = [];
+    for (const id of ['loto6', 'loto7']) {
+      const r = gRow(id);
+      if (!r?.def.drawDays?.length) continue;
+      const p = chanceTop(r).p;
+      const perYear = r.def.drawDays.length * 52;
+      const y = 1 / (p * perYear);
+      items.push(`${kujiLink(rel, r)}の1等（${odds(p)}）：抽せんのたびに1口ずつ買い続けると、当たるのは平均で約${yearsJa(y)}に1回です。毎回10口ずつでも約${yearsJa(y / 10)}に1回です（1年に${perYear}回の抽せんとして計算）。`);
+    }
+    const js = guideRows().filter((r) => isJumbo(r.def)).sort((a, b) => b.def.tiers[0].prize - a.def.tiers[0].prize);
+    if (js[0]) {
+      const p = chanceTop(js[0]).p;
+      items.push(`${kujiLink(rel, js[0])}の1等（${odds(p)}）：毎年100枚（3万円分）ずつ買い続けると、当たるのは平均で約${yearsJa(1 / (p * 100))}に1回です。`);
+    }
+    return items.length ? `<ul class="points">${items.map((x) => `<li>${x}</li>`).join('')}</ul>` : '';
+  }
+
+  function giftTableHtml() {
+    const trs = GIFT_AMOUNTS.map((a) => `<tr><th scope="row">${yen(a)}</th><td class="r">${yen(giftTax(a))}</td><td class="r">${yen(giftTax(a, { special: true }))}</td></tr>`).join('\n');
+    return `<div class="tbl-wrap"><table class="t compact gifttbl">
+<thead><tr><th>1年間に渡す額</th><th>贈与税<br>（一般の税率）</th><th>贈与税<br>（特例の税率）</th></tr></thead>
+<tbody>
+${trs}
+</tbody></table></div>
+<div class="note"><p>※もらった1人が、1年間（1月〜12月）にもらった額の合計にかかる贈与税（暦年課税）です。基礎控除の110万円を引いてから、国税庁の速算表で計算しました。「特例の税率」は、その年の1月1日に18歳以上の人が父母や祖父母からもらった場合、「一般の税率」は夫婦・兄弟・友人などからもらった場合です。相続時精算課税などを選んだ場合は、計算が変わります。</p></div>`;
+  }
+
+  function jumboLinks(rel) {
+    const js = rows.filter((r) => isJumbo(r.def) && r.ev?.computable && ['onsale', 'upcoming'].includes(r.status.kind))
+      .sort((a, b) => String(a.def.salesStart).localeCompare(String(b.def.salesStart)) || ctx.order[a.id] - ctx.order[b.id]);
+    if (!js.length) return '<p>いま発売中・発売予定のジャンボ宝くじはありません。発表されしだい、このサイトに載せます。</p>';
+    return `<ul>${js.map((r) => `<li><a href="${rel}kuji/${r.id}.html">${esc(yearName(r.def))}</a>（${r.status.kind === 'onsale' ? `${fmtMd(r.def.salesEnd)}まで発売中` : `${fmtMd(r.def.salesStart)}から発売`}・1等は${oddsJa(r.def.totalTickets / r.def.tiers[0].count)}）</li>`).join('')}</ul>`;
+  }
+
+  function coNow(rel) {
+    const list = listed.filter((r) => r.hasCO && r.carryover > 0).sort((a, b) => b.rate - a.rate || ctx.order[a.id] - ctx.order[b.id]);
+    if (!list.length) return `<p>${fmtYmd(now.iso)}の時点では、キャリーオーバーが出ているくじはありません。</p>`;
+    return `<p>${fmtYmd(now.iso)}の時点でキャリーオーバーが出ているくじと、いまの還元率です。</p>
+<ul>${list.map((r) => {
+      const atMax = Number.isFinite(r.maxRate) && r.maxRate <= r.rate + 0.0005;
+      const more = Number.isFinite(r.maxRate) && !atMax ? `。キャリーオーバーがさらに増えると、最大で${pct(r.maxRate)}まで上がります` : atMax ? '。1等が上限の額に届いているため、キャリーオーバーが増えてもこれ以上は上がりません' : '';
+      return `<li>${kujiLink(rel, r)}：キャリーオーバー${yen(r.carryover)}、還元率<b>${pct(r.rate)}</b>${more}。</li>`;
+    }).join('')}</ul>`;
+  }
+
+  /** のめり込みへの注意（解説ページの最後に必ず出す） */
+  const careBox = () => '<div class="notice care"><p><b>楽しみの範囲で買うために</b></p><p>宝くじとスポーツくじは、平均すると買った金額の半分ほどしか戻らないしくみです。生活に必要なお金は使わず、あらかじめ決めた金額の範囲で楽しんでください。スポーツくじは19歳未満の方は購入できません。のめり込みが心配なときは、<a href="https://www.ncasa-japan.jp/you-do/treatment/treatment-map/" target="_blank" rel="noopener">全国の相談窓口（依存症対策全国センター）</a>に相談できます。</p></div>';
+
+  function guideBlock(name, arg, rel) {
+    switch (`${name}:${arg}`) {
+      case 'table:ev': return evTable(rel);
+      case 'table:chance': return chanceTable(rel);
+      case 'chance:summary': return chanceSummary(rel);
+      case 'chance:years': return yearsText(rel);
+      case 'table:gift': return giftTableHtml();
+      case 'table:shops': return shopCompareTable();
+      case 'list:jumbo': return jumboLinks(rel);
+      case 'list:co': return coNow(rel);
+      default: return null;
+    }
+  }
+
+  function guidePage(g) {
+    const path = guidePath(g);
+    const rel = relOf(path);
+    const m = g.meta;
+    const name = guideName(g);
+    const r = renderGuideBody(g.body, { rel, top: home(rel), token: guideToken, block: (n, a) => guideBlock(n, a, rel) });
+    // 広告は、目次の下・3つ目の大見出しの前・本文の最後（ほかのページと同じ数）
+    let main = r.html;
+    const third = [...main.matchAll(/<h2 id="/g)][2];
+    if (third) main = `${main.slice(0, third.index)}${ad('middle')}\n${main.slice(third.index)}`;
+    // 毎日の計算の数字を使うページだけ「毎日更新」と最終更新を出す（税金の早見表や購入場所の表は毎日は変わらない）
+    const dynamic = /\{\{(?:table:(?:ev|chance)|chance:|list:(?:co|jumbo)|(?:rate|ev|p1|max):|date\}\})/.test(g.body);
+    const checked = m.checkedOn ? `<span>内容の確認日：${fmtYmd(m.checkedOn)}</span>` : '';
+    const others = guideList.filter((x) => x.slug !== g.slug);
+    const body = `
+${crumbs(rel, [{ name: HUB_NAME, href: `${rel}${HUB_PATH}` }, { name }])}
+<h1 class="page-title">${esc(name)}</h1>
+${dynamic ? updatedLine(checked) : `<p class="updated">${checked}</p>`}
+${r.lead}
+${share(path, name)}
+${r.toc.length ? toc(r.toc) : ''}
+${ad('top')}
+${main}
+${careBox()}
+${(m.sources || []).length ? `<h3>出典</h3>
+<ul class="note">
+${m.sources.map((s) => `<li><a href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.title)}</a></li>`).join('\n')}
+</ul>
+${m.checkedOn ? `<p class="note">※法令・制度・各社の案内は、${fmtYmd(m.checkedOn)}に上の公式の情報で確かめた内容です。変わることがあるので、手続きの前に公式の情報も確認してください。</p>` : ''}` : ''}
+${ad('bottom')}
+${others.length ? `<h2 id="more">${HUB_NAME}のほかのページ</h2>\n${guideLinks(rel, g.slug)}` : ''}
+<h3>くじ別の還元率を見る</h3>
+${related(rel, null)}
+`;
+    const ld = [
+      breadcrumbLd(path, name, { name: HUB_NAME, path: HUB_PATH }),
+      { '@context': 'https://schema.org', '@type': 'Article', headline: name, description: m.description || '', inLanguage: 'ja', ...(m.checkedOn ? { dateModified: m.checkedOn } : {}), author: { '@type': 'Organization', name: site.siteName, url: `${base}/` }, publisher: { '@type': 'Organization', name: site.siteName }, mainEntityOfPage: pageUrl(path) },
+      ...(r.faq.length ? [faqLd(r.faq.map(([q, , a]) => [q, a]))] : []),
+    ];
+    return { path, html: layout({ path, title: `${m.title || name}｜${site.siteName}`, description: m.description || '', body, current: 'guide', jsonld: ld }) };
+  }
+
+  function guideHub() {
+    const path = HUB_PATH;
+    const rel = '';
+    const body = `
+${crumbs(rel, [{ name: HUB_NAME }])}
+<h1 class="page-title">${HUB_NAME}</h1>
+<p class="lead">宝くじとスポーツくじを買う前に知っておきたいことを、テーマごとにまとめました。還元率（期待値）と当たる確率の表は、このサイトが毎日計算している値から自動で作っています。法律や税金、受け取り方は、法令と発売元・銀行の公式の案内で確かめた内容です。</p>
+${ad('top')}
+${guideListCards(rel)}
+<h2 id="tools">あわせて見たいページ</h2>
+<div class="related guides"><a href="${home(rel)}"><span>今日の還元率ランキング</span></a><a href="${rel}point.html"><span>ポイント還元ランキング</span></a><a href="${rel}kaikata.html"><span>購入場所の比較</span></a><a href="${rel}ichiran.html"><span>宝くじ一覧（くじごとのしくみ）</span></a><a href="${rel}keisan.html"><span>還元率の計算方法</span></a><a href="${rel}suii.html"><span>還元率の推移</span></a></div>
+${careBox()}
+${ad('bottom')}
+`;
+    return { path, html: layout({ path, title: `${HUB_NAME}（還元率・確率・税金・受け取り方）｜${site.siteName}`, description: '宝くじ・スポーツくじの還元率（期待値）と当たる確率の比較、当せん金の税金と受け取り方、ネットでの買い方を、公式の情報と毎日の計算をもとにまとめています。', body, current: 'guide', jsonld: [breadcrumbLd(path, HUB_NAME)] }) };
+  }
+
+  /** 解説ページ（一覧のページと、各ページ） */
+  const guides_ = () => (guideList.length ? [guideHub(), ...guideList.map(guidePage)] : []);
+
   function notFound() {
     const path = '404.html';
     // GitHub Pages は、存在しない URL（/kuji/abc/def.html のような深い階層も）でこのページをそのまま返す。
@@ -1567,7 +1826,7 @@ ${hasContact ? '<h2>個人情報の取り扱い</h2><p>お問い合わせでい�
     return { path, html: layout({ path, title: `ページが見つかりません｜${site.siteName}`, description: 'ページが見つかりません。', body, noindex: true, linkBase }) };
   }
 
-  return { index, game, ichiran, keisan, kaikata, point, suii, about, privacy, notFound };
+  return { index, game, ichiran, keisan, kaikata, point, suii, about, privacy, notFound, guides: guides_ };
 }
 
 /* ---------------- 動き・カウントダウン・追従ボタン（全ページ共通） ---------------- */
