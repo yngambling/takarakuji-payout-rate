@@ -540,6 +540,63 @@ t('404ページ（存在しない深い階層のURLでも、CSSとリンクが�
   assert.ok(page404(true).includes('<a href="index.html">トップページ</a>'), '共有プレビューは相対パスのまま');
 });
 
+/* ---------- 表示の速さと使いやすさ ---------- */
+
+const RD = await import('./lib/render.mjs');
+/** ロゴのフォント（static/fonts/dela-gothic-one-logo.woff2）に入れた文字。ロゴの文字を変えたら、README の「フォント」の手順で作り直す */
+const LOGO_FONT_TEXT = '宝くじ還元率ランキング';
+/** 色の濃さの差（コントラスト比。WCAG の計算） */
+const contrast = (a, b) => {
+  const lum = (h) => { const [r, g, bb] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * r + 0.7152 * g + 0.0722 * bb; };
+  const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+  return (x + 0.05) / (y + 0.05);
+};
+
+t('表示の速さと使いやすさ（フォントはこのサイトから・表示の途中でずれない・読み上げ・文字の色の濃さ）', () => {
+  const css = readFileSync(path.join(ROOT, 'static/style.css'), 'utf8');
+  const buildSrc = readFileSync(path.join(ROOT, 'scripts/build.mjs'), 'utf8');
+  // フォント：Google Fonts を使わず、このサイトから配信する（先に読み込む・ライセンスもいっしょに置く）
+  assert.deepEqual(RD.FONT_FILES, ['oswald-700.woff2', 'dela-gothic-one-logo.woff2']);
+  for (const f of [...RD.FONT_FILES, 'OFL-Oswald.txt', 'OFL-DelaGothicOne.txt']) {
+    assert.ok(buildSrc.includes(`'${f}'`), `build.mjs が ${f} を公開するフォルダに置く`);
+    const buf = readFileSync(path.join(ROOT, 'static/fonts', f));
+    if (f.endsWith('.woff2')) {
+      assert.equal(buf.subarray(0, 4).toString('latin1'), 'wOF2', `${f} は WOFF2`);
+      assert.ok(buf.length < 20000, `${f} は使う文字だけに絞った小さなファイル（${buf.length}バイト）`);
+      assert.ok(new RegExp(`@font-face \\{[^}]*url\\("fonts/${f.replace('.', '\\.')}"\\)[^}]*font-display: swap;`).test(css), `style.css の @font-face（${f}）`);
+    } else assert.ok(buf.toString('utf8').includes('SIL OPEN FONT LICENSE Version 1.1'), `${f} はフォントのライセンス`);
+  }
+  const top = renderT.index().html;
+  const l6 = renderT.game(rowsT.find((r) => r.id === 'loto6')).html;
+  for (const h of [top, l6, renderT.privacy().html]) assert.ok(!/fonts\.googleapis\.com|fonts\.gstatic\.com|Google Fonts/.test(h), 'Google Fonts を使わない（プライバシーポリシーの表からも外す）');
+  assert.ok(top.includes('<link rel="preload" href="fonts/oswald-700.woff2" as="font" type="font/woff2" crossorigin>') && l6.includes('<link rel="preload" href="../fonts/dela-gothic-one-logo.woff2" as="font" type="font/woff2" crossorigin>'), 'フォントを先に読み込む（くじ別ページは ../ から）');
+  const logo = (top.match(/<a class="logo"[^>]*>([\s\S]*?)<\/a>/) || [])[1].replace(/<svg[\s\S]*?<\/svg>/, '').replace(/<[^>]+>/g, '');
+  for (const ch of logo) assert.ok(LOGO_FONT_TEXT.includes(ch), `ロゴの文字「${ch}」がロゴのフォントにありません（README の「フォント」の手順で作り直す）`);
+  // 共有プレビュー（CSS をページに埋め込む）は、フォントの場所をページの階層に合わせる
+  const pv = createRenderer({ site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} }, links, points, rows: rowsT, byId: Object.fromEntries(rowsT.map((r) => [r.id, r])), log: [], history: { days: {} }, catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])), preview: true, placeholders: true, inlineCss: true, css, cssVersion: 'x' });
+  assert.ok(pv.game(rowsT.find((r) => r.id === 'loto6')).html.includes('url("../fonts/oswald-700.woff2")'));
+  // 表示の途中でずれない：残り時間は書き込む前から幅を取る・数字のカウントアップは幅を固定・速報の帯は帯のすぐ後ろで決める・広告の枠は先に高さを取る
+  assert.ok(css.includes('.cd-r:empty::before { content: "あと00時間00分"; visibility: hidden; }') && !css.includes('.cd-r:empty { display: none; }'), '残り時間');
+  assert.ok(top.includes("st.width = rs[0].width + 'px'"), 'カウントアップ');
+  assert.ok(/<div class="ticker">[\s\S]*?<\/ul><\/div><\/div><\/div><script>\n\(function\(\)\{\n  var s = document\.currentScript/.test(top) && !/var tk = d\.querySelector\('\.ticker'\)/.test(top), '速報の帯');
+  assert.ok(/\.ad ins\.adsbygoogle \{ min-height: \d+px; \}/.test(css) && css.includes('.ad:has(> ins.adsbygoogle[data-ad-status="unfilled"]) { display: none; }'), '広告の枠');
+  // 読み上げ・キーボード：ページの見出し部分（header）に帯と速報を入れる・順位の印に aria-label を付けない・シェアボタンはまとまり・横にスクロールする表に入れる・空の見出しのセルを作らない
+  assert.ok(/<header>\n<div class="topbar" id="top">[\s\S]*?<div class="site-header"><div class="wrap">[\s\S]*?<nav class="gnav"[\s\S]*?<\/script>\n<\/header>\n<div class="wrap layout">/.test(top) && !top.includes('<header class="site-header">'), 'ページの見出し部分');
+  assert.ok(!/<span class="rk[^"]*" aria-label/.test(top) && top.includes('<span class="rk rk1"><svg class="crown"'), '順位の印');
+  assert.ok(top.includes('<div class="share" role="group" aria-label="この記事をシェア">'), 'シェアボタン');
+  assert.ok(top.includes("all('.tbl-wrap').forEach(function(el){ if (el.scrollWidth > el.clientWidth + 1 && !el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0'); });"), '横にスクロールする表');
+  const hw = renderT.game(rowsT.find((r) => r.id === 'halloween2026')).html;
+  assert.ok(hw.includes('<thead><tr><th><span class="vh">項目</span></th>') && !hw.includes('<th></th>'), 'ミニとの比較の表');
+  // 文字の色の濃さ：白い文字とボタンの色、金色の数字、シェアボタン（WCAG の AA：4.5:1 以上）
+  const v = (name) => (css.match(new RegExp(`--${name}: (#[0-9a-f]{6});`)) || [])[1];
+  const bg = (cls) => (css.match(new RegExp(`\\.share \\.${cls} \\{ background: (#[0-9a-f]{6}); \\}`)) || [])[1];
+  const color = (sel) => (css.match(new RegExp(`${sel.replace(/[.]/g, '\\.')} \\{[^}]*?color: (#[0-9a-f]{6})`)) || [])[1];
+  for (const [label, fg, b] of [['購入ボタン', '#ffffff', v('green')], ['LINE', '#ffffff', bg('sl')], ['Facebook', '#ffffff', bg('sf')], ['はてブ', '#ffffff', bg('sh')],
+    ['ポイントの数字', color('.ptv'), '#ffffff'], ['ポイントのチップ', color('.chip-pt b'), v('gold-soft')], ['ポイントの内訳', color('.parts b'), '#ffffff'], ['薄い文字', v('mute'), '#ffffff']]) {
+    assert.ok(fg && b && contrast(fg, b) >= 4.5, `${label}の色の濃さが足りません（${fg} と ${b}：${fg && b ? contrast(fg, b).toFixed(2) : '?'}）`);
+  }
+});
+
 /* ---------- 公式ページの見張り・お知らせ ---------- */
 
 const { extractLines, hashLines, diffLines, scheduleChecks, changeIssue, specialChecks, watchGate } = await import('./lib/watchlib.mjs');

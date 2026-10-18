@@ -299,8 +299,8 @@ export function createRenderer(ctx) {
   }
 
   function rankMark(rank) {
-    if (rank <= 3) return `<span class="rk rk${rank}" aria-label="${rank}位">${CROWN}<b>${rank}</b><i>位</i></span>`;
-    return `<span class="rk rkn" aria-label="${rank}位"><b>${rank}</b><i>位</i></span>`;
+    if (rank <= 3) return `<span class="rk rk${rank}">${CROWN}<b>${rank}</b><i>位</i></span>`;
+    return `<span class="rk rkn"><b>${rank}</b><i>位</i></span>`;
   }
 
   function bar(rate) {
@@ -391,7 +391,7 @@ export function createRenderer(ctx) {
   function share(path, text) {
     const u = encodeURIComponent(pageUrl(path));
     const t = encodeURIComponent(text);
-    return `<div class="share" aria-label="この記事をシェア">
+    return `<div class="share" role="group" aria-label="この記事をシェア">
 <a class="sx" href="https://twitter.com/intent/tweet?text=${t}&amp;url=${u}" target="_blank" rel="noopener">Xでポスト</a>
 <a class="sl" href="https://social-plugins.line.me/lineit/share?url=${u}" target="_blank" rel="noopener">LINEで送る</a>
 <a class="sf" href="https://www.facebook.com/sharer/sharer.php?u=${u}" target="_blank" rel="noopener">Facebook</a>
@@ -498,14 +498,16 @@ ${guideList.length ? `<section class="widget plain"><h2 class="widget-title">${H
 </aside>`;
   }
 
-  const displayChars = () => encodeURIComponent([...new Set(`宝くじ還元率ランキング${site.siteName || ''}`)].join(''));
+  /** CSS をページに埋め込むとき（共有プレビュー）は、フォントの場所をページの階層に合わせる */
+  const cssFor = (rel) => String(ctx.css || '').replace(/url\("fonts\//g, `url("${rel}fonts/`);
 
   /** linkBase を渡すと、サイト内のリンクと CSS をその文字列から書く（404 ページ用）。渡さなければページの階層からの相対パス */
   function layout({ path, title, description, body, current = null, jsonld = [], noindex = false, scripts = '', stickyHtml = '', linkBase = null, kuji = null }) {
     const rel = linkBase ?? relOf(path);
     const url = pageUrl(path);
     const a = site.adsense || {};
-    const fonts = `<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&amp;display=swap&amp;text=${displayChars()}"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;700&amp;display=swap">`;
+    // フォントは、使う文字だけに絞ってこのサイトから配信する（static/fonts）。先に読み込みを始めて、表示の途中で字形が変わらないようにする
+    const fonts = FONT_FILES.map((f) => `<link rel="preload" href="${rel}fonts/${f}" as="font" type="font/woff2" crossorigin>`).join('');
     const head = [
       '<meta charset="utf-8">',
       '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
@@ -524,10 +526,8 @@ ${guideList.length ? `<section class="widget plain"><h2 class="widget-title">${H
       '<meta name="theme-color" content="#d7000f">',
       `<link rel="icon" href="${rel}favicon.svg" type="image/svg+xml">`,
       `<link rel="apple-touch-icon" href="${rel}apple-touch-icon.png">`,
-      '<link rel="preconnect" href="https://fonts.googleapis.com">',
-      '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>',
       fonts,
-      ctx.inlineCss ? `<style>${ctx.css}</style>` : `<link rel="stylesheet" href="${rel}style.css?v=${ctx.cssVersion}">`,
+      ctx.inlineCss ? `<style>${cssFor(rel)}</style>` : `<link rel="stylesheet" href="${rel}style.css?v=${ctx.cssVersion}">`,
       !preview && ctx.verification ? `<meta name="google-site-verification" content="${esc(ctx.verification)}">` : '',
       !preview && a.client ? `<meta name="google-adsense-account" content="${esc(a.client)}">` : '',
       !preview && a.client ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${esc(a.client)}" crossorigin="anonymous"></script>` : '',
@@ -545,17 +545,19 @@ ${guideList.length ? `<section class="widget plain"><h2 class="widget-title">${H
     ].map(([k, label, href]) => `<a href="${href}"${current === k ? ' aria-current="page"' : ''}>${label}</a>`).join('');
 
     const ticker = coList.length
-      ? `<div class="ticker"><div class="wrap"><span class="ticker-label">キャリーオーバー速報</span><div class="tk-view"><ul class="tk-list">${coList.map((r) => `<li><a href="${rel}kuji/${r.id}.html">${esc(r.def.name)}<span class="amt">${yen(r.carryover)}</span></a></li>`).join('')}</ul></div></div></div>`
+      ? `<div class="ticker"><div class="wrap"><span class="ticker-label">キャリーオーバー速報</span><div class="tk-view"><ul class="tk-list">${coList.map((r) => `<li><a href="${rel}kuji/${r.id}.html">${esc(r.def.name)}<span class="amt">${yen(r.carryover)}</span></a></li>`).join('')}</ul></div></div></div>${TICKER_JS}`
       : '';
 
     const inner = `<a class="skip" href="#main">本文へ移動</a>
+<header>
 <div class="topbar" id="top"><div class="wrap"><span><b class="live">毎日更新</b>　最終更新 ${fmtYmd(now.iso)} ${hhmm}</span><span>当サイトはプロモーション（広告）を含みます</span></div></div>
-<header class="site-header"><div class="wrap">
+<div class="site-header"><div class="wrap">
 <a class="logo" href="${home(rel)}">${CROWN}<span class="l1">宝くじ</span><span class="l2">還元率</span><span class="l3">ランキング</span></a>
 <p class="tagline">${esc(site.tagline)}</p>
-</div></header>
+</div></div>
 <nav class="gnav" aria-label="メニュー"><div class="wrap">${nav}</div></nav>
 ${ticker}
+</header>
 <div class="wrap layout">
 <main id="main"${kuji ? ` data-kuji="${esc(kuji)}"` : ''}>
 ${body}
@@ -573,7 +575,7 @@ ${scripts}
 ${UI_JS}${!preview && site.ga4 ? `\n${CLICK_JS}` : ''}`;
 
     if (preview && path === 'index.html') {
-      return `<title>${esc(site.siteName)}</title>\n${fonts}\n<style>${ctx.css}</style>\n${inner}\n`;
+      return `<title>${esc(site.siteName)}</title>\n${fonts}\n<style>${cssFor(rel)}</style>\n${inner}\n`;
     }
     return `<!doctype html>\n<html lang="ja">\n<head>\n${head}\n</head>\n<body>\n${inner}\n</body>\n</html>\n`;
   }
@@ -993,7 +995,7 @@ ${jb.rows.map((x) => `<tr><th scope="row">${num(x.n)}枚<span class="sub">${yen(
 <p>${esc(d.name)}と同じ日に発売・抽せんされる${esc(sib.name)}と比べました。${esc(compareSentence(d, sib))}</p>
 <p class="scroll-hint">表は横にスクロールできます →</p>
 <div class="tbl-wrap"><table class="t compare">
-<thead><tr><th></th><th>${esc(d.name)}<span class="sub">このページ</span></th><th><a href="${rel}kuji/${sib.id}.html">${esc(sib.name)}</a></th></tr></thead>
+<thead><tr><th><span class="vh">項目</span></th><th>${esc(d.name)}<span class="sub">このページ</span></th><th><a href="${rel}kuji/${sib.id}.html">${esc(sib.name)}</a></th></tr></thead>
 <tbody>
 ${row('1枚の値段', ...both((x) => yen(x.price)))}
 ${row('1等の金額', ...both((x) => `${yen(x.tiers[0].prize)}<span class="sub">全${num(x.tiers[0].count)}本</span>`))}
@@ -1582,7 +1584,6 @@ ${crumbs('', [{ name: 'プライバシーポリシー・免責事項' }])}
 <tbody>
 <tr><td>Google LLC（Google AdSense）</td><td>閲覧したページのURL、Cookie ID、IPアドレス、ブラウザの情報など</td><td>広告の配信と効果測定</td></tr>
 <tr><td>Google LLC（Google アナリティクス）</td><td>閲覧したページのURL、Cookie ID、ブラウザの情報など</td><td>アクセス解析</td></tr>
-<tr><td>Google LLC（Google Fonts）</td><td>IPアドレス、ブラウザの情報</td><td>見出しと数字のフォントの表示</td></tr>
 </tbody></table></div>
 ${hasContact ? '<h2>個人情報の取り扱い</h2><p>お問い合わせでいただいたメールアドレスなどの個人情報は、返信のためだけに使い、法令に基づく場合を除いて第三者に提供しません。</p>' : ''}
 <h2>免責事項</h2>
@@ -1923,6 +1924,9 @@ const UI_JS = `<script>
     els.forEach(function(el){ io.observe(el); });
   }
 
+  // 横にスクロールする表は、キーボードでも操作できるよう、フォーカスできるようにする
+  all('.tbl-wrap').forEach(function(el){ if (el.scrollWidth > el.clientWidth + 1 && !el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0'); });
+
   // スマホで画面の下に出る購入ボタン
   var st = d.querySelector('.sticky-cta'), anchor = d.querySelector('[data-sticky-anchor]'), foot = d.querySelector('.foot');
   if (st && anchor) {
@@ -1941,24 +1945,6 @@ const UI_JS = `<script>
   var reduce = w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduce) return;
 
-  // キャリーオーバー速報の帯：はみ出すときだけ横に流す
-  var tk = d.querySelector('.ticker');
-  if (tk) {
-    var view = tk.querySelector('.tk-view'), list = tk.querySelector('.tk-list');
-    if (view && list) {
-      tk.classList.add('measure');
-      if (list.scrollWidth > view.clientWidth + 2) {
-        Array.prototype.slice.call(list.children).forEach(function(li){
-          var c = li.cloneNode(true); c.setAttribute('aria-hidden', 'true');
-          Array.prototype.slice.call(c.querySelectorAll('a')).forEach(function(a){ a.tabIndex = -1; });
-          list.appendChild(c);
-        });
-        list.style.setProperty('--tk-dur', Math.max(16, Math.round(list.scrollWidth / 2 / 50)) + 's');
-        tk.classList.add('run');
-      } else tk.classList.remove('measure');
-    }
-  }
-
   // 下にある要素は、見えたときにふわっと表示
   var vh = w.innerHeight || 800;
   var rv = all('main h2, .rank-card, .chart, .kuji-sec, .shops > li, .rt-card, .pick, .related > a, .tbl-wrap, .steps > li, .faq > dt, .side .widget, .score-grid > div');
@@ -1971,7 +1957,8 @@ const UI_JS = `<script>
   pre.forEach(function(el){ el.classList.add('rv', 'pre'); });
   onView(pre, function(el){ el.classList.remove('pre'); setTimeout(function(){ el.style.transitionDelay = ''; }, 1200); });
 
-  // 数字のカウントアップ
+  // 数字のカウントアップ。数えているあいだは、最後の数字と同じ幅に固定して、まわりの文字や表がずれないようにする
+  // （2行に折り返して表示している数字は、幅を固定できないので動かさない）
   function yj(n){
     n = Math.round(n); var f = function(x){ return x.toLocaleString('ja-JP'); };
     if (n < 10000) return f(n) + '円';
@@ -1980,12 +1967,14 @@ const UI_JS = `<script>
   }
   function countUp(el){
     var to = parseFloat(el.getAttribute('data-to')); if (!isFinite(to) || to <= 0) return;
+    var rs = el.getClientRects(); if (rs.length !== 1) return;
     var isYen = el.classList.contains('cuy'), dec = +(el.getAttribute('data-dec') || 0), fin = el.textContent, s0 = null, dur = isYen ? 1200 : 900;
+    var st = el.style; st.display = 'inline-block'; st.width = rs[0].width + 'px'; st.whiteSpace = 'nowrap';
     function f(ts){
       if (s0 === null) s0 = ts;
       var k = Math.min(1, (ts - s0) / dur), e = 1 - Math.pow(1 - k, 3), v = to * e;
       el.textContent = isYen ? yj(v) : v.toFixed(dec);
-      if (k < 1) w.requestAnimationFrame(f); else el.textContent = fin;
+      if (k < 1) w.requestAnimationFrame(f); else { el.textContent = fin; st.display = ''; st.width = ''; st.whiteSpace = ''; }
     }
     w.requestAnimationFrame(f);
   }
@@ -1994,5 +1983,32 @@ const UI_JS = `<script>
   // 還元率のバーとグラフの線
   onView(all('.bar'), function(el){ el.classList.add('fill'); }, { threshold: 0.3 });
   onView(all('svg.spark'), function(el){ el.classList.add('draw'); }, { threshold: 0.25 });
+})();
+</script>`;
+
+/* ---------------- フォント・キャリーオーバー速報の帯 ---------------- */
+
+/** このサイトから配信するフォント（static/fonts。全ページで先に読み込む）。作り方は README の「フォント」 */
+export const FONT_FILES = ['oswald-700.woff2', 'dela-gothic-one-logo.woff2'];
+
+// キャリーオーバー速報の帯：はみ出すときだけ横に流す。帯のすぐ後ろで動かして、ページの表示の途中で帯の高さが変わらないようにする。
+// 「視差効果を減らす」がオンの人には流さない（折り返して全部見せる）
+const TICKER_JS = `<script>
+(function(){
+  var s = document.currentScript, tk = s && s.previousElementSibling;
+  if (!tk || !tk.classList.contains('ticker')) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  var view = tk.querySelector('.tk-view'), list = tk.querySelector('.tk-list');
+  if (!view || !list) return;
+  tk.classList.add('measure');
+  if (list.scrollWidth > view.clientWidth + 2) {
+    Array.prototype.slice.call(list.children).forEach(function(li){
+      var c = li.cloneNode(true); c.setAttribute('aria-hidden', 'true');
+      Array.prototype.slice.call(c.querySelectorAll('a')).forEach(function(a){ a.tabIndex = -1; });
+      list.appendChild(c);
+    });
+    list.style.setProperty('--tk-dur', Math.max(16, Math.round(list.scrollWidth / 2 / 50)) + 's');
+    tk.classList.add('run');
+  } else tk.classList.remove('measure');
 })();
 </script>`;

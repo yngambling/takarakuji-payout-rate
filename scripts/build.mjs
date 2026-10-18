@@ -97,6 +97,11 @@ for (const p of pages) await writeFile(path.join(OUT, p.path), p.html, 'utf8');
 for (const f of ['style.css', 'favicon.svg', 'og.png', 'apple-touch-icon.png']) {
   if (existsSync(P('static', f))) await copyFile(P('static', f), path.join(OUT, f));
 }
+// フォント（使う文字だけに絞ったもの）と、そのライセンス（SIL Open Font License。フォントといっしょに置く決まり）
+await mkdir(path.join(OUT, 'fonts'), { recursive: true });
+for (const f of ['oswald-700.woff2', 'dela-gothic-one-logo.woff2', 'OFL-Oswald.txt', 'OFL-DelaGothicOne.txt']) {
+  await copyFile(P('static/fonts', f), path.join(OUT, 'fonts', f));
+}
 
 const base = String(site.baseUrl || '').replace(/\/$/, '');
 // ページごとに「内容が最後に変わった日時」を記録する（sitemap.xml の lastmod と、検索エンジンへの通知 IndexNow に使う）
