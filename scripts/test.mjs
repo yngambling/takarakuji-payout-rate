@@ -599,7 +599,7 @@ t('表示の速さと使いやすさ（フォントはこのサイトから・�
 
 /* ---------- 公式ページの見張り・お知らせ ---------- */
 
-const { extractLines, hashLines, diffLines, scheduleChecks, changeIssue, specialChecks, watchGate } = await import('./lib/watchlib.mjs');
+const { extractLines, hashLines, diffLines, scheduleChecks, changeIssue, specialChecks, watchGate, pageMissing, pageTitle, downIssue } = await import('./lib/watchlib.mjs');
 
 t('公式ページの見張りは1日1回（朝6時以降の最初の更新）', () => {
   const today = '2026-10-12';
@@ -1116,14 +1116,23 @@ t('くじのルールの見張り（値段・賞金・確率・上限の公式�
   assert.deepEqual(rules.map((p) => p.id), ['rule-loto6', 'rule-loto7', 'rule-miniloto', 'rule-bingo5', 'rule-numbers4', 'rule-numbers3', 'rule-big', 'rule-dunk']);
   for (const p of conf.pages) assert.ok(p.id && p.kind && /^https:\/\//.test(p.url) && p.keywords?.length && p.file && p.what, `${p.id} の設定`);
   assert.ok(!conf.pages.some((p) => p.id === 'jumbo-takarakuji'), 'ジャンボは宝ニュースからの自動登録に移した');
+  // 宝くじ公式サイトの商品紹介は「/brand/suji/lineup-くじ/」（「/lineup/くじ/」は「NOT FOUND」のページ）。くじ別ページの出典と同じ URL を見張る
+  const guides = JSON.parse(readFileSync(path.join(ROOT, 'data/guides.json'), 'utf8')).games || {};
+  for (const p of rules) {
+    const g = guides[p.id.replace(/^rule-/, '')];
+    if (g) assert.ok((g.sources || []).some((s) => s.url === p.url), `${p.id} の url は、data/guides.json の出典と同じページ（${p.url}）`);
+    if (p.url.includes('takarakuji-official.jp')) assert.match(p.url, /\/brand\/suji\/lineup-[a-z0-9]+\/$/, `${p.id} の url`);
+  }
   const loto6 = fx('rule-loto6.html').toString('utf8');
   const page = rules[0];
   const got = extractLines(loto6, page);
-  for (const want of ['2億円', '1 / 6,096,454', '約1,000万円', '(原則固定) 1,000円', 'ロト6でに発生した1億円以上の当せん口数', '※100円未満の端数は切り捨てられます。']) assert.ok(got.includes(want), `「${want}」を見張る`);
-  assert.ok(got.some((l) => l.includes('1口 200円') && l.includes('1等最高 6億円')), '1口の値段と1等の上限');
-  assert.ok(!got.some((l) => /^\d$/.test(l) || l.includes('更新日')), '数字だけの飾り・更新日は見ない');
-  // 年が変わっただけ・更新日だけでは知らせない。賞金が変わったら知らせる
-  assert.equal(hashLines(extractLines(loto6.replace('2026年に発生', '2027年に発生').replace('2026年10月12日', '2027年1月5日'), page)), hashLines(got));
+  for (const want of ['2億円', '1 / 6,096,454', '約1,000万円', '(原則固定) 1,000円', 'ロト6でに発生した1億円以上の当せん口数', '※100円未満の端数は切り捨てられます。', '1当せん金(1口) 5万円以下']) assert.ok(got.includes(want), `「${want}」を見張る`);
+  assert.equal(got.length, 20, '2026年10月17日の公式ページと同じ20行');
+  assert.ok(got.some((l) => l.startsWith('LOTO6 ') && l.includes('1口 200円') && l.includes('1等最高 6億円') && l.includes('1等最高2億円(理論値)')), '1口の値段と1等の上限');
+  assert.ok(!got.some((l) => /^\d$/.test(l) || l.startsWith('キャリーオーバー有')), '数字だけの飾り・「キャリーオーバー有」の印は見ない');
+  // 年が変わっただけ・キャリーオーバーの印が消えただけでは知らせない。賞金が変わったら知らせる
+  assert.equal(hashLines(extractLines(loto6.replace(/2026年に発生/g, '2027年に発生'), page)), hashLines(got));
+  assert.equal(hashLines(extractLines(loto6.replace(/<span class="co-badge">キャリーオーバー有<\/span>/g, ''), page)), hashLines(got));
   const changed = extractLines(loto6.replace('<p>2億円</p>', '<p>3億円</p>'), page);
   assert.notEqual(hashLines(changed), hashLines(got));
   const issue = changeIssue(page, got, changed, '2026-11-01');
@@ -1132,6 +1141,17 @@ t('くじのルールの見張り（値段・賞金・確率・上限の公式�
   const bigLines = extractLines(fx('rule-big.html').toString('utf8'), rules.find((p) => p.id === 'rule-big'));
   assert.equal(bigLines.filter((l) => l === '1等...4,782,969分の1').length, 2);
   assert.ok(bigLines.includes('1口 300円') && bigLines.includes('1等...80%') && !bigLines.some((l) => l.includes('実績')), '実績の本数は見ない');
+  assert.ok(bigLines.includes('キャリーオーバーあり 1等 最高'), 'BIG の「キャリーオーバーあり 1等 最高」はルールの説明なので残す');
+  // 「ページが見つかりません」のページ（正常な応答で返ってくる）は、その日のうちに知らせる
+  const notFound = '<html><head><title>NOT FOUND【宝くじ公式サイト】</title></head><body><main><h1>NOT FOUND</h1><p>お探しのページは見つかりません。</p><p>1口 200円</p></main></body></html>';
+  assert.equal(pageTitle(notFound), 'NOT FOUND【宝くじ公式サイト】');
+  assert.ok(pageMissing(notFound) && pageMissing('<title>404 Not Found</title>') && pageMissing('<title>宝くじ</title><p>お探しのページが見つかりませんでした。</p>'));
+  for (const f of ['rule-loto6.html', 'rule-big.html', 'takarakuji-news-list.html', 'takarakuji-onsale.html', 'big-info.html']) assert.ok(!pageMissing(fx(f).toString('utf8')), `${f} はふつうのページ`);
+  assert.ok(!pageMissing('<title>ロト6 第2040回 当せん番号</title>'), '題名の「2040」は404ではない');
+  const miss = downIssue(page, 'ページが見つかりません（公式サイトが「NOT FOUND」のページを返しました）', 1, { missing: true });
+  assert.equal(miss.key, 'watchdown-rule-loto6');
+  assert.ok(miss.title.includes('見つかりません') && miss.body.includes('NOT FOUND') && miss.body.includes('config/watch.json'));
+  assert.ok(downIssue(page, '見張る行が見つかりません（ページの作りが変わった可能性）', 3).title.includes('作りが変わった'), '見張る行がないときは今までどおり');
   // ワークフロー：見張りの手順は、閉じた Issue を読むために GITHUB_TOKEN を使う
   const wf = readFileSync(path.join(ROOT, '.github/workflows/update.yml'), 'utf8');
   assert.ok(/run: node scripts\/watch\.mjs\n\s+env:\n\s+WATCH_FORCE: \$\{\{ inputs\.watch \}\}\n\s+GITHUB_TOKEN: \$\{\{ secrets\.GITHUB_TOKEN \}\}/.test(wf));

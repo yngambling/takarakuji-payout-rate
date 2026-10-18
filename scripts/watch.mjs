@@ -20,7 +20,7 @@ import { fetchBytes, decodeBytes } from './lib/http.mjs';
 import { jstParts, sleep } from './lib/util.mjs';
 import { resolveGames } from './lib/model.mjs';
 import { loadAlerts, saveAlerts, raise, clear } from './lib/alerts.mjs';
-import { extractLines, hashLines, changeIssue, downIssue, scheduleChecks, specialChecks, watchGate } from './lib/watchlib.mjs';
+import { extractLines, hashLines, changeIssue, downIssue, scheduleChecks, specialChecks, watchGate, pageMissing, MISSING_ERROR } from './lib/watchlib.mjs';
 import {
   NEWS_LIST_URL, ONSALE_URL, NEWS_DOWN_DAYS, parseNewsList, isJumboNews, parseJumboNews, checkJumbo, planJumbo,
   parseOnSale, missingIssue, newsDownIssue, roundNo,
@@ -72,7 +72,10 @@ for (const page of watch.pages || []) {
   const rec = (saved.pages[page.id] ??= {});
   try {
     const { buf, contentType } = await fetchBytes(page.url, { tries: 2, timeoutMs: 20000 });
-    const got = extractLines(decodeBytes(buf, contentType), page);
+    const html = decodeBytes(buf, contentType);
+    // 「ページが見つかりません」のページも正常な応答で返ってくるため、題名と本文で見分けて、その日のうちに知らせる
+    if (pageMissing(html)) throw Object.assign(new Error(MISSING_ERROR), { missing: true });
+    const got = extractLines(html, page);
     if (!got.length) throw new Error('見張る行が見つかりません（ページの作りが変わった可能性）');
     const h = hashLines(got);
     if (!rec.hash) {
@@ -92,8 +95,8 @@ for (const page of watch.pages || []) {
     rec.fails = (rec.fails || 0) + 1;
     rec.error = String(e.message || e);
     lines.push(`⚠ ${page.name}: 開けませんでした（${rec.fails}日目）${rec.error}`);
-    if (rec.fails >= 3) {
-      const issue = downIssue(page, rec.error, rec.fails);
+    if (rec.fails >= 3 || e.missing) {
+      const issue = downIssue(page, rec.error, rec.fails, { missing: !!e.missing });
       raise(alerts, issue.key, issue.title, issue.body);
     }
   }
