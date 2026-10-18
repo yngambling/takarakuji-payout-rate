@@ -304,6 +304,35 @@ t('購入ボタンのクリックの計測（GA4 の shop_click：購入場所�
   assert.ok(R.privacy().html.includes('購入場所などの外部のサイトへのボタンが押されたこと'));
 });
 
+t('ASP のコードをそのまま載せる広告リンク（楽天toto・楽天カード：コードの中は変えず、外側の枠をボタンにする）', () => {
+  const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const withHtml = [...Object.entries(links.shops), ...Object.entries(links.signups)].filter(([, s]) => s.html);
+  assert.ok(withHtml.length >= 2, '楽天toto と楽天カード');
+  for (const [k, s] of withHtml) {
+    assert.equal(s.affiliate, true, `${k} は広告リンク`);
+    const anchors = s.html.match(/<a\b[^>]*>/g) || [];
+    assert.equal(anchors.length, 1, `${k} のコードのリンクは1つ`);
+    assert.ok(anchors[0].includes(`href="${s.url}"`), `${k} の url とコードのリンク先が同じ`);
+    assert.ok(!/<script|<img|<iframe/i.test(s.html), `${k} は文字だけのリンク（画像や script は使わない）`);
+  }
+  const all = [renderT.index(), renderT.point(), renderT.kaikata(), renderT.game(rowsT.find((r) => r.id === 'big'))].map((p) => p.html).join('\n');
+  // 楽天toto（TGアフィリエイト）：コードを1文字も変えずに入れ、外側の枠にボタンの形・計測の印・PR を付ける
+  const tg = links.shops.rakuten_toto;
+  const n = all.split(tg.html).length - 1;
+  assert.ok(n >= 10, `楽天toto のボタン（${n}か所）`);
+  assert.equal(all.split(tg.url).length - 1, n, '楽天toto のリンクは、すべて ASP のコードのまま');
+  assert.ok(new RegExp(`<span class="btn [^"]*aff" data-shop="rakuten_toto" data-kind="buy">${reEsc(tg.html)} <span class="badge pr">PR</span></span>`).test(all), '外側の枠と PR');
+  // 楽天カード（楽天アフィリエイトの「テキストのみ」）：コードの文字だけを、カードの名前を含むボタンの文字にする
+  const card = links.signups.rakuten_card;
+  const texts = [...all.matchAll(new RegExp(`${reEsc(card.html.match(/<a\b[^>]*>/)[0])}([^<]*)</a>`, 'g'))].map((m) => m[1]);
+  assert.ok(texts.length >= 3 && texts.every((x) => x.includes(card.name)), `楽天カードのボタンの文字（${[...new Set(texts)].join('・')}）`);
+  assert.equal(all.split(card.url).length - 1, texts.length, '楽天カードのリンクは、すべて ASP のコードの形');
+  // 店のリンクが広告リンクなら、同じ店の会員登録のボタン（「楽天totoをはじめる」）は出さない
+  assert.ok(!all.includes(links.signups.rakuten_member.label), '楽天totoをはじめる');
+  // 押されたことの計測は、ASP のコードのリンクでも外側の枠の印（data-shop）から読む
+  assert.ok(renderWith({ ga4: 'G-TEST123' }).index().html.includes("var a = link ? link.closest('[data-shop]') : null;"), '計測のスクリプト');
+});
+
 t('くじ別ページの解説とよくある質問（data/guides.json）', () => {
   const guides = JSON.parse(readFileSync(path.join(ROOT, 'data/guides.json'), 'utf8'));
   // 書き方の確認：あるくじだけ・確認日・段落と質問が空でない・出典は https・使わない言い回しがない
