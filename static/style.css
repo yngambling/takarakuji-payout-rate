@@ -197,6 +197,12 @@ ul.note li + li { margin-top: 3px; }
 .btn-mini.first { background: var(--green); color: var(--white); }
 .btn-mini.first:hover { background: var(--green-dk); }
 .btn .badge.pr { vertical-align: 0; }
+/* ASP のコードをそのまま入れる広告リンク（links.json の html）：外側の枠をボタンの形にし、中のリンクをボタン全体に広げる */
+.btn.aff { position: relative; }
+.btn.aff > a { color: inherit; text-decoration: none; }
+.btn.aff > a::after { content: ""; position: absolute; inset: 0; }
+.btn.aff > a:focus-visible { outline: none; }
+.btn.aff:has(> a:focus-visible) { outline: 3px solid var(--gold); outline-offset: 2px; }
 .cta-box { border: 2px solid var(--green); background: var(--green-soft); border-radius: 8px; padding: 16px 18px; margin: 20px 0; }
 .cta-box .cta-title { font-weight: 700; font-size: 17px; margin: 0 0 6px; }
 .cta-box .cta-title::before { content: "＼"; color: var(--green); margin-right: 4px; }

@@ -215,6 +215,12 @@ export function createRenderer(ctx) {
   for (const list of [...Object.values(links.games || {}), links.jumboDefault || []]) for (const l of list) if (l.url && l.shop && !linkKey.has(l.url)) linkKey.set(l.url, { shop: l.shop, kind: 'buy' });
   for (const [k, s] of Object.entries(signups)) if (s.url && !linkKey.has(s.url)) linkKey.set(s.url, { shop: k, kind: 'signup' });
   /**
+   * ASP の決まりで HTML を変えられない広告リンク（config/links.json の html）。リンク先の URL から引く。
+   * ASP のコードはそのまま入れ、文字は editText が true の ASP（楽天アフィリエイトの「テキストのみ」など）のときだけボタンの文字に置き換える
+   */
+  const snippets = new Map();
+  for (const s of [...Object.values(shops), ...Object.values(signups)]) if (s.url && s.html) snippets.set(s.url, s);
+  /**
    * 購入場所・申し込みのボタン。クリックの計測（GA4 の shop_click）のため、どこへのリンクかを data-shop・data-kind に書く。
    *   data-shop … config/links.json の shops のキー（申し込みは signups のキー）。data-kind … buy（購入場所）か signup（口座開設・カード・会員登録）
    *   ページ内の場所（data-place）とくじ（data-kuji）は、ボタンを囲む要素から計測のスクリプトが読む
@@ -223,6 +229,12 @@ export function createRenderer(ctx) {
     const rel = l.affiliate ? 'sponsored noopener' : 'noopener';
     const key = l.signup ? { shop: l.signup, kind: 'signup' } : l.key || l.shop ? { shop: l.key || l.shop, kind: 'buy' } : linkKey.get(l.url);
     const data = key ? ` data-shop="${esc(key.shop)}" data-kind="${key.kind}"` : '';
+    const sn = snippets.get(l.url);
+    if (sn) {
+      // ASP のコードの中には手を加えず、ボタンの形・計測の印（data-shop）・PR は外側の枠に付ける
+      const code = sn.editText ? sn.html.replace(/(<a\b[^>]*>)[\s\S]*?(<\/a>)/, (m, open, close) => `${open}${esc(label)}${close}`) : sn.html;
+      return `<span class="btn ${cls} aff"${data}>${code} <span class="badge pr">PR</span></span>`;
+    }
     return `<a class="btn ${cls}" href="${esc(l.url)}" target="_blank" rel="${rel}"${data}>${esc(label)}${l.affiliate ? ' <span class="badge pr">PR</span>' : ''}</a>`;
   }
 
@@ -468,7 +480,8 @@ ${about.map((a) => {
     const keys = rt.signups || [];
     const games = gamesLabel(shopGames[rt.shop] || []);
     const btns = [aBtn({ url: s.url, affiliate: !!s.affiliate }, 'btn-sub', `${s.name}へ`), ...keys.filter((k) => signups[k] && signups[k].kind !== 'site').map((k) => signupBtn(k, 'btn-sub'))];
-    if (keys[0] && signups[keys[0]]?.kind === 'site' && !compact) btns.splice(1, 0, signupBtn(keys[0], 'btn-ghost'));
+    // 会員登録のボタン（「楽天totoをはじめる」など）。店のリンクが広告リンクのときは、登録もそのリンクの先でできる（ASP の成果の対象）ので出さない
+    if (keys[0] && signups[keys[0]]?.kind === 'site' && !s.affiliate && !compact) btns.splice(1, 0, signupBtn(keys[0], 'btn-ghost'));
     return `<article class="rt-card">
 <div class="rt-top">${x.rate > 0 ? `<span class="rt-lbl">ポイント最大</span><span class="num">${cuPct(x.rate)}<small>%</small></span>${x.plus ? '<span class="rt-plus">＋α</span>' : ''}` : '<span class="rt-lbl">ポイント</span><span class="rt-none">支払いに使うカードのポイントが付く</span>'}</div>
 <p class="rt-name">${esc(s.name)}${rt.how ? `<span>× ${esc(rt.how)}</span>` : ''}</p>
@@ -1856,7 +1869,8 @@ ${ad('bottom')}
 export const CLICK_JS = `<script>
 (function(){
   document.addEventListener('click', function(e){
-    var a = e.target && e.target.closest ? e.target.closest('a[data-shop]') : null;
+    var link = e.target && e.target.closest ? e.target.closest('a') : null;
+    var a = link ? link.closest('[data-shop]') : null;
     if (!a || typeof window.gtag !== 'function') return;
     var holder = a.closest('[data-place]');
     var place = holder ? holder.getAttribute('data-place') : '';
