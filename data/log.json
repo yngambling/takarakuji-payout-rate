@@ -1,5 +1,14 @@
 [
  {
+  "key": "loto6-2147",
+  "date": "2026-10-19",
+  "game": "loto6",
+  "round": 2147,
+  "firstWinners": 3,
+  "firstPrize": 158402400,
+  "carryover": 0
+ },
+ {
   "key": "big-1663",
   "date": "2026-10-18",
   "game": "big",
