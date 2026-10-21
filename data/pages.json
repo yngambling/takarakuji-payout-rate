@@ -2,8 +2,8 @@
  "_note": "ページごとの内容のハッシュと、内容が最後に変わった日時（build.mjs が更新）。sitemap.xml の lastmod と、検索エンジンへの通知（scripts/indexnow.mjs）に使います。",
  "pages": {
   "index.html": {
-   "hash": "5afa45b38c47e4ee",
-   "changed": "2026-10-21T17:54+09:00"
+   "hash": "94929f95daffa5ad",
+   "changed": "2026-10-21T19:47+09:00"
   },
   "kuji/loto6.html": {
    "hash": "6bd2dd42191722e4",
@@ -18,16 +18,16 @@
    "changed": "2026-10-21T00:24+09:00"
   },
   "kuji/bingo5.html": {
-   "hash": "4f0c2a0d14c9b995",
-   "changed": "2026-10-21T00:24+09:00"
+   "hash": "b935c577c5a1b1a5",
+   "changed": "2026-10-21T19:47+09:00"
   },
   "kuji/numbers4.html": {
-   "hash": "9243cf24fe0c98c4",
-   "changed": "2026-10-21T00:24+09:00"
+   "hash": "69064352f4d9ca0f",
+   "changed": "2026-10-21T19:47+09:00"
   },
   "kuji/numbers3.html": {
-   "hash": "4bec172e306c1879",
-   "changed": "2026-10-21T00:24+09:00"
+   "hash": "a3ee839d5ba44638",
+   "changed": "2026-10-21T19:47+09:00"
   },
   "kuji/halloween2026.html": {
    "hash": "34e3de54b2e63989",
@@ -42,24 +42,24 @@
    "changed": "2026-10-21T00:24+09:00"
   },
   "kuji/megabig.html": {
-   "hash": "cf6f5bfc14b88c4d",
-   "changed": "2026-10-21T00:24+09:00"
+   "hash": "62e501e258707089",
+   "changed": "2026-10-21T19:47+09:00"
   },
   "kuji/big.html": {
-   "hash": "e53d6b0e079f6a0f",
-   "changed": "2026-10-21T00:24+09:00"
+   "hash": "8eb0293e8b172c76",
+   "changed": "2026-10-21T19:47+09:00"
   },
   "kuji/big100.html": {
-   "hash": "052552d7d7d7fefa",
-   "changed": "2026-10-21T00:24+09:00"
+   "hash": "bbb58e0e76d34d7d",
+   "changed": "2026-10-21T19:47+09:00"
   },
   "kuji/big1000.html": {
-   "hash": "23bf9e689cd4b2fc",
-   "changed": "2026-10-21T00:24+09:00"
+   "hash": "593b2d78a025d41f",
+   "changed": "2026-10-21T19:47+09:00"
   },
   "kuji/minibig.html": {
-   "hash": "daecae4f875d63b0",
-   "changed": "2026-10-21T00:24+09:00"
+   "hash": "0e460d36cecfe5e5",
+   "changed": "2026-10-21T19:47+09:00"
   },
   "kuji/dunk10.html": {
    "hash": "ecf413ab2be0e3cf",
@@ -70,8 +70,8 @@
    "changed": "2026-10-21T00:24+09:00"
   },
   "kuji/dunk6b.html": {
-   "hash": "c518dfc22f87aa61",
-   "changed": "2026-10-21T00:24+09:00"
+   "hash": "51a1e2b308913f10",
+   "changed": "2026-10-21T19:47+09:00"
   },
   "point.html": {
    "hash": "f88ddeb78519625c",
