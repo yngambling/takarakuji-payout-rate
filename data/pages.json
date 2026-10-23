@@ -2,84 +2,88 @@
  "_note": "ページごとの内容のハッシュと、内容が最後に変わった日時（build.mjs が更新）。sitemap.xml の lastmod と、検索エンジンへの通知（scripts/indexnow.mjs）に使います。",
  "pages": {
   "index.html": {
-   "hash": "be6e4a1559277426",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "8b33a54a16f61b50",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/loto6.html": {
-   "hash": "c79aef895e89ef8c",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "cf35bdc9dbec8e0e",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/loto7.html": {
-   "hash": "dd9963a727dedde7",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "f52af99f23d6fa8c",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/miniloto.html": {
-   "hash": "1c83c3f613a06bf2",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "1fc86740911ebc60",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/bingo5.html": {
-   "hash": "2db1f0326cb595be",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "305bcce91d3c7802",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/numbers4.html": {
-   "hash": "565c35b12feceb53",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "e98e995822b29bf6",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/numbers3.html": {
-   "hash": "f4ef8257ade6a3d3",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "81dd5df76c1eda38",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/halloween2026.html": {
-   "hash": "d67b6e40590f8b70",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "9bfd85f7504182d8",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/halloweenmini2026.html": {
-   "hash": "03445183f3cfa02b",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "43f033d9d88d74f2",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/nenmatsu2026.html": {
-   "hash": "4b6c53243410e9a7",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "f9bb850ab6647ea2",
+   "changed": "2026-10-23T21:08+09:00"
+  },
+  "kuji/nenmatsumini2026.html": {
+   "hash": "8153afb57ccd05c7",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/megabig.html": {
-   "hash": "f5b0de2e49709e4e",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "72e331ca37646a7f",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/big.html": {
-   "hash": "24ec484b1f030efc",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "9e88e1c2925eb56b",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/big100.html": {
-   "hash": "88be1f918ec16f6c",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "8d4f564e4cb05a4d",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/big1000.html": {
-   "hash": "899b5aae7abc0c3f",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "ac34c75656bbb162",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/minibig.html": {
-   "hash": "65b07d7586777c4b",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "86f3fa83f07344de",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/dunk10.html": {
-   "hash": "5519a1db2cbe16a3",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "592231b63e084182",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/dunk6a.html": {
-   "hash": "b2c0fa012757cda0",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "d26cf4537c67df68",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "kuji/dunk6b.html": {
-   "hash": "fd9bf3209c5fccbb",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "a16fdbc2df786a7f",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "point.html": {
    "hash": "f6facebf3a2dbe38",
    "changed": "2026-10-23T19:47+09:00"
   },
   "ichiran.html": {
-   "hash": "0284d820f0e2bb91",
-   "changed": "2026-10-18T09:01+09:00"
+   "hash": "963244f67091a8e3",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "keisan.html": {
    "hash": "1e27478581f965f9",
@@ -106,12 +110,12 @@
    "changed": "2026-10-18T09:01+09:00"
   },
   "guide/kangenritsu.html": {
-   "hash": "2b6711df0687d477",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "f511730d162860f6",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "guide/kakuritsu.html": {
-   "hash": "a2d4b78a45a48b7d",
-   "changed": "2026-10-23T19:47+09:00"
+   "hash": "d38d9d2ec00bc97a",
+   "changed": "2026-10-23T21:08+09:00"
   },
   "guide/zeikin.html": {
    "hash": "142fb384a7f2e828",
