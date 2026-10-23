@@ -672,6 +672,19 @@ ${body}
   }
 
   /** 等級ごとの行（くじ別ページと一覧の大表で共通） */
+  /**
+   * ジャンボ以外のくじの「当選確率はどれくらいですか？」（1等と、どれかの等級が当たる確率。1口で当たるのは1つの等級だけなので、足せばよい）。
+   * ナンバーズは申込タイプで確率が違うので出さない
+   */
+  function oddsFaq(d, lines) {
+    if (d.model === 'numbers' || lines.length < 2) return null;
+    const first = lines[0];
+    const low = lines[lines.length - 1];
+    const any = lines.reduce((s, l) => s + (l.p > 0 ? l.p : 0), 0);
+    if (!(first.p > 0) || !(any > 0) || any >= 1) return null;
+    return [`${d.name}の当選確率はどれくらいですか？`, `1等の当選確率は${oddsJa(1 / first.p)}です。${low.name}までのどれかの等級が当たる確率は${chanceText(any)}で、平均すると${num(Math.round(1 / any))}口に1口の割合です。等級ごとの確率は「等級ごとの当せん金と確率」の表にあります。`];
+  }
+
   function tierLines(r) {
     const d = r.def;
     const ev = r.ev;
@@ -1066,6 +1079,9 @@ ${row('発売総数', ...both((x) => `${yen(x.totalTickets).replace(/円$/, '')}
     const faq = (gd.faq || []).filter((x) => x?.q && x?.a).map((x) => [x.q, x.a]);
     // 手で書いた解説のジャンボにも、賞金表から計算する質問（何枚買えば当たるか・ミニとどちらが当たりやすいか）を足す
     if (isJumbo(d) && !gd.auto && faq.length) for (const f of dynamicFaq(d, { sibling: sib })) if (!faq.some(([q]) => q === f.q)) faq.push([f.q, f.a]);
+    // ジャンボ以外で解説のあるくじは、「当選確率はどれくらい？」を先頭に足す（「ロト6 確率」のように探す人が多いため。数字は等級の表から）
+    const oq = !isJumbo(d) && faq.length ? oddsFaq(d, lines) : null;
+    if (oq && !faq.some(([q]) => q === oq[0])) faq.unshift(oq);
     const sources = [...(d.sources || []), ...(gd.sources || [])].filter((s, i, a) => s?.url && a.findIndex((x) => x.url === s.url) === i);
     const sections = [];
     if (about.length) sections.push(['about', `${d.name}の特徴と還元率`]);
@@ -1155,14 +1171,14 @@ ${ad('bottom')}
 <h2 id="others">ほかのくじの還元率</h2>
 ${related(rel, r.id)}
 `;
-    // ジャンボは「確率」「何枚買えば当たる」で探されることが多いので、題名の前の方に入れる
+    // ジャンボは「確率」「何枚買えば当たる」、ほかのくじは「確率」「キャリーオーバー」で探されることが多いので、題名に入れる
     const title = isJumbo(d)
       ? `${yearName(d)}の当たる確率と還元率｜何枚買えば当たる？（${fmtMdPlain(now.iso)}更新）｜${site.siteName}`
-      : `${d.name}の還元率（${fmtMdPlain(now.iso)}更新）｜${site.siteName}`;
+      : `${d.name}の${r.hasCO ? '還元率・当選確率・キャリーオーバー' : '還元率と当選確率'}（${fmtMdPlain(now.iso)}更新）｜${site.siteName}`;
     const desc = !ev.computable ? `${d.name}のしくみと購入場所。`
       : isJumbo(d)
         ? `${yearName(d)}（${fmtMdPlain(d.salesStart)}〜${fmtMdPlain(d.salesEnd)}発売・${fmtMdPlain(d.drawDate)}抽せん）の1等${yen(d.tiers[0].prize)}の当せん確率は${oddsJa(d.totalTickets / d.tiers[0].count)}、還元率は${pct(r.rate)}。10枚・30枚・100枚買ったときに当たる確率${cmpHtml ? `、${sib.name}との比較` : ''}、ポイントが付く購入場所をまとめています。`
-        : `${d.name}の還元率は${pct(r.rate)}（${fmtMd(now.iso)}時点）。${r.hasCO ? `キャリーオーバー${yen(r.carryover)}を含めて計算。` : ''}等級ごとの当せん金と当せん確率、ポイントが付く購入場所をまとめています。`;
+        : `${d.name}の還元率は${pct(r.rate)}（${fmtMd(now.iso)}時点）。${r.hasCO ? (r.carryover > 0 ? `キャリーオーバー${yen(r.carryover)}を含めて計算。` : 'いまはキャリーオーバーなし。') : ''}${fp?.p > 0 ? `${d.model === 'numbers' ? 'ストレート' : '1等'}の当選確率は${oddsJa(1 / fp.p)}。` : ''}等級ごとの当せん金と当せん確率、ポイントが付く購入場所をまとめています。`;
     return {
       path,
       html: layout({ path, title, description: desc, body, jsonld: [breadcrumbLd(path, d.name), ...(faq.length ? [faqLd(faq)] : [])], scripts: showTrend ? CHART_JS : '', stickyHtml: ev.computable && r.listed ? sticky(r) : '', kuji: r.id }),

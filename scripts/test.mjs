@@ -419,7 +419,16 @@ t('くじ別ページの解説とよくある質問（data/guides.json）', () =
     if (!r || r.def.model === 'none') continue;
     const h = rg.game(r).html;
     assert.ok(h.includes(`<h2 id="about">`) && h.includes('<div class="guide">') && !h.includes('**') && !/NaN|undefined/.test(h.replace(/<script[\s\S]*?<\/script>/g, '')), `${id} のページ`);
+    assert.ok(!h.includes('キャリーオーバー0円を含めて計算'), `${id} の説明文（キャリーオーバーが0円なら「いまはキャリーオーバーなし」）`);
   }
+  // ジャンボ以外のくじ：題名に「当選確率」（キャリーオーバーのあるくじは「キャリーオーバー」も）、説明文に1等の当選確率、よくある質問の先頭に当選確率
+  const l6 = rg.game(rowsT.find((x) => x.id === 'loto6')).html;
+  assert.match(l6, /<title>ロト6の還元率・当選確率・キャリーオーバー（\d+月\d+日更新）｜宝くじ還元率ランキング<\/title>/);
+  assert.match(l6, /<meta name="description" content="ロト6の還元率は[\d.]+%（[^"]*時点）。(キャリーオーバー[^"]*を含めて計算。|いまはキャリーオーバーなし。)1等の当選確率は6,096,454分の1。/);
+  // 1口で当たるのは1つの等級だけなので、どれかが当たる確率は足し算：(1+6+216+9,990+155,400)÷6,096,454 ≒ 2.7%（37口に1口）
+  assert.ok(l6.includes('<dl class="faq"><dt>ロト6の当選確率はどれくらいですか？</dt><dd>1等の当選確率は6,096,454分の1です。5等までのどれかの等級が当たる確率は2.7%で、平均すると37口に1口の割合です。'), '当選確率の質問が先頭');
+  const n4 = rg.game(rowsT.find((x) => x.id === 'numbers4')).html;
+  assert.ok(n4.includes('<title>ナンバーズ4の還元率と当選確率（') && n4.includes('ストレートの当選確率は1万分の1。') && !n4.includes('ナンバーズ4の当選確率はどれくらいですか？'), 'ナンバーズは申込タイプで確率が違うので、質問は出さない');
 });
 
 /* ---------- 解説ページ（宝くじの基礎知識：content/guide/*.md） ---------- */
