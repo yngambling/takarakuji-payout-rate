@@ -1,8 +1,8 @@
 {
  "_note": "検索エンジン（IndexNow）に知らせるページの記録（scripts/indexnow.mjs が毎日書く）。plannedAt より後に内容が変わったページを、次の日に送ります。",
- "lastRun": "2026-10-23",
- "plannedAt": "2026-10-23T07:51+09:00",
- "run": "39867426875",
+ "lastRun": "2026-10-24",
+ "plannedAt": "2026-10-24T07:51+09:00",
+ "run": "40035812646",
  "urls": [
   "https://takarakuji-kangen.com/",
   "https://takarakuji-kangen.com/kuji/loto6.html",
@@ -14,6 +14,7 @@
   "https://takarakuji-kangen.com/kuji/halloween2026.html",
   "https://takarakuji-kangen.com/kuji/halloweenmini2026.html",
   "https://takarakuji-kangen.com/kuji/nenmatsu2026.html",
+  "https://takarakuji-kangen.com/kuji/nenmatsumini2026.html",
   "https://takarakuji-kangen.com/kuji/megabig.html",
   "https://takarakuji-kangen.com/kuji/big.html",
   "https://takarakuji-kangen.com/kuji/big100.html",
@@ -23,12 +24,16 @@
   "https://takarakuji-kangen.com/kuji/dunk6a.html",
   "https://takarakuji-kangen.com/kuji/dunk6b.html",
   "https://takarakuji-kangen.com/point.html",
+  "https://takarakuji-kangen.com/ichiran.html",
   "https://takarakuji-kangen.com/keisan.html",
+  "https://takarakuji-kangen.com/kaikata.html",
   "https://takarakuji-kangen.com/suii.html",
+  "https://takarakuji-kangen.com/guide.html",
   "https://takarakuji-kangen.com/guide/kangenritsu.html",
   "https://takarakuji-kangen.com/guide/kakuritsu.html",
   "https://takarakuji-kangen.com/guide/zeikin.html",
   "https://takarakuji-kangen.com/guide/uketori.html",
-  "https://takarakuji-kangen.com/guide/net.html"
+  "https://takarakuji-kangen.com/guide/net.html",
+  "https://takarakuji-kangen.com/guide/dunk.html"
  ]
 }
