@@ -1,5 +1,5 @@
 // ページの HTML をつくる
-import { esc, num, yenJa, pct, odds, fmtMd, fmtMdPlain, fmtYmd, fmtShort } from './util.mjs';
+import { esc, num, yenJa, man, pct, odds, fmtMd, fmtMdPlain, fmtYmd, fmtShort } from './util.mjs';
 import { carryoverTable, rateSeries } from './model.mjs';
 import { autoGuide, autoLead, autoSourceNote, buyChances, jumboSibling, compareSentence, chanceText, chanceAtLeast, chanceOfN, oddsJa, dynamicFaq, firstPrizeNeed } from './jumbo.mjs';
 import { renderGuideBody, giftTax, GIFT_AMOUNTS } from './guide.mjs';
@@ -31,6 +31,10 @@ export function mergeOrder(order = [], ids = []) {
 /** 金額はすべて「○億○万○円」 */
 const yen = (n) => yenJa(Math.round(Number(n) || 0));
 
+/** シェアの画像の大きさ：サイト共通の og.png（1.91:1）と、くじ別の画像（static/og。Google Discover の推奨の16:9） */
+const OG_DEFAULT = { width: 1200, height: 630 };
+export const OG_SIZE = { width: 1200, height: 675 };
+
 /** 当せん確率の%表示：1/6,096,454 → 0.0000164% */
 export function probPct(p) {
   if (!(p > 0)) return '—';
@@ -41,6 +45,14 @@ export function probPct(p) {
 }
 
 const pct2 = (r) => `${(r * 100).toFixed(2)}%`;
+
+/** 当選確率の文での言い方：1/6,096,454 → 609万6,454分の1（割り切れないときは「約」を付ける） */
+export function oddsKanji(p) {
+  if (!(p > 0)) return '—';
+  const inv = 1 / p;
+  const r = Math.round(inv);
+  return `${Math.abs(inv - r) < 1e-6 * inv ? '' : '約'}${yenJa(r).replace(/円$/, '')}分の1`;
+}
 
 /** ポイント還元率の表示：0.02 → 2.0%、0.00333 → 0.33% */
 export function fmtPt(v) {
@@ -80,6 +92,18 @@ export function createRenderer(ctx) {
   const signups = links.signups || {};
   /** くじの購入先（config/links.json の games。書いていないジャンボは jumboDefault） */
   const gameLinks = (id) => links.games?.[id] || (isJumbo(ctx.defs[id]) ? links.jumboDefault || [] : []);
+
+  /** くじ別ページの画像（static/og。build.mjs がファイル名の一覧を渡す） */
+  const ogSet = new Set(ctx.ogImages || []);
+  /** くじの ID と同じ名前の画像。ジャンボは季節ごと（年末ジャンボミニ2026 → jumbo-nenmatsu）、なければ jumbo。どれもなければ null（サイト共通の og.png） */
+  function ogKeyOf(id) {
+    if (ogSet.has(id)) return id;
+    if (!isJumbo(ctx.defs[id])) return null;
+    const season = (String(id).match(/^([a-z]+?)(?:mini|petit)?\d{4}/) || [])[1];
+    if (season && ogSet.has(`jumbo-${season}`)) return `jumbo-${season}`;
+    return ogSet.has('jumbo') ? 'jumbo' : null;
+  }
+  const ogImage = (key, alt) => (key && ogSet.has(key) ? { src: `og/${key}.png`, ...OG_SIZE, alt } : null);
 
   /** 解説ページ（content/guide/*.md を build.mjs が読んで渡す。order の順） */
   const HUB_NAME = '宝くじの基礎知識';
@@ -541,23 +565,29 @@ ${guideList.length ? `<section class="widget plain"><h2 class="widget-title">${H
    * linkBase を渡すと、サイト内のリンクと CSS をその文字列から書く（404 ページ用）。渡さなければページの階層からの相対パス。
    * ads を false にすると、AdSense のコードを入れない（エラーのページのような中身のない画面には広告を置けない。Google のポリシー）
    */
-  function layout({ path, title, description, body, current = null, jsonld = [], noindex = false, scripts = '', stickyHtml = '', linkBase = null, kuji = null, ads = true }) {
+  function layout({ path, title, description, body, current = null, jsonld = [], noindex = false, scripts = '', stickyHtml = '', linkBase = null, kuji = null, ads = true, image = null }) {
     const rel = linkBase ?? relOf(path);
     const url = pageUrl(path);
     const a = site.adsense || {};
     // フォントは、使う文字だけに絞ってこのサイトから配信する（static/fonts）。先に読み込みを始めて、表示の途中で字形が変わらないようにする
     const fonts = FONT_FILES.map((f) => `<link rel="preload" href="${rel}fonts/${f}" as="font" type="font/woff2" crossorigin>`).join('');
+    // シェアと検索（Google Discover）の画像：くじ別ページなどは static/og の横長（16:9）の画像、ほかはサイト共通の og.png
+    const img = image || { src: 'og.png', ...OG_DEFAULT };
     const head = [
       '<meta charset="utf-8">',
       '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">',
       `<title>${esc(title)}</title>`,
       `<meta name="description" content="${esc(description)}">`,
-      noindex ? '<meta name="robots" content="noindex">' : `<link rel="canonical" href="${esc(url)}">`,
+      // 検索結果や Discover で、大きな画像を出してよいことを伝える（Google の案内。検索結果に出さないページには付けない）
+      noindex ? '<meta name="robots" content="noindex">' : `<meta name="robots" content="max-image-preview:large">\n<link rel="canonical" href="${esc(url)}">`,
       `<meta property="og:type" content="${path === 'index.html' ? 'website' : 'article'}">`,
       `<meta property="og:title" content="${esc(title)}">`,
       `<meta property="og:description" content="${esc(description)}">`,
       `<meta property="og:url" content="${esc(url)}">`,
-      `<meta property="og:image" content="${esc(base)}/og.png">`,
+      `<meta property="og:image" content="${esc(base)}/${esc(img.src)}">`,
+      `<meta property="og:image:width" content="${img.width}">`,
+      `<meta property="og:image:height" content="${img.height}">`,
+      img.alt ? `<meta property="og:image:alt" content="${esc(img.alt)}">` : '',
       `<meta property="og:site_name" content="${esc(site.siteName)}">`,
       '<meta property="og:locale" content="ja_JP">',
       '<meta name="twitter:card" content="summary_large_image">',
@@ -567,6 +597,7 @@ ${guideList.length ? `<section class="widget plain"><h2 class="widget-title">${H
       `<link rel="apple-touch-icon" href="${rel}apple-touch-icon.png">`,
       fonts,
       ctx.inlineCss ? `<style>${cssFor(rel)}</style>` : `<link rel="stylesheet" href="${rel}style.css?v=${ctx.cssVersion}">`,
+      !preview ? `<script type="speculationrules">${JSON.stringify(SPECULATION_RULES)}</script>` : '',
       !preview && ctx.verification ? `<meta name="google-site-verification" content="${esc(ctx.verification)}">` : '',
       !preview && a.client ? `<meta name="google-adsense-account" content="${esc(a.client)}">` : '',
       !preview && a.client && ads ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${esc(a.client)}" crossorigin="anonymous"></script>` : '',
@@ -1010,6 +1041,32 @@ ${trs}
     return `<p class="notice">第${r.special.round}回は「${esc(sp.name)}」の回です。1等の上限が、キャリーオーバーの有無にかかわらず${esc(sp.capText)}に上がります（通常は最高${yen(normalCO)}）。このページの還元率も、この上限で計算しています。</p>`;
   }
 
+  /**
+   * くじ別ページの頭の「答えの1文」：今日の還元率・1等の当選確率・次の回。
+   * 「ロト6 還元率」「BIG 確率」のように探した人への答えを、表やタイルだけでなく文でも書く（検索の抜粋や AI の回答に使われやすくするため）
+   */
+  function answerLine(r, fp) {
+    const d = r.def;
+    const s = r.status || {};
+    if (!r.ev?.computable || !(fp?.p > 0)) return '';
+    const first = d.model === 'numbers' ? 'ストレート' : '1等';
+    if (isJumbo(d)) {
+      const odds1 = oddsJa(d.totalTickets / d.tiers[0].count);
+      const when = s.kind === 'upcoming' ? `発売は${fmtMd(d.salesStart)}から${fmtMd(d.salesEnd)}まで、抽せんは${fmtMd(d.drawDate)}です。`
+        : s.kind === 'onsale' ? `発売は${fmtMd(d.salesEnd)}まで、抽せんは${fmtMd(d.drawDate)}です。`
+          : d.drawDate && d.drawDate < now.iso ? `抽せんは${fmtMd(d.drawDate)}に終わりました。` : `発売は終わり、抽せんは${fmtMd(d.drawDate)}です。`;
+      return `<p class="lead answer">${esc(yearName(d))}の1等（${yen(d.tiers[0].prize)}）の当選確率は${odds1}、還元率は<b>${pct(r.rate)}</b>です。${when}</p>`;
+    }
+    const co = r.hasCO && r.carryover > 0 ? `（キャリーオーバー${r.carryover % 10000 ? '約' : ''}${man(r.carryover)}を含めた${r.provisional ? '暫定の' : ''}計算）` : '';
+    const o = s.o;
+    const lb = s.label ? `の${esc(s.label)}` : '';
+    const next = s.kind === 'closed' ? '今日の回の販売は終わり、抽せんの結果を待っています。'
+      : s.next && s.kind === 'onsale' ? (s.next === now.iso ? `今日${fmtMd(s.next)}が抽せん日${lb ? `（${esc(s.label)}）` : ''}です。` : `次の抽せんは${fmtMd(s.next)}${lb}です。`)
+        : o && s.kind === 'onsale' ? `${esc(s.label)}のネットの販売締切は${fmtMd(o.salesEnd)}${o.salesEndTime ? ` ${o.salesEndTime}` : ''}${o.resultDate ? `、結果発表は${fmtMd(o.resultDate)}` : ''}です。`
+          : o && s.kind === 'before' ? `${esc(s.label)}は${fmtMd(o.salesStart)}${o.salesStartTime ? ` ${o.salesStartTime}` : ''}から販売します。` : '';
+    return `<p class="lead answer">${esc(d.name)}の還元率は、${fmtMdPlain(now.iso)}時点で<b>${pct(r.rate)}</b>${co}です。${first}の当選確率は${oddsKanji(fp.p)}です。${next}</p>`;
+  }
+
   function game(r) {
     const d = r.def;
     const path = `kuji/${r.id}.html`;
@@ -1125,6 +1182,7 @@ ${crumbs(rel, [{ name: d.name }])}
 ${updatedLine()}
 ${d.verify ? `<p class="notice">${esc(d.verify)}</p>` : ''}
 ${endedNotice(r, rel)}${specialNotice(r)}
+${answerLine(r, fp)}
 ${ev.computable ? `<div class="score">
 <div class="score-top"><span class="lbl">還元率</span><span class="num">${cuPct(r.rate)}<small>%</small></span>${delta(r)}<span class="sub">1口${yen(d.price)}で、平均約${Math.round(ev.ev)}円が戻る計算${rankOf[r.id] ? `・全${listed.length}くじ中${rankOf[r.id]}位` : ''}</span></div>
 <dl class="score-grid">${tiles.map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('')}</dl>
@@ -1135,7 +1193,7 @@ ${toc(sections)}
 ${ad('top')}
 ${about.length ? `<h2 id="about">${esc(d.name)}の特徴と還元率</h2>
 ${guideCards(about)}
-${gdNote ? `<p class="note">${esc(gdNote)}</p>` : ''}` : ''}
+${gdNote ? `<p class="note">${esc(gdNote)}</p>` : ''}${typeof gd.more === 'string' ? guideMore(gd.more, rel) : ''}` : ''}
 <h2 id="buy">${esc(d.name)}の購入場所</h2>
 ${prNote(shopList, '購入場所のボタンには広告を含みます')}
 ${ev.computable ? `<h2 id="tiers">等級ごとの当せん金と確率</h2>
@@ -1181,7 +1239,7 @@ ${related(rel, r.id)}
         : `${d.name}の還元率は${pct(r.rate)}（${fmtMd(now.iso)}時点）。${r.hasCO ? (r.carryover > 0 ? `キャリーオーバー${yen(r.carryover)}を含めて計算。` : 'いまはキャリーオーバーなし。') : ''}${fp?.p > 0 ? `${d.model === 'numbers' ? 'ストレート' : '1等'}の当選確率は${oddsJa(1 / fp.p)}。` : ''}等級ごとの当せん金と当せん確率、ポイントが付く購入場所をまとめています。`;
     return {
       path,
-      html: layout({ path, title, description: desc, body, jsonld: [breadcrumbLd(path, d.name), ...(faq.length ? [faqLd(faq)] : [])], scripts: showTrend ? CHART_JS : '', stickyHtml: ev.computable && r.listed ? sticky(r) : '', kuji: r.id }),
+      html: layout({ path, title, description: desc, body, jsonld: [breadcrumbLd(path, d.name), ...(faq.length ? [faqLd(faq)] : [])], scripts: showTrend ? CHART_JS : '', stickyHtml: ev.computable && r.listed ? sticky(r) : '', kuji: r.id, image: ogImage(ogKeyOf(r.id), `${d.name}のイラスト`) }),
     };
   }
 
@@ -1667,7 +1725,7 @@ ${hasContact ? '<h2>個人情報の取り扱い</h2><p>お問い合わせでい�
     warnedGames.add(id);
     console.log(`::warning::解説ページ（content/guide）で使っているくじ「${id}」が、data/games.json にないか計算できません。「—」と表示しています`);
   }
-  const GUIDE_TOKENS = ['date', 'rate', 'ev', 'price', 'p1', 'max', 'name'];
+  const GUIDE_TOKENS = ['date', 'rate', 'ev', 'price', 'p1', 'max', 'name', 'co'];
   function guideToken(name, arg) {
     if (!GUIDE_TOKENS.includes(name)) return null;
     if (name === 'date') return fmtYmd(now.iso);
@@ -1678,6 +1736,7 @@ ${hasContact ? '<h2>個人情報の取り扱い</h2><p>お問い合わせでい�
     if (name === 'price') return yen(r.def.price);
     if (name === 'p1') return odds(chanceTop(r).p);
     if (name === 'max') return pct(Number.isFinite(r.maxRate) ? r.maxRate : r.rate);
+    if (name === 'co') return r.hasCO && r.carryover > 0 ? yen(r.carryover) : 'なし'; // いまのキャリーオーバー
     return r.def.name;
   }
 
@@ -1837,9 +1896,11 @@ ${trs}
     const third = [...main.matchAll(/<h2 id="/g)][2];
     if (third) main = `${main.slice(0, third.index)}${ad('middle')}\n${main.slice(third.index)}`;
     // 毎日の計算の数字を使うページだけ「毎日更新」と最終更新を出す（税金の早見表や購入場所の表は毎日は変わらない）
-    const dynamic = /\{\{(?:table:(?:ev|chance)|chance:|list:(?:co|jumbo)|(?:rate|ev|p1|max):|date\}\})/.test(g.body);
+    const dynamic = /\{\{(?:table:(?:ev|chance)|chance:|list:(?:co|jumbo)|(?:rate|ev|p1|max|co):|date\}\})/.test(g.body);
     const checked = m.checkedOn ? `<span>内容の確認日：${fmtYmd(m.checkedOn)}</span>` : '';
     const others = guideList.filter((x) => x.slug !== g.slug);
+    // シェアと検索の画像（設定の image に static/og の画像の名前。なければサイト共通の og.png）
+    const image = m.image ? ogImage(m.image, m.imageAlt || `${m.short || name}のイラスト`) : null;
     const body = `
 ${crumbs(rel, [{ name: HUB_NAME, href: `${rel}${HUB_PATH}` }, { name }])}
 <h1 class="page-title">${esc(name)}</h1>
@@ -1862,10 +1923,10 @@ ${related(rel, null)}
 `;
     const ld = [
       breadcrumbLd(path, name, { name: HUB_NAME, path: HUB_PATH }),
-      { '@context': 'https://schema.org', '@type': 'Article', headline: name, description: m.description || '', inLanguage: 'ja', ...(m.checkedOn ? { dateModified: m.checkedOn } : {}), author: { '@type': 'Organization', name: site.siteName, url: `${base}/` }, publisher: { '@type': 'Organization', name: site.siteName }, mainEntityOfPage: pageUrl(path) },
+      { '@context': 'https://schema.org', '@type': 'Article', headline: name, description: m.description || '', inLanguage: 'ja', ...(m.checkedOn ? { dateModified: m.checkedOn } : {}), ...(image ? { image: [`${base}/${image.src}`] } : {}), author: { '@type': 'Organization', name: site.siteName, url: `${base}/` }, publisher: { '@type': 'Organization', name: site.siteName }, mainEntityOfPage: pageUrl(path) },
       ...(r.faq.length ? [faqLd(r.faq.map(([q, , a]) => [q, a]))] : []),
     ];
-    return { path, html: layout({ path, title: `${m.title || name}｜${site.siteName}`, description: m.description || '', body, current: 'guide', jsonld: ld }) };
+    return { path, html: layout({ path, title: `${m.title || name}｜${site.siteName}`, description: m.description || '', body, current: 'guide', jsonld: ld, image }) };
   }
 
   function guideHub() {
@@ -1931,12 +1992,28 @@ export const CLICK_JS = `<script>
 })();
 </script>`;
 
+/* ---------------- ページ移動を速くする（Speculation Rules。全ページ共通） ---------------- */
+
+// サイト内のリンクにポインタを重ねた（スマホは指で触れた・画面に出た）ときに、移り先のページを先に読み込んで描いておく。
+// Chrome・Edge だけが使い、ほかのブラウザは読み飛ばす。eagerness の moderate は、パソコンはリンクに0.2秒重ねたとき、
+// スマホは画面の止まった位置の近くのリンク（Chrome の文書。先読みは同時に2ページまで）。
+// 広告やアフィリエイトのリンク（rel に sponsored・nofollow）、新しいタブで開くリンク、同じページの中へのリンクは対象にしない。
+// GA4 と AdSense は、先読みしたページが実際に表示されるまで、計測と広告の読み込みを待つ（Chrome の文書）
+export const SPECULATION_RULES = {
+  prerender: [{
+    where: { and: [{ href_matches: '/*' }, { not: { selector_matches: '[rel~="sponsored"], [rel~="nofollow"], [target="_blank"], [download], [href^="#"]' } }] },
+    eagerness: 'moderate',
+  }],
+};
+
 /* ---------------- 動き・カウントダウン・追従ボタン（全ページ共通） ---------------- */
 
 const UI_JS = `<script>
 (function(){
   var d = document, w = window;
   function all(s){ return Array.prototype.slice.call(d.querySelectorAll(s)); }
+  // 先読み（Speculation Rules）で裏で描いたページは、実際に表示されたときに動かす（数字のカウントアップなどを見えるときに始めるため）
+  function whenShown(fn){ if (d.prerendering) d.addEventListener('prerenderingchange', fn, { once: true }); else fn(); }
 
   // サイト内のリンクで移ったときは、ページの一番上から表示する（埋め込み表示で外側の位置が残る対策）
   d.addEventListener('click', function(e){
@@ -1946,7 +2023,7 @@ const UI_JS = `<script>
     if (h.charAt(0) === '#' || /^[a-z]+:/i.test(h)) return;
     try { sessionStorage.setItem('kt-top', '1'); } catch (x) {}
   }, true);
-  try {
+  whenShown(function(){ try {
     var nav = w.performance && performance.getEntriesByType ? performance.getEntriesByType('navigation')[0] : null;
     var type = nav ? nav.type : 'navigate';
     var flag = false;
@@ -1958,7 +2035,7 @@ const UI_JS = `<script>
       var tp = d.getElementById('top');
       if (tp && tp.scrollIntoView && w.self !== w.top) tp.scrollIntoView({ block: 'start' });
     }
-  } catch (x) {}
+  } catch (x) {} });
 
   // 締切までのカウントダウン
   var cds = all('.cd[data-deadline]');
@@ -2005,6 +2082,7 @@ const UI_JS = `<script>
   var reduce = w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches;
   if (reduce) return;
 
+  whenShown(function(){
   // 下にある要素は、見えたときにふわっと表示
   var vh = w.innerHeight || 800;
   var rv = all('main h2, .rank-card, .chart, .kuji-sec, .shops > li, .rt-card, .pick, .related > a, .tbl-wrap, .steps > li, .faq > dt, .side .widget, .score-grid > div');
@@ -2043,6 +2121,7 @@ const UI_JS = `<script>
   // 還元率のバーとグラフの線
   onView(all('.bar'), function(el){ el.classList.add('fill'); }, { threshold: 0.3 });
   onView(all('svg.spark'), function(el){ el.classList.add('draw'); }, { threshold: 0.25 });
+  });
 })();
 </script>`;
 

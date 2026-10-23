@@ -58,6 +58,8 @@ if (existsSync(P('content/guide'))) {
   }
 }
 const css = await readFile(P('static/style.css'), 'utf8');
+// くじ別ページの画像（static/og/*.png。作り方は README の「くじ別ページの画像」）。ファイル名（拡張子なし）の一覧を渡す
+const ogImages = existsSync(P('static/og')) ? (await readdir(P('static/og'))).filter((f) => /^[a-z0-9-]+\.png$/.test(f)).map((f) => f.slice(0, -4)).sort() : [];
 // Google Search Console の確認コード（config/google-site-verification.txt に貼ったタグから取り出す。なければ空）
 const gsvText = existsSync(P('config/google-site-verification.txt')) ? await readFile(P('config/google-site-verification.txt'), 'utf8') : '';
 const verification = verificationCode(gsvText);
@@ -80,7 +82,7 @@ if (RECORD) {
 }
 
 const render = createRenderer({
-  site, links, points, rows, byId, log, history, catalog, guides, guidePages, now, state, defs, order, overrides, verification,
+  site, links, points, rows, byId, log, history, catalog, guides, guidePages, now, state, defs, order, overrides, verification, ogImages,
   preview: PREVIEW, placeholders: PLACEHOLDERS || PREVIEW, inlineCss: PREVIEW, css,
   cssVersion: createHash('md5').update(css).digest('hex').slice(0, 8),
 });
@@ -96,6 +98,10 @@ for (const p of pages) await writeFile(path.join(OUT, p.path), p.html, 'utf8');
 
 for (const f of ['style.css', 'favicon.svg', 'og.png', 'apple-touch-icon.png']) {
   if (existsSync(P('static', f))) await copyFile(P('static', f), path.join(OUT, f));
+}
+if (ogImages.length) {
+  await mkdir(path.join(OUT, 'og'), { recursive: true });
+  for (const k of ogImages) await copyFile(P('static/og', `${k}.png`), path.join(OUT, 'og', `${k}.png`));
 }
 // フォント（使う文字だけに絞ったもの）と、そのライセンス（SIL Open Font License。フォントといっしょに置く決まり）
 await mkdir(path.join(OUT, 'fonts'), { recursive: true });

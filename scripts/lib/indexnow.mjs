@@ -15,7 +15,8 @@ export const validKey = (k) => typeof k === 'string' && /^[A-Za-z0-9-]{8,128}$/.
  */
 export function contentHash(html) {
   const title = (html.match(/<title>([\s\S]*?)<\/title>/) || [])[1] || '';
-  const main = ((html.match(/<main id="main">([\s\S]*?)<\/main>/) || [])[1] ?? html)
+  // くじ別ページの <main> には data-kuji が付くので、id のあとの属性も許す（付かないと、ページ全体を見てしまう）
+  const main = ((html.match(/<main id="main"[^>]*>([\s\S]*?)<\/main>/) || [])[1] ?? html)
     .replace(/<p class="updated">[\s\S]*?<\/p>/g, '')
     .replace(/\d{1,2}:\d{2}/g, '');
   return createHash('sha256').update(`${title}\n${main}`).digest('hex').slice(0, 16);

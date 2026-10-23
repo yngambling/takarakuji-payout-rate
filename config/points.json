@@ -97,7 +97,7 @@
         }
       ],
       "base": "dカード以外で払う場合は1%です",
-      "feature": "BIG・MEGA BIG・100円BIGを買える。dポイントで買うこともでき、ドコモの回線がなくても使える",
+      "feature": "BIG・MEGA BIG・100円BIG・DUNKを買える。dポイントで買うこともでき、ドコモの回線がなくても使える",
       "signups": [
         "d_account",
         "d_card"
@@ -106,6 +106,10 @@
         {
           "title": "ドコモスポーツくじ（NTTドコモ）",
           "url": "https://www.docomo.ne.jp/service/docomo_toto/"
+        },
+        {
+          "title": "ドコモスポーツくじでDUNKの取扱い開始（NTTドコモ、2026年8月26日）",
+          "url": "https://www.docomo.ne.jp/binary/pdf/info/news_release/topics_260826_g1.pdf"
         }
       ]
     },

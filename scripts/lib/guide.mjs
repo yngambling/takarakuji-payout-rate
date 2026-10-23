@@ -8,6 +8,8 @@
 //   description: 検索結果に出る説明
 //   checkedOn: 2026-10-18                ← 内容を一次情報で確かめた日
 //   order: 1                             ← 並び順
+//   image: dunk                          ← シェアと検索の画像（static/og の画像の名前。なければサイト共通の og.png）
+//   imageAlt: 画像の説明                  ← なければ「short のイラスト」
 //   sources:
 //   - 出典の名前 | https://…
 //   ---
