@@ -260,6 +260,69 @@ t('ポイント還元ランキング（2.0%が1位、銀行のロトは1口1ポ�
   assert.ok(html.includes('0.5%'), '楽天銀行のロト・ナンバーズ（200円で1ポイント）');
   const text = html.replace(/<script[\s\S]*?<\/script>/g, '');
   for (const bad of ['NaN', 'undefined', 'Infinity', '[object']) assert.ok(!text.includes(bad), `${bad} が出ている`);
+  // 還元率が1%より高いカード：ランキングには入れず、確かめ方と合わせて案内する。PayPay は前の月の条件で＋0.5%
+  assert.ok(html.includes('リクルートカードの1.2%など') && html.includes('<dt>還元率が1%より高いクレジットカードで払うと、もっとポイントが付きますか？</dt>'), '1%より高いカードの案内');
+  assert.ok(html.includes('その翌月は＋0.5%') && html.includes('https://www.jcb.co.jp/myjcb/pop/recruit-point.html'), 'PayPay の上乗せの条件と、カードの対象外の一覧の出典');
+});
+
+t('期間限定のキャンペーン（config/campaigns.json：くじ別ページの購入場所の下・ポイント還元ランキング・期間が過ぎたら消える）', () => {
+  // 本物のファイルの書き方
+  const cpFile = JSON.parse(readFileSync(path.join(ROOT, 'config/campaigns.json'), 'utf8'));
+  assert.match(cpFile.checkedOn || '', /^\d{4}-\d{2}-\d{2}$/, 'checkedOn（確認日）');
+  for (const c of cpFile.items || []) {
+    assert.ok(c.title && /^https:\/\//.test(c.url || ''), `${c.title} の title と url（https）`);
+    assert.ok(/^\d{4}-\d{2}-\d{2}$/.test(c.from || '') && /^\d{4}-\d{2}-\d{2}$/.test(c.until || '') && c.from <= c.until, `${c.title} の from・until`);
+    assert.ok(!c.shop || links.shops[c.shop], `${c.title} の shop（config/links.json の shops のキー）`);
+    for (const g of c.games || []) if (!defs[g]) console.log(`  ※ config/campaigns.json の「${c.title}」の ${g} は data/games.json にないため使われません`);
+    assert.ok((c.text || '').length >= 20 && (c.text || '').length <= 300, `${c.title} の text（20〜300字）`);
+    for (const bad of ['必ず当たる', '絶対に当たる', '一番儲かる', '儲かる']) assert.ok(!c.text.includes(bad) && !c.title.includes(bad), `${c.title} に「${bad}」`);
+  }
+  // ページに出る：くじが対象のキャンペーンだけ・始まる前と終わったあとは出さない・発売が終わったくじには出さない
+  const cps = {
+    checkedOn: '2026-10-09',
+    items: [
+      { title: '公式サイトのキャンペーン', shop: 'takarakuji', from: '2026-10-01', until: '2026-10-31', text: '宝くじ公式サイトで初めて買うと、宝くじポイントがもらえるキャンペーンです。', url: 'https://example.org/a' },
+      { title: 'DUNK10だけのキャンペーン', shop: 'rakutenbank_toto', games: ['dunk10'], from: '2026-10-01', until: '2026-10-12', text: 'エントリーしてDUNK10を買うと、抽せんで現金が当たるキャンペーンです。', url: 'https://example.org/b' },
+      { title: '終わったキャンペーン', from: '2026-09-01', until: '2026-10-09', text: '終わったキャンペーンなので、どのページにも出ないはずのものです。', url: 'https://example.org/c' },
+      { title: 'これからのキャンペーン', from: '2026-10-11', until: '2026-10-31', text: 'まだ始まっていないので、どのページにも出ないはずのものです。', url: 'https://example.org/d' },
+      { title: '年末ジャンボのキャンペーン', shop: 'takarakuji', games: ['nenmatsu2026'], from: '2026-10-01', until: '2026-11-23', text: '年末ジャンボを継続購入で設定すると、抽せんでギフトカードが当たるキャンペーンです。', url: 'https://example.org/e' },
+    ],
+  };
+  const mk = (now, rows) => createRenderer({
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} },
+    links, points, rows, byId: Object.fromEntries(rows.map((r) => [r.id, r])), log: [], history: { days: {} },
+    catalog: { order: [], items: {} }, now, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])),
+    preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x', campaigns: cps,
+  });
+  const rc = mk(pageNow, rowsT);
+  const page = (id) => rc.game(rowsT.find((r) => r.id === id)).html;
+  const box = (h) => (h.match(/<div class="cp-box">[\s\S]*?<\/div>/) || [''])[0];
+  const l6 = page('loto6');
+  assert.ok(box(l6).includes('<a href="https://example.org/a" target="_blank" rel="noopener">公式サイトのキャンペーン</a><span class="cp-until">10月31日（土）まで</span>') && box(l6).includes('<p class="cp-who">宝くじ公式サイト</p>'), 'ロト6（宝くじ公式サイトで買える）に公式サイトのキャンペーン');
+  assert.ok(!/DUNK10だけ|終わった|これから|年末ジャンボのキャンペーン/.test(box(l6)), 'ロト6に、ほかのくじ・期間外のキャンペーンは出さない');
+  assert.ok(l6.indexOf('<div class="cp-box">') > l6.indexOf('<h2 id="buy">') && l6.indexOf('<div class="cp-box">') < l6.indexOf('<h2 id="tiers">'), '購入場所の下');
+  assert.ok(box(l6).includes('2026年10月9日（金）に確認') && box(l6).includes('還元率とポイント込みの還元率には入れていません'), '確認日と注意');
+  assert.ok(box(page('dunk10')).includes('DUNK10だけのキャンペーン') && !page('dunk6a').includes('cp-box'), 'games を書いたくじだけ');
+  assert.ok(box(page('nenmatsu2026')).includes('年末ジャンボのキャンペーン') && !page('nenmatsumini2026').includes('年末ジャンボのキャンペーン'), '発売前のジャンボにも出す');
+  // 発売が終わったくじ（ハロウィンジャンボは10月16日まで）には出さない
+  const later = { ...at('2026-10-20T12:00'), y: 2026 };
+  const rowsL = computeAll(defs, state, later, {});
+  assert.equal(rowsL.find((r) => r.id === 'halloween2026').status.kind, 'ended');
+  assert.ok(!mk(later, rowsL).game(rowsL.find((r) => r.id === 'halloween2026')).html.includes('cp-box'), '発売が終わったくじ');
+  // ポイント還元ランキング：目次と、対象のくじつきの一覧
+  const pt = rc.point().html;
+  assert.ok(pt.includes('<a href="#campaign">開催中のキャンペーン</a>') && pt.includes('<h2 id="campaign">開催中のキャンペーン</h2>'), '目次と見出し');
+  assert.ok(pt.includes('<p class="cp-who">楽天銀行（スポーツくじ）・対象：DUNK10</p>') && pt.includes('<p class="cp-who">宝くじ公式サイト・対象：年末ジャンボ宝くじ2026</p>'), '購入場所と対象のくじ');
+  assert.ok(pt.indexOf('DUNK10だけのキャンペーン') < pt.indexOf('公式サイトのキャンペーン'), '早く終わる順');
+  // キャンペーンがないときは、見出しも目次も出さない（今までどおり）
+  assert.ok(!renderT.point().html.includes('id="campaign"') && !renderT.game(rowsT.find((r) => r.id === 'loto6')).html.includes('cp-box'), 'キャンペーンなし');
+  // 色の濃さ（WCAG の AA：4.5:1 以上）
+  const css = readFileSync(path.join(ROOT, 'static/style.css'), 'utf8');
+  const v = (name) => (css.match(new RegExp(`--${name}: (#[0-9a-f]{6});`)) || [])[1];
+  const lum = (h) => { const [r, g, b] = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((x) => (x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4)); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  assert.ok(css.includes('.cp-head { margin: 0 0 6px; font-weight: 700; color: #8a6200; }') && ratio('#8a6200', v('gold-soft')) >= 4.5, 'キャンペーンの見出しの色');
+  assert.ok(ratio(v('red-dk'), v('red-soft')) >= 4.5, '「〇月〇日まで」の色');
 });
 
 t('グラフの期間（推移は30日・くじ別は1年）と名前の変更', () => {
@@ -842,6 +905,13 @@ t('日付から分かるお願い（次のジャンボ・賞金表の確認・�
   // 公式発表から自動で登録した項目（autoFrom）の確認は、自動登録の Issue でお願いするので、こちらでは知らせない
   const auto = { ...jumbo, nenmatsu2026: { ...jumbo.nenmatsu2026, autoFrom: { hash: 'x' } } };
   assert.equal(Object.fromEntries(scheduleChecks(auto, pts, '2026-10-30').map((c) => [c.key, c.type]))['verify-nenmatsu2026'], 'clear');
+  // キャンペーン情報（config/campaigns.json）は、確認から30日で見直しをお願いする（ファイルがなければ知らせない）
+  const cpKind = (checkedOn, day) => Object.fromEntries(scheduleChecks(jumbo, pts, day, checkedOn ? { checkedOn, items: [{ until: '2026-12-31' }, { until: '2026-10-27' }] } : null).map((c) => [c.key, c]));
+  assert.equal(cpKind('2026-10-24', '2026-11-23')['campaigns-recheck'].type, 'clear', 'ちょうど30日');
+  const cpRaise = cpKind('2026-10-24', '2026-11-24')['campaigns-recheck'];
+  assert.equal(cpRaise.type, 'raise', '確認から30日を過ぎた');
+  assert.ok(cpRaise.body.includes('いま表示しているキャンペーンは1件です'), '終わったキャンペーンは数えない');
+  assert.equal(cpKind(null, '2027-01-01')['campaigns-recheck'].type, 'clear', 'ファイルがない');
 });
 
 /* ---------- 検索エンジンへの通知（IndexNow） ---------- */

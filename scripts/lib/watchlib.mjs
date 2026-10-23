@@ -145,6 +145,8 @@ const addDays = (iso, k) => new Date(Date.parse(`${iso}T00:00:00Z`) + k * 864000
 
 /** 最後のジャンボが売り終わってから、次のジャンボが登録されないまま何日たったら知らせるか（ふだんの間は35〜60日） */
 export const JUMBO_GAP_DAYS = 60;
+/** キャンペーン情報（config/campaigns.json）の見直しをお願いするまでの日数 */
+export const CAMPAIGN_DAYS = 30;
 
 /**
  * 日付から分かる「お願い」
@@ -154,7 +156,7 @@ export const JUMBO_GAP_DAYS = 60;
  *   ・ポイントの率を最後に確認してから90日たった
  * 戻り値：[{ type: 'raise', key, title, body } | { type: 'clear', key }]
  */
-export function scheduleChecks(defs, points, today) {
+export function scheduleChecks(defs, points, today, campaigns = null) {
   const out = [];
   const jumbos = Object.values(defs).filter((d) => d.model === 'fixed' && d.salesStart && d.salesEnd);
   const current = jumbos.filter((d) => d.salesEnd >= today);
@@ -219,6 +221,27 @@ export function scheduleChecks(defs, points, today) {
       ].join('\n'),
     });
   } else out.push({ type: 'clear', key: 'points-recheck' });
+
+  // 期間限定のキャンペーン（config/campaigns.json）は毎月変わるので、確認から30日で見直しをお願いする
+  const cpChecked = campaigns?.checkedOn;
+  if (cpChecked && cpChecked < addDays(today, -CAMPAIGN_DAYS)) {
+    const active = (campaigns.items || []).filter((c) => !c.until || c.until >= today).length;
+    out.push({
+      type: 'raise', key: 'campaigns-recheck',
+      title: `【お願い】キャンペーン情報を見直してください（前回の確認から${CAMPAIGN_DAYS}日以上）`,
+      body: [
+        `キャンペーン情報（\`config/campaigns.json\`）を最後に確認したのは ${cpChecked} です。いま表示しているキャンペーンは${active}件です（終わったものは自動で消えています）。宝くじ公式サイトのダブルチャンスキャンペーンや、楽天銀行のスポーツくじのキャンペーンは毎月のように新しくなります。`,
+        '',
+        '### やること',
+        '1. この Issue を Claude に見せて「キャンペーンを見直して」と頼んでください。各社の公式ページで、いま開催中のキャンペーンを確かめて直します。',
+        '2. 自分で直すときは、`config/campaigns.json` の `items` を直し、`checkedOn` を今日の日付にします。すると、この Issue は自動で閉じます。',
+        '',
+        '確かめるページ：[宝くじ公式サイトのキャンペーン](https://www.takarakuji-official.jp/special/campaign/)・[楽天銀行のスポーツくじ](https://www.rakuten-bank.co.jp/toto/)・[楽天totoのキャンペーン](https://toto.rakuten.co.jp/campaign/)・[スポーツくじオフィシャルサイト](https://www.toto-dream.com/)',
+        '',
+        HOW_TO_FIX,
+      ].join('\n'),
+    });
+  } else out.push({ type: 'clear', key: 'campaigns-recheck' });
   return out;
 }
 

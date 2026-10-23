@@ -131,6 +131,28 @@ export function createRenderer(ctx) {
   const noPoint = new Set(points.noPoint || []);
   const checkedOn = points.checkedOn || now.iso;
 
+  /**
+   * 期間限定のキャンペーン（config/campaigns.json。抽せんや特典なので、ポイント込みの還元率には足さない）。
+   * from から until までのあいだだけ出す。games がなければ shop で買えるくじすべて（shop もなければ、すべてのくじ）
+   */
+  const cpData = ctx.campaigns || {};
+  const cpItems = (cpData.items || []).filter((c) => c?.title && c.url && (!c.from || c.from <= now.iso) && (!c.until || c.until >= now.iso))
+    .sort((a, b) => String(a.until || '9999').localeCompare(String(b.until || '9999')) || String(a.title).localeCompare(String(b.title)));
+  const cpFor = (gid) => cpItems.filter((c) => (c.games ? c.games.includes(gid) : c.shop ? (shopGames[c.shop] || []).includes(gid) : true));
+  /** キャンペーンの対象のくじ（ジャンボは年付きの名前） */
+  function cpTarget(c) {
+    const ids = (c.games || (c.shop ? shopGames[c.shop] || [] : [])).filter((id) => ctx.defs[id]);
+    if (!ids.length) return '';
+    return c.games && ids.some((id) => isJumbo(ctx.defs[id])) ? ids.map((id) => yearName(ctx.defs[id])).join('・') : gamesLabel(ids);
+  }
+  function cpList(list, { target = false } = {}) {
+    return `<ul class="cp-list">${list.map((c) => {
+      const who = [c.shop && shops[c.shop] ? shops[c.shop].name : '購入場所を問わず', target && cpTarget(c) ? `対象：${cpTarget(c)}` : ''].filter(Boolean).join('・');
+      return `<li><p class="cp-name"><a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.title)}</a>${c.until ? `<span class="cp-until">${esc(c.until.slice(0, 4) === String(now.y) ? fmtMd(c.until) : fmtYmd(c.until))}まで</span>` : ''}</p><p class="cp-who">${esc(who)}</p><p>${esc(c.text || '')}</p></li>`;
+    }).join('')}</ul>`;
+  }
+  const cpNote = () => `<p class="note">※条件と期間は、リンク先の公式ページで確かめてください（${fmtYmd(cpData.checkedOn || now.iso)}に確認）。抽せんの特典は、還元率とポイント込みの還元率には入れていません。</p>`;
+
   const partRate = (p, price) => (Number.isFinite(p.rate) ? p.rate : Number.isFinite(p.perUnit) && price > 0 ? p.perUnit / price : null);
 
   /** その買い方で、あるくじを買ったときのポイント還元率（分かっている分だけ足す） */
@@ -1196,6 +1218,9 @@ ${guideCards(about)}
 ${gdNote ? `<p class="note">${esc(gdNote)}</p>` : ''}${typeof gd.more === 'string' ? guideMore(gd.more, rel) : ''}` : ''}
 <h2 id="buy">${esc(d.name)}の購入場所</h2>
 ${prNote(shopList, '購入場所のボタンには広告を含みます')}
+${r.status.kind !== 'ended' && cpFor(r.id).length ? `<div class="cp-box"><p class="cp-head">開催中のキャンペーン</p>
+${cpList(cpFor(r.id))}
+${cpNote()}</div>` : ''}
 ${ev.computable ? `<h2 id="tiers">等級ごとの当せん金と確率</h2>
 <p class="scroll-hint">表は横にスクロールできます →</p>
 <div class="tbl-wrap"><table class="t detail">
@@ -1524,6 +1549,8 @@ ${ad('bottom')}
       { title: '利用できるクレジットカード発行会社の上限金額（宝くじ公式サイト よくあるご質問）', url: 'https://www.takarakuji-official.jp/contact/faq/kfaq/kfaq04/detail-0013.html' },
       { title: '宝くじポイントの獲得（宝くじ公式サイト よくあるご質問）', url: 'https://www.takarakuji-official.jp/contact/faq/pfaq/detail-2019073002.html' },
       { title: '提携サイトで購入（スポーツくじオフィシャルサイト）', url: 'https://www.toto-dream.com/big/buy/teikei/' },
+      { title: 'リクルートカード（ポイント還元率1.2%）', url: 'https://recruit-card.jp/' },
+      { title: 'リクルートポイントの対象とならないご利用分（JCB）', url: 'https://www.jcb.co.jp/myjcb/pop/recruit-point.html' },
     );
     const faqs = [
       ['ポイントがいちばん付く買い方は？', pointFaqAnswer()],
@@ -1532,6 +1559,7 @@ ${ad('bottom')}
       ['宝くじポイントは何に使えますか？', '1ポイント＝1円として、宝くじ公式サイト（1ポイント単位）と宝くじ売り場（100ポイント単位）での宝くじの購入に使えます。購入で貯まったポイントの有効期限は、翌々年度の末日（3月31日）です。'],
       ['銀行で買うとポイントは付きますか？', '楽天銀行は、ロト・ナンバーズが1口ごとに楽天ポイント1ポイント、スポーツくじは購入額の1%の楽天銀行totoポイントが付きます。そのほかの銀行は、公式ページにくじの購入で貯まるポイントの記載がありません。'],
       ['宝くじ公式サイトではどんな支払い方法が使えますか？', 'クレジットカード（Visa・Mastercard・JCB）、PayPay（PayPay残高・PayPayクレジット）、d払い（電話料金合算払いのみ）、au PAY（auかんたん決済）、ソフトバンク・ワイモバイルまとめて支払いが使えます。宝くじポイント（1%）に、支払い方法側のポイントが加わる場合があります。'],
+      ['還元率が1%より高いクレジットカードで払うと、もっとポイントが付きますか？', 'カード会社の決まりで宝くじの購入がポイントの対象になっていれば、宝くじポイント（1%）とカードのポイントを合わせて2%を超えることがあります（リクルートカードの1.2%なら2.2%）。ただし、カード会社の案内には「一部ポイントの対象外になる利用がある」とだけ書かれていることが多く、宝くじが対象かどうかは書かれていないため、このサイトのランキングには入れていません。使う前に、カード会社に確かめてください。'],
     ];
     const body = `
 ${crumbs(rel, [{ name: 'ポイント還元ランキング' }])}
@@ -1545,7 +1573,7 @@ ${top ? `<section class="conclusion">
 <ul class="c-list">${tops.map((x) => `<li>${esc(shops[x.rt.shop].name)}：${esc(x.rt.how || '')}と <b>${fmtPt(x.rate)}</b>（${esc(gamesLabel(shopGames[x.rt.shop] || []))}）</li>`).join('')}</ul>
 </section>` : ''}
 ${share(path, top ? `宝くじ・totoのポイント還元ランキング：1位は${tops.map((x) => shops[x.rt.shop].name).join('・')}（${fmtPt(top.rate)}）` : site.siteName)}
-${toc([['ranking', '購入場所のポイント還元ランキング'], ['today', 'くじ別：ポイント込みの還元率（今日）'], ['detail', '買い方ごとのくわしい条件'], ['combine', 'ポイントの組み合わせ方'], ['card', '宝くじ公式サイトで使えるクレジットカード'], ['faq', 'よくある質問']])}
+${toc([['ranking', '購入場所のポイント還元ランキング'], ['today', 'くじ別：ポイント込みの還元率（今日）'], ['detail', '買い方ごとのくわしい条件'], ['combine', 'ポイントの組み合わせ方'], ...(cpItems.length ? [['campaign', '開催中のキャンペーン']] : []), ['card', '宝くじ公式サイトで使えるクレジットカード'], ['faq', 'よくある質問']])}
 ${ad('top')}
 <h2 id="ranking">購入場所のポイント還元ランキング</h2>
 ${hasAd(ranking) ? prLine('表のボタンには広告を含みます') : ''}<p class="scroll-hint">表は横にスクロールできます →</p>
@@ -1572,9 +1600,14 @@ ${routesRanked.filter((x) => x.rt.caution).map((x) => `<p class="note">※${esc(
 <p>くじのポイントは、次の2つを足し合わせられます。</p>
 <ol class="steps">
 <li><b>購入場所のポイント</b><span>宝くじ公式サイトの宝くじポイント（1%）、楽天totoの楽天ポイント（1%）、ドコモスポーツくじのdポイント（1%）、楽天銀行の楽天銀行totoポイント（1%）など、買う場所で付くポイントです。</span></li>
-<li><b>支払い方法のポイント</b><span>楽天totoは楽天カード、ドコモスポーツくじはdカードで払うと、さらに1%付きます。宝くじ公式サイトはPayPayクレジットで払うとPayPayポイントが基本1.0%付きます。クレジットカード払いなら、カード会社のポイントが付く場合があります。</span></li>
+<li><b>支払い方法のポイント</b><span>楽天totoは楽天カード、ドコモスポーツくじはdカードで払うと、さらに1%付きます。宝くじ公式サイトはPayPayクレジットで払うとPayPayポイントが基本1.0%付きます（前の月にPayPayで200円以上の支払いを30回以上・合計10万円以上すると、その翌月は＋0.5%）。クレジットカード払いなら、カード会社のポイントが付く場合があります。</span></li>
 </ol>
 <p>銀行の口座から買う場合（楽天銀行を除く）と、くじの購入そのものをポイントサイト経由にする方法は、ポイントが付く仕組みが見当たりませんでした。</p>
+<p>還元率が1%より高いクレジットカード（リクルートカードの1.2%など）で宝くじ公式サイトの代金を払うと、宝くじポイントと合わせて2%を超えることがあります。ただし、宝くじの購入がポイントの対象になるかはカード会社の決まりによるので、このランキングには入れていません。使う前に、カード会社のポイントの対象外の一覧を確かめてください。</p>
+${cpItems.length ? `<h2 id="campaign">開催中のキャンペーン</h2>
+<p>宝くじとスポーツくじを買う人が対象の、期間限定のキャンペーンです（抽せんや特典。終わったものは自動で消えます）。</p>
+${cpList(cpItems, { target: true })}
+${cpNote()}` : ''}
 <h2 id="card">宝くじ公式サイトで使えるクレジットカード</h2>
 <p>Visa・Mastercard・JCBのカードが使えます。本人名義の1回払いのみで、家族カードと法人カードは使えません。本人認証サービス（3Dセキュア）の設定が必要です。1か月に買える上限は、カードの発行会社ごとに決まっています。</p>
 <div class="tbl-wrap"><table class="t compact"><thead><tr><th>カードの発行会社</th><th>1か月の上限</th></tr></thead><tbody>

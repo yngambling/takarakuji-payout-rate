@@ -1,0 +1,40 @@
+{
+  "_how": "期間限定のキャンペーン（抽せんや特典）です。くじ別ページの購入場所の下と、ポイント還元ランキングのページに出ます。ポイントの率の上乗せは config/points.json の campaigns に書きます（ポイント込みの還元率に足すため）。from（始まる日）から until（最終日）まで表示し、過ぎると自動で消えます。games にくじの ID を書くと、そのくじのページに出ます（書かないと、shop で買えるくじすべて）。shop は config/links.json の shops のキーです（購入場所を問わないキャンペーンは書きません）。checkedOn は最後に各社の公式ページで確かめた日で、30日を過ぎると確認のお願いの Issue が届きます。",
+  "checkedOn": "2026-10-24",
+  "items": [
+    {
+      "title": "ダブルチャンスキャンペーン（10月分）",
+      "shop": "takarakuji",
+      "from": "2026-10-01",
+      "until": "2026-10-31",
+      "text": "宝くじ公式サイトに支払い方法と当せん金受取口座を初めて登録し、登録した月の翌月末までに初めて合計3,000円以上買うと、全員に宝くじポイント200ポイント、抽せんで5,000名にAmazonギフトカード1,000円分。毎月行われていて、10月分は10月31日までの登録が対象です。",
+      "url": "https://www.takarakuji-official.jp/special/campaign/2026-1001-wchanceCP/"
+    },
+    {
+      "title": "継続購入キャンペーン ジャンボ宝くじ篇",
+      "shop": "takarakuji",
+      "games": ["nenmatsu2026", "nenmatsumini2026"],
+      "from": "2026-10-17",
+      "until": "2026-11-23",
+      "text": "年末ジャンボか年末ジャンボミニを、宝くじ公式サイトの継続購入で合計6,000円以上設定し、発売初日の11月24日に決済されると、抽せんで1,000名にAmazonギフトカード10,000円分。2025年の年末ジャンボから2026年のハロウィンジャンボまでに、ジャンボの継続購入の決済がない人が対象です。",
+      "url": "https://www.takarakuji-official.jp/special/campaign/2026-1017-jumbo-continuous-purchaseCP/"
+    },
+    {
+      "title": "DUNKボーナス",
+      "games": ["dunk10", "dunk6a", "dunk6b"],
+      "from": "2026-09-15",
+      "until": "2027-05-15",
+      "text": "DUNKを買った人が応募できます（購入日を含む受付期間のうちに応募。受付は毎月1〜15日と16日〜月末）。1,000円分ごとに1口で、第1弾（2027年1月31日まで）はB.LEAGUEの観戦チケットのクーポン1万円分が抽せんで8,060名に当たります。300円分ごとに、デジタルのB.LEAGUEカードも1枚もらえます。",
+      "url": "https://www.toto-dream.com/landing/dunk/ad2/"
+    },
+    {
+      "title": "DUNK系くじ 抽せんキャンペーン（楽天銀行）",
+      "shop": "rakutenbank_toto",
+      "games": ["dunk10", "dunk6a", "dunk6b"],
+      "from": "2026-10-16",
+      "until": "2026-10-27",
+      "text": "エントリーして、楽天銀行でDUNKを合計2,000円以上買うと、抽せんで777名に現金（1万円が10名・1,000円が767名）。",
+      "url": "https://www.rakuten-bank.co.jp/campaign/toto/2610-C12/"
+    }
+  ]
+}
