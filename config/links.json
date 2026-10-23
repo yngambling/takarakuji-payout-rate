@@ -484,6 +484,9 @@
         "url": "https://toto.rakuten.co.jp/dunk/"
       },
       {
+        "shop": "docomo_toto"
+      },
+      {
         "shop": "rakutenbank_toto",
         "url": "https://www.rakuten-bank.co.jp/toto/big/dunk.html"
       }
@@ -498,6 +501,9 @@
         "url": "https://toto.rakuten.co.jp/dunk/"
       },
       {
+        "shop": "docomo_toto"
+      },
+      {
         "shop": "rakutenbank_toto",
         "url": "https://www.rakuten-bank.co.jp/toto/big/dunk.html"
       }
@@ -510,6 +516,9 @@
       {
         "shop": "rakuten_toto",
         "url": "https://toto.rakuten.co.jp/dunk/"
+      },
+      {
+        "shop": "docomo_toto"
       },
       {
         "shop": "rakutenbank_toto",

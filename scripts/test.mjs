@@ -582,6 +582,60 @@ t('解説ページ（content/guide の本物の原稿・一覧のページ・サ
   assert.ok(!renderT.index().html.includes('href="guide.html"') && !renderT.ichiran().html.includes('id="guide"'), '解説ページがなければリンクも出さない');
 });
 
+const RD0 = await import('./lib/render.mjs');
+const { yenJa: yenJaT } = await import('./lib/util.mjs');
+
+t('くじ別ページの頭の答えの1文（今日の還元率・1等の当選確率・次の回）と、DUNK のまとめページ', () => {
+  // 当選確率の文での言い方
+  assert.equal(RD0.oddsKanji(1 / 6096454), '609万6,454分の1');
+  assert.equal(RD0.oddsKanji(1 / 4096), '4,096分の1');
+  assert.equal(RD0.oddsKanji(3 / 10000), '約3,333分の1');
+  assert.equal(RD0.oddsKanji(0), '—');
+  const ans = (id) => (renderT.game(rowsT.find((r) => r.id === id)).html.match(/<p class="lead answer">([\s\S]*?)<\/p>/) || [])[1] || '';
+  // 数字選択式：キャリーオーバーを含めた還元率・1等の確率・次の抽せん日と回
+  assert.match(ans('loto6'), /^ロト6の還元率は、10月10日時点で<b>\d+\.\d%<\/b>（キャリーオーバー約38万円を含めた計算）です。1等の当選確率は609万6,454分の1です。次の抽せんは10月12日（月）の第2145回です。$/);
+  assert.match(ans('miniloto'), /^ミニロトの還元率は、10月10日時点で<b>\d+\.\d%<\/b>です。1等の当選確率は16万9,911分の1です。次の抽せんは10月13日（火）です。$/, 'キャリーオーバーのないくじは、その言葉を出さない');
+  assert.ok(ans('numbers4').includes('ストレートの当選確率は1万分の1です。'), 'ナンバーズはストレート');
+  // BIG系・DUNK：販売締切と結果発表。前の回の結果待ちのキャリーオーバーは「暫定」
+  assert.ok(ans('big').includes('を含めた暫定の計算）です。1等の当選確率は478万2,969分の1です。第1662回のネットの販売締切は10月13日（火） 19:00、結果発表は10月15日（木）です。'), 'BIG');
+  assert.ok(ans('dunk6a').endsWith('1等の当選確率は4,096分の1です。第5回のネットの販売締切は10月14日（水）、結果発表は10月14日（水）です。'), 'DUNK6-A');
+  // ジャンボ：1等の金額と確率・還元率・発売期間と抽せん日
+  assert.match(ans('nenmatsu2026'), /^年末ジャンボ宝くじ2026の1等（7億円）の当選確率は2,000万分の1、還元率は<b>\d+\.\d%<\/b>です。発売は11月24日（火）から12月25日（金）まで、抽せんは12月31日（木）です。$/);
+  assert.ok(ans('halloween2026').endsWith('発売は10月16日（金）まで、抽せんは10月26日（月）です。'), '発売中のジャンボ');
+  const l6 = renderT.game(rowsT.find((r) => r.id === 'loto6')).html;
+  assert.ok(l6.indexOf('<p class="lead answer">') > l6.indexOf('<h1') && l6.indexOf('<p class="lead answer">') < l6.indexOf('<div class="score">'), '見出しのすぐ下、還元率のスコアボードの前');
+  for (const r of rowsT) if (r.def.model !== 'none' && r.ev?.computable) assert.ok(ans(r.id) && !/undefined|NaN|—/.test(ans(r.id)), `${r.id} の答えの1文`);
+
+  // DUNK のまとめページ（content/guide/dunk.md）
+  const guides = JSON.parse(readFileSync(path.join(ROOT, 'data/guides.json'), 'utf8'));
+  for (const [id, g] of Object.entries(guides.games || {})) if (g.more !== undefined) assert.ok(guideFiles.includes(`${g.more}.md`), `data/guides.json の ${id} の more（関連する解説ページ）が content/guide にありません：${g.more}`);
+  const rgD = createRenderer({
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} },
+    links, points, rows: rowsT, byId: Object.fromEntries(rowsT.map((r) => [r.id, r])), log: [], history: { days: {} },
+    catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])),
+    preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x', guidePages: guidePagesT, guides,
+  });
+  const dk = rgD.guides().find((p) => p.path === 'guide/dunk.html')?.html || '';
+  assert.ok(dk.includes('<h1 class="page-title">DUNK（バスケットボールのスポーツくじ）の確率・還元率・買い方</h1>'), 'DUNK のまとめページ');
+  assert.ok(dk.includes('<th scope="row">1等（すべて一致）</th><td class="r">104万8,576分の1</td><td class="r">4,096分の1</td>'), '等級ごとの確率の表');
+  // 表の数字の検算：どれかが当たる確率（等級ごとの本数の合計÷組み合わせの数）
+  const hit = (id) => defs[id].tiers.reduce((s, x) => s + x.count, 0) / defs[id].combos;
+  assert.equal((hit('dunk10') * 100).toFixed(1), '2.0');
+  assert.equal(Math.round(1 / hit('dunk10')), 51);
+  assert.equal((hit('dunk6a') * 100).toFixed(1), '3.8');
+  assert.equal(Math.round(1 / hit('dunk6a')), 27);
+  assert.equal(defs.dunk10.combos / defs.dunk6a.combos, 256, 'DUNK6 の1等は DUNK10 の256倍当たりやすい');
+  assert.ok(dk.includes(`いまのキャリーオーバーは${yenJaT(rowsT.find((r) => r.id === 'dunk10').carryover)}です。`), 'いまのキャリーオーバー（{{co:dunk10}}）');
+  assert.ok(dk.includes('<span class="badge">毎日更新</span>'), '毎日の数字を使うので「毎日更新」');
+  assert.ok(dk.includes('19歳未満の人は、DUNKを買うことも譲り受けることもできず'), '19歳未満');
+  // DUNK のくじ別ページから、まとめページへ（解説の下）
+  const d10 = rgD.game(rowsT.find((r) => r.id === 'dunk10')).html;
+  assert.ok(d10.includes('<p class="more-link"><a href="../guide/dunk.html">DUNK（バスケットボールのスポーツくじ）の確率・還元率・買い方 ›</a></p>\n<h2 id="buy">'), 'DUNK10 → まとめページ');
+  assert.ok(!rgD.game(rowsT.find((r) => r.id === 'loto6')).html.includes('guide/dunk.html">DUNK（'), 'ほかのくじには出さない（サイドバーは別）');
+  // DUNK の購入場所にドコモスポーツくじ（2026年9月から取扱い）
+  for (const id of ['dunk10', 'dunk6a', 'dunk6b']) assert.ok(links.games[id].some((l) => l.shop === 'docomo_toto'), `${id} の購入場所にドコモスポーツくじ`);
+});
+
 t('404ページ（存在しない深い階層のURLでも、CSSとリンクがずれない）', () => {
   // GitHub Pages は /kuji/abc/def.html のような存在しないURLでも 404.html の中身を返すので、相対パスを使わない
   const base = 'https://yngambling.github.io/takarakuji-payout-rate';
@@ -662,6 +716,81 @@ t('表示の速さと使いやすさ（フォントはこのサイトから・�
   }
 });
 
+t('ページ移動を速くする（Speculation Rules：サイト内のリンクだけ先読み・広告や新しいタブは除く・先読み中は動きを待つ）', () => {
+  const top = renderT.index().html;
+  const m = top.match(/<head>[\s\S]*<script type="speculationrules">([^<]+)<\/script>[\s\S]*<\/head>/);
+  assert.ok(m, 'head に speculationrules');
+  const rules = JSON.parse(m[1]);
+  assert.deepEqual(rules, RD.SPECULATION_RULES);
+  assert.equal(rules.prerender.length, 1);
+  const r = rules.prerender[0];
+  assert.equal(r.eagerness, 'moderate', 'パソコンは0.2秒重ねたとき・スマホは画面の止まった位置の近く（先読みは2ページまで）');
+  assert.deepEqual(r.where.and[0], { href_matches: '/*' }, 'このサイトのページへのリンクだけ（外のサイトは当たらない）');
+  const sel = r.where.and[1].not.selector_matches;
+  for (const s of ['[rel~="sponsored"]', '[rel~="nofollow"]', '[target="_blank"]', '[href^="#"]', '[download]']) assert.ok(sel.includes(s), `先読みしないリンク：${s}`);
+  // 購入ボタン（外のサイト・広告）はすべて新しいタブで開くので、先読みしない
+  const l6 = renderT.game(rowsT.find((x) => x.id === 'loto6')).html;
+  const btns = l6.match(/<a class="btn [^>]*>/g) || [];
+  assert.ok(btns.length >= 3, '購入ボタンがある');
+  for (const a of btns) assert.ok(/target="_blank"/.test(a), `購入ボタンは新しいタブ：${a}`);
+  // 先読みで裏で描いたページは、表示されたときに動きとページの位置の処理を始める
+  assert.ok(top.includes("function whenShown(fn){ if (d.prerendering) d.addEventListener('prerenderingchange', fn, { once: true }); else fn(); }"), '表示を待つ');
+  assert.equal((top.match(/whenShown\(function\(\)\{/g) || []).length, 2, 'ページの位置と、動き（ふわっと表示・カウントアップ・バー）');
+  // 共有プレビュー（ファイルを直接開く）には入れない
+  const pv = createRenderer({ site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} }, links, points, rows: rowsT, byId: Object.fromEntries(rowsT.map((x) => [x.id, x])), log: [], history: { days: {} }, catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])), preview: true, placeholders: true, inlineCss: true, css: '', cssVersion: 'x' });
+  assert.ok(!pv.about().html.includes('speculationrules'), '共有プレビューには入れない');
+});
+
+t('検索とシェアの画像（くじ別の16:9の画像・季節ごとのジャンボ・大きな画像のプレビューを許す）', () => {
+  const pngSize = (f) => { const b = readFileSync(f); assert.equal(b.subarray(1, 4).toString('latin1'), 'PNG', `${f} は PNG`); return [b.readUInt32BE(16), b.readUInt32BE(20), b.length]; };
+  assert.deepEqual(pngSize(path.join(ROOT, 'static/og.png')).slice(0, 2), [1200, 630], 'サイト共通の og.png');
+  const ogDir = path.join(ROOT, 'static/og');
+  const keys = readdirSync(ogDir).filter((f) => f.endsWith('.png')).map((f) => f.slice(0, -4));
+  for (const k of keys) {
+    const [w, h, bytes] = pngSize(path.join(ogDir, `${k}.png`));
+    assert.deepEqual([w, h], [RD.OG_SIZE.width, RD.OG_SIZE.height], `static/og/${k}.png は 1200×675（16:9。Discover の推奨は幅1200px 以上・30万画素以上）`);
+    assert.ok(bytes < 150000, `static/og/${k}.png が大きすぎます（${bytes}バイト）`);
+  }
+  const ctxO = {
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} },
+    links, points, rows: rowsT, byId: Object.fromEntries(rowsT.map((r) => [r.id, r])), log: [], history: { days: {} },
+    catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])),
+    preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x', ogImages: keys, guidePages: guidePagesT,
+  };
+  const ro = createRenderer(ctxO);
+  const imgOf = (html) => (html.match(/<meta property="og:image" content="([^"]+)">/) || [])[1];
+  // いまあるくじは、すべて専用の画像（ジャンボは季節ごと。ミニも同じ季節の画像）
+  for (const r of rowsT) {
+    if (r.def.model === 'none') continue;
+    const h = ro.game(r).html;
+    assert.match(imgOf(h), /^https:\/\/example\.com\/og\/[a-z0-9-]+\.png$/, `${r.id} の画像`);
+    assert.ok(h.includes('<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="675">') && h.includes(`<meta property="og:image:alt" content="${r.def.name}のイラスト">`), `${r.id} の画像の大きさと説明`);
+  }
+  assert.equal(imgOf(ro.game(rowsT.find((r) => r.id === 'loto6')).html), 'https://example.com/og/loto6.png');
+  assert.equal(imgOf(ro.game(rowsT.find((r) => r.id === 'nenmatsumini2026')).html), 'https://example.com/og/jumbo-nenmatsu.png', '年末ジャンボミニは年末ジャンボの画像');
+  assert.equal(imgOf(ro.game(rowsT.find((r) => r.id === 'halloween2026')).html), 'https://example.com/og/jumbo-halloween.png');
+  // 自動で登録した知らない名前のジャンボ（jumbo＋回号）は、ジャンボ共通の画像
+  const odd = { ...defs.halloween2026, id: 'jumbo1090', name: 'スペシャルジャンボ' };
+  const oddRows = computeAll({ ...defs, jumbo1090: odd }, state, pageNow, {});
+  const ro2 = createRenderer({ ...ctxO, defs: { ...defs, jumbo1090: odd }, rows: oddRows, byId: Object.fromEntries(oddRows.map((r) => [r.id, r])), order: { ...ctxO.order, jumbo1090: 99 } });
+  assert.equal(imgOf(ro2.game(oddRows.find((r) => r.id === 'jumbo1090')).html), 'https://example.com/og/jumbo.png');
+  // くじ別でないページはサイト共通の画像。画像の一覧を渡さないとき（今までどおり）も共通の画像
+  const top = ro.index().html;
+  assert.ok(imgOf(top) === 'https://example.com/og.png' && top.includes('<meta property="og:image:width" content="1200">\n<meta property="og:image:height" content="630">'), 'トップはサイト共通の画像');
+  assert.equal(imgOf(renderT.game(rowsT.find((r) => r.id === 'loto6')).html), 'https://example.com/og.png');
+  // 解説ページ：設定の image（DUNK のまとめは DUNK の画像。記事の構造化データにも）
+  for (const g of guidePagesT) if (g.meta.image) assert.ok(keys.includes(g.meta.image), `content/guide/${g.slug}.md の image が static/og にありません：${g.meta.image}`);
+  const dk = ro.guides().find((p) => p.path === 'guide/dunk.html').html;
+  assert.ok(imgOf(dk) === 'https://example.com/og/dunk.png' && dk.includes('"image":["https://example.com/og/dunk.png"]'), 'DUNK のまとめページの画像');
+  // 大きな画像のプレビュー（Discover）：検索に出すページは max-image-preview:large、出さないページ（404）は noindex だけ
+  for (const h of [top, dk, ro.game(rowsT.find((r) => r.id === 'big')).html, ro.privacy().html]) assert.ok(h.includes('<meta name="robots" content="max-image-preview:large">\n<link rel="canonical"'), '検索に出すページ');
+  const nf = ro.notFound().html;
+  assert.ok(nf.includes('<meta name="robots" content="noindex">') && !nf.includes('max-image-preview'), '404 は noindex だけ');
+  // build.mjs が画像を公開するフォルダに置く
+  const buildSrc = readFileSync(path.join(ROOT, 'scripts/build.mjs'), 'utf8');
+  assert.ok(buildSrc.includes("await copyFile(P('static/og', `${k}.png`), path.join(OUT, 'og', `${k}.png`));"), 'build.mjs が og/ に置く');
+});
+
 /* ---------- 公式ページの見張り・お知らせ ---------- */
 
 const { extractLines, hashLines, diffLines, scheduleChecks, changeIssue, specialChecks, watchGate, pageMissing, pageTitle, downIssue } = await import('./lib/watchlib.mjs');
@@ -723,6 +852,8 @@ t('IndexNow（内容が変わったページだけを1日1回知らせる）', (
   const page = (main, time = '07:47', side = 'TOP5') => `<title>T</title><main id="main"><p class="updated"><span>最終更新：2026年10月12日（月） ${time}</span></p>${main}<p>出典（10/12 ${time}取得）</p></main><aside>${side}</aside>`;
   assert.equal(ix.contentHash(page('A')), ix.contentHash(page('A', '12:47', 'TOP5が変わった')), '更新時刻やサイドバーだけの違いは、内容が変わったとみなさない');
   assert.notEqual(ix.contentHash(page('A')), ix.contentHash(page('B')), '本文が変わったら別の内容');
+  const kujiPage = (side, head = '') => `<title>T</title>${head}<main id="main" data-kuji="loto6"><p>A</p></main><aside>${side}</aside>`;
+  assert.equal(ix.contentHash(kujiPage('TOP5')), ix.contentHash(kujiPage('TOP5が変わった', '<script type="speculationrules">{}</script>')), 'くじ別ページ（main に data-kuji）も、サイドバーや head だけの違いは数えない');
   const t1 = ix.trackPages({}, [{ path: 'index.html', hash: 'a' }, { path: 'about.html', hash: 'x' }, { path: 'old.html', hash: 'o' }], '2026-10-12T07:47+09:00');
   const t2 = ix.trackPages(t1, [{ path: 'index.html', hash: 'b' }, { path: 'about.html', hash: 'x' }], '2026-10-13T07:47+09:00');
   assert.equal(t2['index.html'].changed, '2026-10-13T07:47+09:00', '変わったページは日時を今に');
