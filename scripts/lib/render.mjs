@@ -1,7 +1,7 @@
 // ページの HTML をつくる
 import { esc, num, yenJa, pct, odds, fmtMd, fmtMdPlain, fmtYmd, fmtShort } from './util.mjs';
 import { carryoverTable, rateSeries } from './model.mjs';
-import { autoGuide, autoLead, autoSourceNote, buyChances, jumboSibling, compareSentence, chanceText, chanceAtLeast, chanceOfN, oddsJa, dynamicFaq } from './jumbo.mjs';
+import { autoGuide, autoLead, autoSourceNote, buyChances, jumboSibling, compareSentence, chanceText, chanceAtLeast, chanceOfN, oddsJa, dynamicFaq, firstPrizeNeed } from './jumbo.mjs';
 import { renderGuideBody, giftTax, GIFT_AMOUNTS } from './guide.mjs';
 
 const GROUP_LABEL = { takarakuji: '宝くじ', sports: 'スポーツくじ' };
@@ -271,9 +271,10 @@ export function createRenderer(ctx) {
   const MICRO = '<p class="micro"><span>スマホで1口から</span><span>売り場に行かなくていい</span><span>当せんの照合は自動</span></p>';
 
   /** 大きな購入ボタン（1つ目を目立たせ、いくつかを並べる） */
-  function bigButtons(id, { max = 3, rel = '', self = false } = {}) {
+  function bigButtons(id, { max = 3, rel = '', self = false, first = '' } = {}) {
     const ls = shopLinks(id);
     if (!ls.length) return '';
+    if (first) ls.sort((a, b) => (b.key === first) - (a.key === first)); // 先に出す購入場所（ほかはポイントの順のまま）
     const name = ctx.defs[id]?.name || '';
     const shown = ls.slice(0, max + 1);
     const rest = ls.length - shown.length;
@@ -296,14 +297,28 @@ export function createRenderer(ctx) {
     return `<span class="cd" data-deadline="${dl.iso}">${CLOCK}<span class="cd-l">${short ? '締切' : r.def.drawDays ? 'ネット締切' : '販売締切'}</span><b class="cd-t">${esc(dl.label)}</b><span class="cd-r"></span></span>`;
   }
 
+  /**
+   * 店頭の発売日より前から、ネットで申し込めるジャンボ（data/games.json の earlyNet：{ from, shop }。みずほ銀行のインターネット宝くじサービスなど）。
+   * 申し込める日（from）になっていて、まだ店頭の発売前なら { from, shop, name }
+   */
+  function earlyNetOf(d) {
+    const e = d?.earlyNet;
+    if (!isJumbo(d) || !e?.from || !shops[e.shop] || e.from > now.iso || now.iso >= d.salesStart) return null;
+    return { from: e.from, shop: e.shop, name: shops[e.shop].name };
+  }
+
   function ctaBox(id, r) {
     const d = ctx.defs[id];
     // 発売が終わったジャンボは買えないので、購入ボタンを出さない。発売前のジャンボは、いつから買えるかを書く
     const kind = byId[id]?.status?.kind;
     if (isJumbo(d) && kind === 'ended') return '';
-    const b = bigButtons(id, { max: 3, self: true });
+    // 発売前でもネットで申し込める所があれば、その所のボタンを先に出す
+    const early = kind === 'upcoming' ? earlyNetOf(d) : null;
+    const b = bigButtons(id, { max: 3, self: true, first: early?.shop });
     if (!b) return '';
-    const title = isJumbo(d) && kind === 'upcoming' ? `${esc(d.name)}は${fmtMd(d.salesStart)}から買えます` : `${esc(d.name)}をネットで買う`;
+    const title = isJumbo(d) && kind === 'upcoming'
+      ? early ? `${esc(d.name)}は${fmtMd(d.salesStart)}発売。${esc(early.name)}のネットでは${fmtMd(early.from)}から申し込めます` : `${esc(d.name)}は${fmtMd(d.salesStart)}から買えます`
+      : `${esc(d.name)}をネットで買う`;
     return `<div class="cta-box"${r ? ' data-sticky-anchor' : ''} data-place="${r ? 'cta_top' : 'cta_bottom'}"><p class="cta-title">${title}</p>${r ? cdHtml(r) : ''}${b}${MICRO}</div>`;
   }
 
@@ -657,6 +672,19 @@ ${body}
   }
 
   /** 等級ごとの行（くじ別ページと一覧の大表で共通） */
+  /**
+   * ジャンボ以外のくじの「当選確率はどれくらいですか？」（1等と、どれかの等級が当たる確率。1口で当たるのは1つの等級だけなので、足せばよい）。
+   * ナンバーズは申込タイプで確率が違うので出さない
+   */
+  function oddsFaq(d, lines) {
+    if (d.model === 'numbers' || lines.length < 2) return null;
+    const first = lines[0];
+    const low = lines[lines.length - 1];
+    const any = lines.reduce((s, l) => s + (l.p > 0 ? l.p : 0), 0);
+    if (!(first.p > 0) || !(any > 0) || any >= 1) return null;
+    return [`${d.name}の当選確率はどれくらいですか？`, `1等の当選確率は${oddsJa(1 / first.p)}です。${low.name}までのどれかの等級が当たる確率は${chanceText(any)}で、平均すると${num(Math.round(1 / any))}口に1口の割合です。等級ごとの確率は「等級ごとの当せん金と確率」の表にあります。`];
+  }
+
   function tierLines(r) {
     const d = r.def;
     const ev = r.ev;
@@ -853,7 +881,8 @@ ${sparse ? `<p class="note">記録があるのは${fmtShort(pts[0].d)}以降で�
       const d = r.def;
       const first = d.tiers[0];
       const z = d.tiers.find((t) => /前後賞/.test(t.name));
-      const state = r.status.kind === 'onsale' ? `${fmtMd(d.salesEnd)}まで発売中` : `${fmtMd(d.salesStart)}から発売`;
+      const early = r.status.kind === 'upcoming' ? earlyNetOf(d) : null;
+      const state = r.status.kind === 'onsale' ? `${fmtMd(d.salesEnd)}まで発売中` : early ? `${fmtMd(d.salesStart)}発売・${esc(early.name)}で申し込み受付中` : `${fmtMd(d.salesStart)}から発売`;
       return `<a class="jb-card${r.status.kind === 'onsale' ? ' on' : ''}" href="${rel}kuji/${r.id}.html"><span class="jb-state">${state}</span><b class="jb-name">${esc(yearName(d))}</b><span class="jb-prize">${z ? `1等・前後賞合わせて<b>${yen(first.prize + z.prize * 2)}</b>` : `1等<b>${yen(first.prize)}</b>`}</span><span class="jb-meta">還元率 <b>${pct(r.rate)}</b>・1等 ${oddsJa(d.totalTickets / first.count)}</span><span class="jb-more">何枚買うと当たる？ ›</span></a>`;
     }).join('')}</div>`;
   }
@@ -1000,8 +1029,9 @@ ${trs}
     const jb = isJumbo(d) && ev.computable ? buyChances(d, r.rate) : null;
     const sib = isJumbo(d) ? jumboSibling(d, ctx.defs) : null;
     const sibRow = sib ? byId[sib.id] : null;
+    const need = jb ? firstPrizeNeed(d) : null;
     const countHtml = jb ? `<h2 id="count">何枚買うと当たる？（買う枚数ごとの確率）</h2>
-<p>${esc(d.name)}を何枚買うと、どのくらいの確率で当たるかの目安です。${jb.lowest ? `連番やバラで10枚買うと、下1けたの${esc(jb.lowest.name)}（${yen(jb.lowest.prize)}）が1枚当たります。` : ''}</p>
+<p>${esc(d.name)}を何枚買うと、どのくらいの確率で当たるかの目安です。${jb.lowest ? `連番やバラで10枚買うと、下1けたの${esc(jb.lowest.name)}（${yen(jb.lowest.prize)}）が1枚当たります。` : ''}${need ? `1等（${yen(d.tiers[0].prize)}）は${oddsJa(d.totalTickets / d.tiers[0].count)}なので、1等が当たる確率を1%にするだけでも、約${yen(need.n).replace(/円$/, '')}枚（約${yen(need.cost)}）を買う必要があります。` : ''}</p>
 <p class="scroll-hint">表は横にスクロールできます →</p>
 <div class="tbl-wrap"><table class="t buy-chance">
 <thead><tr><th>買う枚数</th>${jb.levels.map((l) => `<th>${esc(l.label)}が<br>当たる確率</th>`).join('')}${jb.rows[0].back != null ? '<th>平均で戻る金額</th>' : ''}</tr></thead>
@@ -1049,6 +1079,9 @@ ${row('発売総数', ...both((x) => `${yen(x.totalTickets).replace(/円$/, '')}
     const faq = (gd.faq || []).filter((x) => x?.q && x?.a).map((x) => [x.q, x.a]);
     // 手で書いた解説のジャンボにも、賞金表から計算する質問（何枚買えば当たるか・ミニとどちらが当たりやすいか）を足す
     if (isJumbo(d) && !gd.auto && faq.length) for (const f of dynamicFaq(d, { sibling: sib })) if (!faq.some(([q]) => q === f.q)) faq.push([f.q, f.a]);
+    // ジャンボ以外で解説のあるくじは、「当選確率はどれくらい？」を先頭に足す（「ロト6 確率」のように探す人が多いため。数字は等級の表から）
+    const oq = !isJumbo(d) && faq.length ? oddsFaq(d, lines) : null;
+    if (oq && !faq.some(([q]) => q === oq[0])) faq.unshift(oq);
     const sources = [...(d.sources || []), ...(gd.sources || [])].filter((s, i, a) => s?.url && a.findIndex((x) => x.url === s.url) === i);
     const sections = [];
     if (about.length) sections.push(['about', `${d.name}の特徴と還元率`]);
@@ -1088,7 +1121,7 @@ ${row('発売総数', ...both((x) => `${yen(x.totalTickets).replace(/円$/, '')}
 
     const body = `
 ${crumbs(rel, [{ name: d.name }])}
-<h1 class="page-title">${esc(isJumbo(d) ? `${yearName(d)}の還元率と当たる確率` : `${d.name}の還元率`)}</h1>
+<h1 class="page-title">${esc(isJumbo(d) ? `${yearName(d)}の当たる確率と還元率` : `${d.name}の還元率`)}</h1>
 ${updatedLine()}
 ${d.verify ? `<p class="notice">${esc(d.verify)}</p>` : ''}
 ${endedNotice(r, rel)}${specialNotice(r)}
@@ -1138,13 +1171,14 @@ ${ad('bottom')}
 <h2 id="others">ほかのくじの還元率</h2>
 ${related(rel, r.id)}
 `;
+    // ジャンボは「確率」「何枚買えば当たる」、ほかのくじは「確率」「キャリーオーバー」で探されることが多いので、題名に入れる
     const title = isJumbo(d)
-      ? `${yearName(d)}の還元率と当たる確率（${fmtMdPlain(now.iso)}更新）｜${site.siteName}`
-      : `${d.name}の還元率（${fmtMdPlain(now.iso)}更新）｜${site.siteName}`;
+      ? `${yearName(d)}の当たる確率と還元率｜何枚買えば当たる？（${fmtMdPlain(now.iso)}更新）｜${site.siteName}`
+      : `${d.name}の${r.hasCO ? '還元率・当選確率・キャリーオーバー' : '還元率と当選確率'}（${fmtMdPlain(now.iso)}更新）｜${site.siteName}`;
     const desc = !ev.computable ? `${d.name}のしくみと購入場所。`
       : isJumbo(d)
-        ? `${yearName(d)}の還元率は${pct(r.rate)}。賞金と本数、10枚・30枚・100枚買ったときに当たる確率${cmpHtml ? `、${sib.name}との比較` : ''}、ポイントが付く購入場所をまとめています。`
-        : `${d.name}の還元率は${pct(r.rate)}（${fmtMd(now.iso)}時点）。${r.hasCO ? `キャリーオーバー${yen(r.carryover)}を含めて計算。` : ''}等級ごとの当せん金と当せん確率、ポイントが付く購入場所をまとめています。`;
+        ? `${yearName(d)}（${fmtMdPlain(d.salesStart)}〜${fmtMdPlain(d.salesEnd)}発売・${fmtMdPlain(d.drawDate)}抽せん）の1等${yen(d.tiers[0].prize)}の当せん確率は${oddsJa(d.totalTickets / d.tiers[0].count)}、還元率は${pct(r.rate)}。10枚・30枚・100枚買ったときに当たる確率${cmpHtml ? `、${sib.name}との比較` : ''}、ポイントが付く購入場所をまとめています。`
+        : `${d.name}の還元率は${pct(r.rate)}（${fmtMd(now.iso)}時点）。${r.hasCO ? (r.carryover > 0 ? `キャリーオーバー${yen(r.carryover)}を含めて計算。` : 'いまはキャリーオーバーなし。') : ''}${fp?.p > 0 ? `${d.model === 'numbers' ? 'ストレート' : '1等'}の当選確率は${oddsJa(1 / fp.p)}。` : ''}等級ごとの当せん金と当せん確率、ポイントが付く購入場所をまとめています。`;
     return {
       path,
       html: layout({ path, title, description: desc, body, jsonld: [breadcrumbLd(path, d.name), ...(faq.length ? [faqLd(faq)] : [])], scripts: showTrend ? CHART_JS : '', stickyHtml: ev.computable && r.listed ? sticky(r) : '', kuji: r.id }),

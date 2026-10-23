@@ -27,7 +27,7 @@ import {
 } from './lib/jumbo.mjs';
 import { takarakujiMenu, unknownTakarakuji, takarakujiKey, takarakujiIssue, unknownSports, sportsKey, sportsIssue } from './lib/products.mjs';
 import { closedAlertKeys } from './lib/github.mjs';
-import { readCredentials, gscClient, sitemapUrls, judgePage, gscChecks, needSubmit } from './lib/gsc.mjs';
+import { readCredentials, gscClient, sitemapUrls, judgePage, gscChecks, gscSummary, needSubmit } from './lib/gsc.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const P = (...a) => path.join(ROOT, ...a);
@@ -273,9 +273,9 @@ if (gscCred && String(site.baseUrl || '').startsWith('https://')) {
     const pages = [];
     for (const u of urls.slice(0, 80)) pages.push({ url: u, ...judgePage(await gc.inspect(gsite, u)) });
     result = { base, site: gsite, sitemap: sm, pages };
-    const indexed = pages.filter((x) => x.status === 'indexed').length;
-    saved.gsc = { checkedAt: today, indexed, total: pages.length };
-    lines.push(`Search Console：Google に登録済み ${indexed}/${pages.length}ページ${sm ? `・サイトマップのエラー ${Number(sm.errors || 0)}件` : ''}`);
+    saved.gsc = gscSummary(pages, today);
+    lines.push(`Search Console：Google に登録済み ${saved.gsc.indexed}/${pages.length}ページ${sm ? `・サイトマップのエラー ${Number(sm.errors || 0)}件` : ''}`);
+    if (saved.gsc.notIndexed.length) lines.push(`Search Console：まだ登録されていないページ（${saved.gsc.notIndexed.length}）：${saved.gsc.notIndexed.slice(0, 40).map((x) => x.path).join('、')}`);
   } catch (e) {
     result = { base, site: gsite, error: { message: String(e.message || e), auth: !!e.auth } };
     lines.push(`⚠ Search Console のチェックに失敗しました：${e.message || e}`);
@@ -313,7 +313,7 @@ try {
 
 saved.lastRun = today;
 saved.acked = [...acked].slice(-300);
-saved._note = '公式ページの見張りの記録（scripts/watch.mjs が毎日更新）。前の日と比べるために使います。lastRun は最後に見張った日（1日1回にするため）。acked は運営者が閉じた Issue（確認済み・もう知らせない）。jumbo はジャンボの自動登録、newProducts は新しいくじ、gsc は Search Console で Google に登録済みのページ数の記録です。';
+saved._note = '公式ページの見張りの記録（scripts/watch.mjs が毎日更新）。前の日と比べるために使います。lastRun は最後に見張った日（1日1回にするため）。acked は運営者が閉じた Issue（確認済み・もう知らせない）。jumbo はジャンボの自動登録、newProducts は新しいくじ、gsc は Search Console で Google に登録済みのページ数と、まだ登録されていないページ（notIndexed：パスと Google の説明）の記録です。';
 await writeFile(P('data/watch.json'), JSON.stringify(saved, null, 1) + '\n', 'utf8');
 await saveAlerts(alerts);
 for (const l of lines) console.log(l);

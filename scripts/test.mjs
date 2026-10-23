@@ -419,7 +419,16 @@ t('くじ別ページの解説とよくある質問（data/guides.json）', () =
     if (!r || r.def.model === 'none') continue;
     const h = rg.game(r).html;
     assert.ok(h.includes(`<h2 id="about">`) && h.includes('<div class="guide">') && !h.includes('**') && !/NaN|undefined/.test(h.replace(/<script[\s\S]*?<\/script>/g, '')), `${id} のページ`);
+    assert.ok(!h.includes('キャリーオーバー0円を含めて計算'), `${id} の説明文（キャリーオーバーが0円なら「いまはキャリーオーバーなし」）`);
   }
+  // ジャンボ以外のくじ：題名に「当選確率」（キャリーオーバーのあるくじは「キャリーオーバー」も）、説明文に1等の当選確率、よくある質問の先頭に当選確率
+  const l6 = rg.game(rowsT.find((x) => x.id === 'loto6')).html;
+  assert.match(l6, /<title>ロト6の還元率・当選確率・キャリーオーバー（\d+月\d+日更新）｜宝くじ還元率ランキング<\/title>/);
+  assert.match(l6, /<meta name="description" content="ロト6の還元率は[\d.]+%（[^"]*時点）。(キャリーオーバー[^"]*を含めて計算。|いまはキャリーオーバーなし。)1等の当選確率は6,096,454分の1。/);
+  // 1口で当たるのは1つの等級だけなので、どれかが当たる確率は足し算：(1+6+216+9,990+155,400)÷6,096,454 ≒ 2.7%（37口に1口）
+  assert.ok(l6.includes('<dl class="faq"><dt>ロト6の当選確率はどれくらいですか？</dt><dd>1等の当選確率は6,096,454分の1です。5等までのどれかの等級が当たる確率は2.7%で、平均すると37口に1口の割合です。'), '当選確率の質問が先頭');
+  const n4 = rg.game(rowsT.find((x) => x.id === 'numbers4')).html;
+  assert.ok(n4.includes('<title>ナンバーズ4の還元率と当選確率（') && n4.includes('ストレートの当選確率は1万分の1。') && !n4.includes('ナンバーズ4の当選確率はどれくらいですか？'), 'ナンバーズは申込タイプで確率が違うので、質問は出さない');
 });
 
 /* ---------- 解説ページ（宝くじの基礎知識：content/guide/*.md） ---------- */
@@ -1139,6 +1148,8 @@ t('ジャンボの自動登録のページ（確認待ちの注記・自動の�
     catalog: { order: ['loto6', 'halloween2026', 'nenmatsu2026', 'megabig'], items: {} }, guides, now: nowA, state, defs: defsA,
     order: Object.fromEntries(Object.keys(defsA).map((k, i) => [k, i])), preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
   });
+  // 手で書いた解説がないジャンボ（公式発表から自動で登録しただけ）として確かめる
+  delete guides.games.nenmatsumini2026;
   const mini = rowsA.find((r) => r.id === 'nenmatsumini2026');
   assert.ok(mini.listed, '発売中ならランキングに出る');
   const html = rd.game(mini).html;
@@ -1317,8 +1328,11 @@ t('ジャンボの「何枚買うと当たる？」とミニとの比較（賞�
     preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
   });
   const page = rdJ.game(rowsJ.find((r) => r.id === 'halloween2026')).html;
-  assert.ok(page.includes('<title>ハロウィンジャンボ宝くじ2026の還元率と当たる確率（10月12日更新）｜宝くじ還元率ランキング</title>'));
-  assert.ok(page.includes('<h1 class="page-title">ハロウィンジャンボ宝くじ2026の還元率と当たる確率</h1>'));
+  assert.ok(page.includes('<title>ハロウィンジャンボ宝くじ2026の当たる確率と還元率｜何枚買えば当たる？（10月12日更新）｜宝くじ還元率ランキング</title>'));
+  assert.ok(page.includes('<h1 class="page-title">ハロウィンジャンボ宝くじ2026の当たる確率と還元率</h1>'));
+  assert.ok(page.includes('<meta name="description" content="ハロウィンジャンボ宝くじ2026（9月16日〜10月16日発売・10月26日抽せん）の1等2億円の当せん確率は1,000万分の1、還元率は47.3%。10枚・30枚・100枚買ったときに当たる確率、ハロウィンジャンボミニとの比較、ポイントが付く購入場所をまとめています。">'), '説明文に発売期間・1等の確率・還元率');
+  // 1等を1%の確率で当てるのに要る枚数（1等は1,000万分の1 → 約10万枚・約3,000万円）
+  assert.ok(page.includes('1等（2億円）は1,000万分の1なので、1等が当たる確率を1%にするだけでも、約10万枚（約3,000万円）を買う必要があります。'));
   assert.ok(page.includes('<a href="#count">何枚買うと当たる？（買う枚数ごとの確率）</a>') && page.includes('<a href="#compare">ハロウィンジャンボミニとの比較</a>'));
   assert.ok(page.includes('<td class="r">2.0%</td>') && page.includes('約1,420円') && page.includes('href="../kuji/halloweenmini2026.html">ハロウィンジャンボミニ</a>'));
   assert.ok(page.indexOf('id="tiers"') < page.indexOf('id="count"') && page.indexOf('id="count"') < page.indexOf('id="compare"'));
@@ -1338,6 +1352,47 @@ t('ジャンボの「何枚買うと当たる？」とミニとの比較（賞�
     catalog: { order: [], items: {} }, now: late, state, defs: defsP, order: Object.fromEntries(Object.keys(defsP).map((k, i) => [k, i])), preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
   }).index().html;
   assert.ok(!topL.includes('id="jumbo"'), '発売中・発売予定のジャンボがなければ出さない');
+});
+
+t('ジャンボのよくある質問（1等を当てるには何枚・連番とバラ・期待値）と、発売前のネットの申し込み', () => {
+  const nen = { ...jumboRaw.nenmatsu2026, id: 'nenmatsu2026' };
+  const hw = { ...jumboRaw.halloween2026, id: 'halloween2026' };
+  // 1等を1%の確率で当てるのに要る枚数：1等が2,000万分の1 → 20万枚（6,000万円）。上2けたに丸める
+  assert.deepEqual(J.firstPrizeNeed(nen), { n: 200000, cost: 60000000 });
+  assert.deepEqual(J.firstPrizeNeed(hw), { n: 100000, cost: 30000000 });
+  assert.deepEqual(J.firstPrizeNeed({ price: 300, totalTickets: 1e8, tiers: [{ prize: 1e8, count: 3 }] }), { n: 330000, cost: 99000000 }, '333,333枚 → 33万枚');
+  assert.equal(J.firstPrizeNeed({ price: 300, totalTickets: 0, tiers: [] }), null);
+  // 期待値：賞金の総額 ÷ 発売総数（年末ジャンボは約150円）
+  near(J.ticketEv(nen), 149.995, 1e-9, '年末ジャンボの期待値');
+  const faq = J.dynamicFaq(nen, { sibling: null });
+  const qa = Object.fromEntries(faq.map((f) => [f.q, f.a]));
+  assert.equal(qa['年末ジャンボ宝くじの1等を当てるには、何枚買えばいいですか？'], '1等（7億円）の当せん確率は2,000万分の1です。1等が当たる確率を1%にするだけでも、約20万枚（約6,000万円）を買う必要がある計算です。');
+  assert.ok((qa['連番とバラは、どちらが当たりやすいですか？'] || '').startsWith('1枚ごとの当せん確率と、平均で戻る金額（期待値）は、連番もバラも同じです。'), '連番とバラ');
+  assert.equal(qa['年末ジャンボ宝くじの期待値はいくらですか？'], '1枚300円に対して、期待値（平均で戻る金額）は約150円で、還元率は50.0%です。賞金と本数があらかじめ決まっているので、発売中に変わることはありません。');
+  for (const f of faq) assert.ok(/？$/.test(f.q) && f.a.length >= 20 && !/必ず当たる|儲かる/.test(f.a), f.q);
+  // 前後賞のないくじには「連番とバラ」を出さない。同じ日のジャンボとの比較は「1等を当てるには」の後ろ
+  assert.ok(!J.dynamicFaq({ ...nen, tiers: nen.tiers.filter((t) => !/前後賞/.test(t.name)) }).some((f) => f.q.startsWith('連番とバラ')));
+  const withSib = J.dynamicFaq(hw, { sibling: { ...jumboRaw.halloweenmini2026, id: 'halloweenmini2026' } }).map((f) => f.q);
+  assert.ok(withSib.indexOf('ハロウィンジャンボ宝くじの1等を当てるには、何枚買えばいいですか？') < withSib.findIndex((q) => q.includes('どちらが当たりやすいですか？') && q.includes('ミニ')));
+
+  // 発売前でも、みずほ銀行のネットで申し込めるジャンボ（earlyNet）：申し込める日から店頭の発売日の前日まで、見出しを変えて、みずほ銀行のボタンを先に出す
+  const raw = Object.fromEntries(Object.entries(JSON.parse(readFileSync(path.join(ROOT, 'data/games.json'), 'utf8'))).filter(([, g]) => !(g?.model === 'fixed' && g.group === 'takarakuji')));
+  const defsE = resolveGames(J.insertGame(raw, 'nenmatsu2026', { ...structuredClone(jumboRaw.nenmatsu2026), earlyNet: { from: '2026-10-23', shop: 'mizuho' } }));
+  const cta = (s) => {
+    const nowE = { ...at(s), y: 2026 };
+    const rowsE = computeAll(defsE, state, nowE, {});
+    const html = createRenderer({
+      site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} },
+      links, points, rows: rowsE, byId: Object.fromEntries(rowsE.map((r) => [r.id, r])), log: [], history: { days: {} },
+      catalog: { order: [], items: {} }, now: nowE, state, defs: defsE, order: Object.fromEntries(Object.keys(defsE).map((k, i) => [k, i])),
+      preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
+    }).game(rowsE.find((r) => r.id === 'nenmatsu2026')).html;
+    const box = html.match(/<div class="cta-box"[^>]*data-sticky-anchor[\s\S]*?<p class="micro">/)[0];
+    return { title: box.match(/<p class="cta-title">([^<]*)<\/p>/)[1], first: (box.match(/class="btn btn-main[^"]*"[^>]*data-shop="([^"]+)"/) || [])[1] };
+  };
+  assert.deepEqual(cta('2026-10-22T12:00'), { title: '年末ジャンボ宝くじは11月24日（火）から買えます', first: 'takarakuji' }, '申し込み開始の前日まではいつもどおり');
+  assert.deepEqual(cta('2026-10-23T12:00'), { title: '年末ジャンボ宝くじは11月24日（火）発売。みずほ銀行のネットでは10月23日（金）から申し込めます', first: 'mizuho' });
+  assert.deepEqual(cta('2026-11-24T12:00'), { title: '年末ジャンボ宝くじをネットで買う', first: 'takarakuji' }, '発売が始まったらポイントの多い順に戻す');
 });
 
 const H = await import('./lib/health.mjs');
@@ -1439,6 +1494,22 @@ await ta('Search Console の自動チェック（ログイン・サイトマッ�
   const bad = G.gscChecks({ base, site: 'x', sitemap: { ...sms[0], errors: '2' }, pages: [{ url: `${base}/kuji/x.html`, status: 'problem', reason: 'ページが見つかりません（404）' }] });
   assert.ok(bad.find((c) => c.key === 'gsc-sitemap').title.includes('2件'));
   assert.ok(bad.find((c) => c.key === 'gsc-pages').body.includes('/kuji/x.html：ページが見つかりません（404）'));
+  // data/watch.json に残す記録：登録済みの数と、まだ登録されていないページ（パスと Google の説明だけ）
+  const sum = G.gscSummary([
+    { url: `${base}/`, status: 'indexed', reason: '送信して登録されました' },
+    { url: `${base}/kuji/nenmatsu2026.html`, status: 'waiting', reason: '検出 - インデックス未登録' },
+    { url: `${base}/kuji/x.html`, status: 'problem', reason: 'ページが見つかりません（404）' },
+  ], '2026-10-24');
+  assert.deepEqual(sum, {
+    checkedAt: '2026-10-24', indexed: 1, total: 3,
+    notIndexed: [
+      { path: '/kuji/nenmatsu2026.html', status: 'waiting', reason: '検出 - インデックス未登録' },
+      { path: '/kuji/x.html', status: 'problem', reason: 'ページが見つかりません（404）' },
+    ],
+  });
+  assert.deepEqual(G.gscSummary([], '2026-10-24'), { checkedAt: '2026-10-24', indexed: 0, total: 0, notIndexed: [] });
+  const watchJs = readFileSync(path.join(ROOT, 'scripts/watch.mjs'), 'utf8');
+  assert.ok(watchJs.includes('saved.gsc = gscSummary(pages, today);'), '見張りは gscSummary の形で残す');
 });
 
 console.log(`\n${n}件すべて成功`);

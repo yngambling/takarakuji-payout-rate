@@ -677,6 +677,30 @@ export function buyChances(d, rate = null) {
   };
 }
 
+/** 上2けたに丸める（200,000 → 200,000、333,333 → 330,000） */
+const round2 = (x) => {
+  if (!(x > 0)) return 0;
+  const k = 10 ** Math.max(0, Math.floor(Math.log10(x)) - 1);
+  return Math.round(x / k) * k;
+};
+
+/**
+ * 1等が当たる確率を target（ふつうは1%）にするのに買う枚数と金額の目安（上2けたに丸める）。
+ * 1等の確率が p なら約 target ÷ p 枚（1枚ずつ別々に当たると考えても、1ユニットの中で買うと考えても、1%ならほぼ同じ）
+ */
+export function firstPrizeNeed(d, target = 0.01) {
+  const first = d?.tiers?.[0];
+  if (!first || !(first.count > 0) || !(d.totalTickets > 0)) return null;
+  const n = round2((target * d.totalTickets) / first.count);
+  return n >= 1 ? { n, cost: n * d.price } : null;
+}
+
+/** 1枚あたりの期待値（平均で戻る金額。賞金表から） */
+export function ticketEv(d) {
+  if (!(d?.totalTickets > 0) || !d.tiers?.length) return null;
+  return d.tiers.reduce((s, t) => s + t.prize * t.count, 0) / d.totalTickets;
+}
+
 /** 同じ日に発売・抽せんされるもう一方のジャンボ（年末ジャンボと年末ジャンボミニなど） */
 export function jumboSibling(d, defs) {
   return Object.values(defs || {}).find((x) => x && x.id !== d.id && x.model === 'fixed' && x.group === d.group
@@ -684,7 +708,7 @@ export function jumboSibling(d, defs) {
 }
 
 /**
- * 賞金表から計算する「よくある質問」（何枚買えば1万円以上が当たるか・同じ日のジャンボとどちらが当たりやすいか）。
+ * 賞金表から計算する「よくある質問」（何枚買えば1万円以上・1等が当たるか・連番とバラ・期待値・同じ日のジャンボとどちらが当たりやすいか）。
  * 手で書いた解説（data/guides.json）のジャンボにも足す。数字は賞金表から毎回計算するので、賞金表が変わってもずれない
  */
 export function dynamicFaq(d, { sibling = null } = {}) {
@@ -694,8 +718,19 @@ export function dynamicFaq(d, { sibling = null } = {}) {
   if (first && p1 > 0 && first.prize > 10000) {
     out.push({ q: `${d.name}を何枚買えば、1万円以上が当たりますか？`, a: `1万円以上の賞が当たる確率は1枚あたり${chanceText(p1)}で、平均すると${num(Math.round(1 / p1))}枚に1枚です。10枚買うと${chanceText(chanceOfN(p1, 10))}、100枚買うと${chanceText(chanceOfN(p1, 100))}の確率で、1枚以上当たる計算です（1枚ずつ別々に当たると考えた目安）。` });
   }
+  const need = firstPrizeNeed(d);
+  if (first && need && first.prize > 10000) {
+    out.push({ q: `${d.name}の1等を当てるには、何枚買えばいいですか？`, a: `1等（${man(first.prize)}）の当せん確率は${oddsJa(d.totalTickets / first.count)}です。1等が当たる確率を1%にするだけでも、約${manNoYen(need.n)}枚（約${man(need.cost)}）を買う必要がある計算です。` });
+  }
   if (first && sibling?.tiers?.length && sibling.totalTickets > 0) {
     out.push({ q: `${d.name}と${sibling.name}は、どちらが当たりやすいですか？`, a: compareSentence(d, sibling) });
+  }
+  if (first && d.tiers.some((t) => /前後賞/.test(t.name))) {
+    out.push({ q: '連番とバラは、どちらが当たりやすいですか？', a: '1枚ごとの当せん確率と、平均で戻る金額（期待値）は、連番もバラも同じです。違うのは当たり方で、続き番号の連番なら、1等といっしょに前後賞（1等の前後の番号）も当たる可能性があります。' });
+  }
+  const ev = ticketEv(d);
+  if (first && ev > 0 && d.price > 0) {
+    out.push({ q: `${d.name}の期待値はいくらですか？`, a: `1枚${num(d.price)}円に対して、期待値（平均で戻る金額）は約${num(Math.round(ev))}円で、還元率は${pct(ev / d.price)}です。賞金と本数があらかじめ決まっているので、発売中に変わることはありません。` });
   }
   return out;
 }
