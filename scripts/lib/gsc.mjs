@@ -159,6 +159,23 @@ export function gscChecks({ base, site, sitemap = null, pages = [], error = null
   return out;
 }
 
+/**
+ * data/watch.json に残す記録：登録済みのページ数と、まだ登録されていないページの一覧（パスと Google の説明だけ）。
+ * 一覧を見て、急ぐページから Search Console の画面で「インデックス登録をリクエスト」を押す。
+ * 検索での表示回数・クリック数は、公開リポジトリに残さないため、ここにも入れない
+ */
+export function gscSummary(pages = [], today = '') {
+  const pathOf = (u) => {
+    try { return new URL(u).pathname; } catch { return String(u); }
+  };
+  return {
+    checkedAt: today,
+    indexed: pages.filter((p) => p.status === 'indexed').length,
+    total: pages.length,
+    notIndexed: pages.filter((p) => p.status !== 'indexed').map((p) => ({ path: pathOf(p.url), status: p.status, reason: p.reason || '' })),
+  };
+}
+
 /** サイトマップを送る（送り直す）かどうか */
 export function needSubmit(sitemap, today) {
   if (!sitemap) return true;
