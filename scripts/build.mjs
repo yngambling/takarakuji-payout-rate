@@ -41,6 +41,8 @@ function parseNow(s) {
 const site = await readJson('config/site.json');
 const links = await readJson('config/links.json');
 const points = await readJson('config/points.json', { routes: [] });
+// 期間限定のキャンペーン（抽せんや特典。ファイルがなければ出さない）
+const campaigns = await readJson('config/campaigns.json', { items: [] });
 const gamesRaw = await readJson('data/games.json');
 const state = await readJson('data/state.json', { games: {} });
 const log = await readJson('data/log.json', []);
@@ -83,6 +85,7 @@ const render = createRenderer({
   site, links, points, rows, byId, log, history, catalog, guides, guidePages, now, state, defs, order, overrides, verification,
   preview: PREVIEW, placeholders: PLACEHOLDERS || PREVIEW, inlineCss: PREVIEW, css,
   cssVersion: createHash('md5').update(css).digest('hex').slice(0, 8),
+  campaigns,
 });
 
 const pages = [render.index()];

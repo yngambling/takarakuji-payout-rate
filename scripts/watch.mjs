@@ -291,7 +291,8 @@ if (gscCred && String(site.baseUrl || '').startsWith('https://')) {
 try {
   const defs = resolveGames(await readJson('data/games.json', {}));
   const points = await readJson('config/points.json', {});
-  for (const c of scheduleChecks(defs, points, today)) {
+  const campaigns = await readJson('config/campaigns.json', null);
+  for (const c of scheduleChecks(defs, points, today, campaigns)) {
     if (c.type === 'raise') { raise(alerts, c.key, c.title, c.body); lines.push(`⚠ ${c.title}`); } else clear(alerts, c.key);
   }
 } catch (e) {
