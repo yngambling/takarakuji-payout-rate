@@ -179,6 +179,13 @@
       "url": "https://www.paypay-card.co.jp/",
       "affiliate": false
     },
+    "recruit_card": {
+      "name": "リクルートカード",
+      "kind": "card",
+      "label": "リクルートカードを見る",
+      "url": "https://recruit-card.jp/",
+      "affiliate": false
+    },
     "rakuten_bank": {
       "name": "楽天銀行",
       "kind": "bank",

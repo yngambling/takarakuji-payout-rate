@@ -1,11 +1,10 @@
 {
-  "_how": "購入場所ごとのポイント還元です（ポイント還元ランキングのページと、各ページの「ポイント込み」に使います）。率が変わったら parts の rate と checkedOn を直してください。rate は購入額に対する割合（0.01 = 1%）、perUnit は1口あたりのポイント数です。rate が null の部分は「＋α」として表示だけして、計算には入れません。期間限定の上乗せは campaigns に until（最終日）付きで書くと、期限を過ぎたら自動で表示されなくなります。signups は links.json の signups のキーです。",
-  "checkedOn": "2026-10-10",
+  "_how": "購入場所ごとのポイント還元です（ポイント還元ランキングのページと、各ページの「ポイント込み」に使います）。率が変わったら parts の rate と checkedOn を直してください。rate は購入額に対する割合（0.01 = 1%）、perUnit は1口あたりのポイント数です。rate が null の部分は「＋α」として表示だけして、計算には入れません。pay を書いた部分は支払い方法ごとのポイントで、払うときはどれか1つなので、いちばん高いものだけを足します（pay の文は「〇〇で払う」の形で、ランキングの「〇〇場合」や解説の「いちばんポイントが付く買い方」に出ます）。期間限定の上乗せは campaigns に until（最終日）付きで書くと、期限を過ぎたら自動で表示されなくなります。signups は links.json の signups のキーです。",
+  "checkedOn": "2026-10-24",
   "routes": [
     {
       "id": "takarakuji",
       "shop": "takarakuji",
-      "how": "PayPayクレジットで払う",
       "parts": [
         {
           "name": "宝くじポイント",
@@ -16,14 +15,21 @@
           "name": "PayPayポイント",
           "detail": "PayPayクレジットで払うと基本1.0%（前の月の条件を満たすと＋0.5%。PayPay残高なら0.5%）",
           "rate": 0.01,
-          "optional": true
+          "pay": "PayPayクレジットで払う"
+        },
+        {
+          "name": "リクルートポイント",
+          "detail": "リクルートカード（JCB）で払うと1.2%（くじの購入がポイントの対象かは、カード会社の案内に書かれていません）",
+          "rate": 0.012,
+          "pay": "リクルートカードで払う"
         }
       ],
-      "base": "PayPay以外で払う場合は宝くじポイントの1%に、支払いに使うカードや決済サービスのポイントが加わります",
+      "base": "ほかのカードや決済サービスで払う場合は、宝くじポイントの1%に、そのポイントが加わります",
       "feature": "ジャンボ・ロト・ナンバーズ・ビンゴ5をまとめて買える公式サイト",
       "signups": [
         "takarakuji_member",
-        "paypay_card"
+        "paypay_card",
+        "recruit_card"
       ],
       "caution": "PayPayの付与率はPayPayが公表している基本付与率です（前の月にPayPayで200円以上の支払いを30回以上・合計10万円以上すると、翌月は＋0.5%）。宝くじ公式サイトでの支払いでもPayPayポイントがもらえることはPayPayが案内しています。",
       "sources": [
@@ -42,13 +48,20 @@
         {
           "title": "PayPayなら24時間どこでも宝くじが買える（PayPay）",
           "url": "https://paypay.ne.jp/article/0071/"
+        },
+        {
+          "title": "リクルートカード（ポイント還元率1.2%）",
+          "url": "https://recruit-card.jp/"
+        },
+        {
+          "title": "リクルートポイントの対象とならないご利用分（JCB）",
+          "url": "https://www.jcb.co.jp/myjcb/pop/recruit-point.html"
         }
       ]
     },
     {
       "id": "rakuten_toto",
       "shop": "rakuten_toto",
-      "how": "楽天カードで払う",
       "parts": [
         {
           "name": "楽天ポイント",
@@ -57,16 +70,23 @@
         },
         {
           "name": "楽天カードのポイント",
-          "detail": "楽天カードで払うと、決済額のさらに1%",
+          "detail": "楽天カードで払うと、決済額のさらに1%（ポイント2倍）",
           "rate": 0.01,
-          "optional": true
+          "pay": "楽天カードで払う"
+        },
+        {
+          "name": "リクルートポイント",
+          "detail": "リクルートカード（JCB）で払うと1.2%。楽天totoは楽天カードのほかJCBカードで払えます（くじの購入がポイントの対象かは、カード会社の案内に書かれていません）",
+          "rate": 0.012,
+          "pay": "リクルートカードで払う"
         }
       ],
-      "base": "楽天カード以外で払う場合は1%です",
+      "base": "ほかの支払い方法では、楽天ポイントの1%に、その支払い方法のポイントが加わる場合があります",
       "feature": "BIG・MEGA BIG・DUNKを買える。楽天会員ならすぐ始められる",
       "signups": [
         "rakuten_member",
-        "rakuten_card"
+        "rakuten_card",
+        "recruit_card"
       ],
       "sources": [
         {
@@ -76,13 +96,24 @@
         {
           "title": "楽天totoでポイントが貯まる（楽天PointClub）",
           "url": "https://point.rakuten.co.jp/get/entertainment/toto/"
+        },
+        {
+          "title": "はじめての方へ（楽天toto）",
+          "url": "https://toto.rakuten.co.jp/beginner/"
+        },
+        {
+          "title": "リクルートカード（ポイント還元率1.2%）",
+          "url": "https://recruit-card.jp/"
+        },
+        {
+          "title": "リクルートポイントの対象とならないご利用分（JCB）",
+          "url": "https://www.jcb.co.jp/myjcb/pop/recruit-point.html"
         }
       ]
     },
     {
       "id": "docomo_toto",
       "shop": "docomo_toto",
-      "how": "dカードで払う",
       "parts": [
         {
           "name": "dポイント",
@@ -93,14 +124,21 @@
           "name": "dカードのポイント",
           "detail": "dカードで払うと、100円ごとにさらに1ポイント",
           "rate": 0.01,
-          "optional": true
+          "pay": "dカードで払う"
+        },
+        {
+          "name": "リクルートポイント",
+          "detail": "リクルートカード（JCB）で払うと1.2%。ドコモスポーツくじはdカード・JCBカード・電話料金合算払いで払えます（くじの購入がポイントの対象かは、カード会社の案内に書かれていません）",
+          "rate": 0.012,
+          "pay": "リクルートカードで払う"
         }
       ],
-      "base": "dカード以外で払う場合は1%です",
+      "base": "ほかの支払い方法では、dポイントの1%に、その支払い方法のポイントが加わる場合があります",
       "feature": "BIG・MEGA BIG・100円BIG・DUNKを買える。dポイントで買うこともでき、ドコモの回線がなくても使える",
       "signups": [
         "d_account",
-        "d_card"
+        "d_card",
+        "recruit_card"
       ],
       "sources": [
         {
@@ -110,6 +148,14 @@
         {
           "title": "ドコモスポーツくじでDUNKの取扱い開始（NTTドコモ、2026年8月26日）",
           "url": "https://www.docomo.ne.jp/binary/pdf/info/news_release/topics_260826_g1.pdf"
+        },
+        {
+          "title": "リクルートカード（ポイント還元率1.2%）",
+          "url": "https://recruit-card.jp/"
+        },
+        {
+          "title": "リクルートポイントの対象とならないご利用分（JCB）",
+          "url": "https://www.jcb.co.jp/myjcb/pop/recruit-point.html"
         }
       ]
     },
@@ -168,23 +214,38 @@
     {
       "id": "toto_official",
       "shop": "toto_official",
-      "how": "ポイントの貯まるカードで払う",
       "parts": [
         {
-          "name": "支払いに使うカードのポイント",
-          "detail": "楽天カード・三井住友カード・JCB・セゾンなど、カード会社の規定による",
-          "rate": null
+          "name": "リクルートポイント",
+          "detail": "リクルートカード（JCB）で払うと1.2%（くじの購入がポイントの対象かは、カード会社の案内に書かれていません）",
+          "rate": 0.012,
+          "pay": "リクルートカードで払う"
+        },
+        {
+          "name": "ほかのカードのポイント",
+          "detail": "楽天カード・三井住友カード・セゾンなど、カード会社の規定による",
+          "rate": null,
+          "pay": "ほかのカードで払う"
         }
       ],
       "base": "",
       "feature": "BIG・DUNK・toto・WINNERの公式販売サイト。サイト独自のポイントはなく、カードのポイントが付く",
       "signups": [
-        "club_toto"
+        "club_toto",
+        "recruit_card"
       ],
       "sources": [
         {
           "title": "お支払方法の追加（スポーツくじオフィシャルサイト）",
           "url": "https://www.toto-dream.com/club/add_info.html"
+        },
+        {
+          "title": "リクルートカード（ポイント還元率1.2%）",
+          "url": "https://recruit-card.jp/"
+        },
+        {
+          "title": "リクルートポイントの対象とならないご利用分（JCB）",
+          "url": "https://www.jcb.co.jp/myjcb/pop/recruit-point.html"
         }
       ]
     }

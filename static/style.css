@@ -389,6 +389,9 @@ table.t { border-collapse: collapse; width: 100%; font-size: 14px; line-height: 
 .parts { list-style: none; margin: 4px 0; padding: 8px 0 0; border-top: 1px dashed var(--line); display: grid; gap: 4px; font-size: 13.5px; }
 .parts li { display: grid; grid-template-columns: 4em minmax(0, 1fr); gap: 6px; align-items: start; }
 .parts b { font-family: var(--font-num); color: #8a6200; font-size: 16px; line-height: 1.4; }
+/* 支払い方法ごとのポイント（どれか1つ）：「（〇〇で払う場合）」と、その注記 */
+.parts .pay, .parts-mini .pay { font-size: 12px; color: var(--sub); }
+.pay-note { margin: 0; font-size: 12px; color: var(--sub); }
 
 /* 目的別のおすすめ */
 .picks { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 14px; }

@@ -570,7 +570,7 @@ export function parseOnSale(html) {
 /**
  * ジャンボ宝くじの解説とよくある質問を、賞金表から作る（data/guides.json と同じ形）。
  *   rate  … このサイトの計算の還元率（0.47 など）
- *   point … ポイントが一番多い買い方の説明（「宝くじ公式サイトをPayPayクレジットで払う方法（2.0%）」など）
+ *   point … ポイントが一番多い買い方の説明（「宝くじ公式サイトをリクルートカードで払う方法（2.2%）」など。render.mjs の bestPointText）
  */
 export function autoGuide(d, { rate = null, point = '', sibling = null } = {}) {
   const T = d.totalTickets;
