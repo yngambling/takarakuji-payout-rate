@@ -20,7 +20,7 @@ import { fetchBytes, decodeBytes } from './lib/http.mjs';
 import { jstParts, sleep } from './lib/util.mjs';
 import { resolveGames } from './lib/model.mjs';
 import { loadAlerts, saveAlerts, raise, clear } from './lib/alerts.mjs';
-import { extractLines, hashLines, changeIssue, downIssue, scheduleChecks, specialChecks, watchGate, pageMissing, MISSING_ERROR } from './lib/watchlib.mjs';
+import { extractLines, trackPage, downIssue, isBlocked, BLOCKED_DAYS, scheduleChecks, specialChecks, watchGate, pageMissing, MISSING_ERROR } from './lib/watchlib.mjs';
 import {
   NEWS_LIST_URL, ONSALE_URL, NEWS_DOWN_DAYS, parseNewsList, isJumboNews, parseJumboNews, checkJumbo, planJumbo,
   parseOnSale, missingIssue, newsDownIssue, roundNo,
@@ -58,8 +58,10 @@ const lines = [];
 
 // 運営者が閉じた Issue（確認した・もう知らせなくてよい の合図）。一度見たものは data/watch.json にも残す
 const acked = new Set(saved.acked || []);
+let closedKeys = null; // 閉じた Issue の key（読めなかったら null）。公式ページの見張りで「確認済み」の判断に使う
 try {
   const closed = await closedAlertKeys();
+  closedKeys = closed;
   if (closed) for (const k of closed) if (/^(jumbo-|newproduct-)/.test(k)) acked.add(k);
 } catch (e) {
   lines.push(`⚠ 閉じた Issue を読めませんでした（${e.message || e}）。確認済みの判定は次回に行います`);
@@ -68,6 +70,16 @@ const raiseUnlessAcked = (key, issue) => { if (!acked.has(key)) raise(alerts, ke
 
 /* ---------------- 公式ページの見張り ---------------- */
 
+// 変化は、次の日も変わったままのときだけ知らせる。お知らせ・キャンペーンの行は比べない。
+// 同じページの古い Issue は新しい Issue にまとめ、元の内容に戻ったら閉じる（判断は watchlib.mjs の trackPage）
+const TRACK_TEXT = {
+  first: (n) => `記録を始めました（${n}行）`,
+  same: () => '変化なし',
+  reverted: () => '前の日に見つけた変化は元に戻っていました（一時的な表示だったので知らせません）',
+  pending: () => '変化を見つけました（次の日も変わったままなら知らせます）',
+  raise: () => '⚠ 内容が変わりました（2日続いたので知らせます）',
+  back: () => '前の Issue の前の内容に戻ったので、その Issue を閉じます',
+};
 for (const page of watch.pages || []) {
   const rec = (saved.pages[page.id] ??= {});
   try {
@@ -77,25 +89,21 @@ for (const page of watch.pages || []) {
     if (pageMissing(html)) throw Object.assign(new Error(MISSING_ERROR), { missing: true });
     const got = extractLines(html, page);
     if (!got.length) throw new Error('見張る行が見つかりません（ページの作りが変わった可能性）');
-    const h = hashLines(got);
-    if (!rec.hash) {
-      lines.push(`${page.name}: 記録を始めました（${got.length}行）`);
-    } else if (rec.hash !== h) {
-      const issue = changeIssue(page, rec.lines || [], got, today);
-      raise(alerts, issue.key, issue.title, issue.body);
-      rec.changedAt = today;
-      lines.push(`⚠ ${page.name}: 内容が変わりました`);
-    } else {
-      lines.push(`${page.name}: 変化なし`);
-    }
-    Object.assign(rec, { hash: h, lines: got, checkedAt: today, fails: 0 });
-    delete rec.error;
+    const t = trackPage(page, rec, got, { today, closed: closedKeys });
+    if (t.issue) raise(alerts, t.issue.key, t.issue.title, t.issue.body);
+    for (const c of t.close) clear(alerts, c.key, c.note);
+    const msg = TRACK_TEXT[t.action](got.length);
+    lines.push(msg.startsWith('⚠') ? `⚠ ${page.name}: ${msg.slice(2)}` : `${page.name}: ${msg}`);
+    const next = { ...t.rec, checkedAt: today, fails: 0 };
+    delete next.error;
+    saved.pages[page.id] = next;
     clear(alerts, `watchdown-${page.id}`);
   } catch (e) {
     rec.fails = (rec.fails || 0) + 1;
     rec.error = String(e.message || e);
-    lines.push(`⚠ ${page.name}: 開けませんでした（${rec.fails}日目）${rec.error}`);
-    if (rec.fails >= 3 || e.missing) {
+    const blocked = isBlocked(rec.error);
+    lines.push(`⚠ ${page.name}: 開けませんでした（${rec.fails}日目）${rec.error}${blocked ? `（公式サイトが自動のアクセスを断っています。${BLOCKED_DAYS}日続いたら知らせます）` : ''}`);
+    if (rec.fails >= (blocked ? BLOCKED_DAYS : 3) || e.missing) {
       const issue = downIssue(page, rec.error, rec.fails, { missing: !!e.missing });
       raise(alerts, issue.key, issue.title, issue.body);
     }
@@ -103,9 +111,13 @@ for (const page of watch.pages || []) {
   await sleep(1000);
 }
 
-// 見張りの設定から消したページの記録は捨てる
+// 見張りの設定から消したページの記録は捨てる（開けないことを知らせる Issue が開いていれば閉じる）
 const ids = new Set((watch.pages || []).map((p) => p.id));
-for (const id of Object.keys(saved.pages)) if (!ids.has(id)) delete saved.pages[id];
+for (const id of Object.keys(saved.pages)) {
+  if (ids.has(id)) continue;
+  delete saved.pages[id];
+  clear(alerts, `watchdown-${id}`, 'このページを公式ページの見張りから外したので、この Issue を閉じます。');
+}
 
 /* ---------------- 新しいジャンボ宝くじの自動登録 ---------------- */
 

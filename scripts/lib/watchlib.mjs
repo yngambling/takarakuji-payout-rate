@@ -5,6 +5,16 @@ import { HOW_TO_FIX } from './alerts.mjs';
 import { fmtShort, yenJa } from './util.mjs';
 import { weekWith7, knownRounds, specialOf, payoutVerdict, ruleVerdict, addDaysIso } from './special.mjs';
 
+/**
+ * お知らせ・キャンペーン・申し込み特典の行。ポイント・支払い方法・購入場所のページでは、比べる行から外す。
+ * 入れ替わりが多く、率や購入場所とは関係しないため（2026年10月までの「内容が変わりました」の Issue は、すべてお知らせやキャンペーンの行の入れ替えか、1日だけのメンテナンス中の表示だった）。
+ * 「ご利用いただけません」「メンテナンス」は、支払い方法の決まり（家族カードは使えない など）にも出てくるので外さない（1日だけの表示は、次の日も変わったままかで見分ける）
+ */
+export const NOTICE_RE = /キャンペーン|エントリー|もれなく|山分け|抽せんで|抽選で|プレゼント|期間限定|混み合|繋がりにくい|つながりにくい|ご迷惑|お申し?込みで|ご入会で|新規入会/;
+const NOTICE_KINDS = new Set(['point', 'pay', 'shop']);
+/** 前に記録した行にも、同じ決まりを当てる（決まりを変えたときに、外した行だけの違いで知らせないため） */
+export const watchedLines = (page, lines = []) => (NOTICE_KINDS.has(page.kind) ? lines.filter((l) => !NOTICE_RE.test(l)) : lines);
+
 const DATE_RE = /(?:\d{4}\s*年\s*)?\d{1,2}\s*月\s*\d{1,2}\s*日(?:\s*[(（][^)）]{1,3}[)）])?|\d{4}[/.-]\d{1,2}[/.-]\d{1,2}|\d{1,2}:\d{2}/g;
 
 /**
@@ -19,6 +29,7 @@ const DATE_RE = /(?:\d{4}\s*年\s*)?\d{1,2}\s*月\s*\d{1,2}\s*日(?:\s*[(（][^)
 export function extractLines(html, page) {
   const text = htmlToText(html);
   const rule = page.kind === 'rule';
+  const notice = NOTICE_KINDS.has(page.kind);
   const max = rule ? 250 : 80;
   const keep = [];
   for (const raw of text.split('\n')) {
@@ -31,6 +42,7 @@ export function extractLines(html, page) {
       if (page.kind !== 'jumbo') line = line.replace(DATE_RE, '');
       if (rule) line = line.replace(/\d{4}\s*年(?!\s*\d{1,2}\s*月)/g, '').replace(/^キャリーオーバー[有無]\s*/, '');
       line = line.replace(/\s+/g, ' ').trim();
+      if (notice && NOTICE_RE.test(line)) continue; // お知らせ・キャンペーンの行は比べない
       if (line && (rule || !keep.includes(line))) keep.push(line);
       if (keep.length >= max) return keep;
     }
@@ -78,14 +90,15 @@ export function watchGate({ today, hh, lastRun = null, force = false }) {
 
 const KIND_TEXT = { point: 'ポイントの率', pay: '支払い方法', shop: '購入場所', jumbo: 'ジャンボ宝くじの発売', rule: 'くじのルール（1口の値段・賞金・当せん確率・1等の上限）' };
 
-export function changeIssue(page, before, after, today) {
+export function changeIssue(page, before, after, today, { merged = 0 } = {}) {
   const { removed, added } = diffLines(before, after);
   const list = (xs) => (xs.length ? xs.slice(0, 15).map((l) => `- ${l}`).join('\n') + (xs.length > 15 ? `\n- ほか${xs.length - 15}行` : '') : '- （なし）');
   return {
     key: `watch-${page.id}-${today}`,
     title: `【確認のお願い】${page.name}の内容が変わりました`,
     body: [
-      `毎日の自動チェックで、次の公式ページの「${KIND_TEXT[page.kind] || page.kind}」に関係する部分が変わりました。サイトの表示は、まだ何も変えていません。`,
+      `毎日の自動チェックで、次の公式ページの「${KIND_TEXT[page.kind] || page.kind}」に関係する部分が変わりました（次の日の見張りでも、変わったままでした）。サイトの表示は、まだ何も変えていません。`,
+      merged ? `同じページのまだ閉じていない Issue（${merged}件）は、この Issue にまとめて閉じました。下の行は、最初の変化の前の内容と比べたものです。` : null,
       '',
       `- ページ：[${page.name}](${page.url})`,
       `- 見直すファイル：\`${page.file}\`（${page.what}）`,
@@ -117,6 +130,7 @@ export const MISSING_ERROR = 'ページが見つかりません（公式サイ�
  */
 export function downIssue(page, error, fails, { missing = false } = {}) {
   const layout = !missing && /見張る行/.test(String(error));
+  if (!missing && isBlocked(error)) return blockedIssue(page, error, fails);
   return {
     key: `watchdown-${page.id}`,
     title: missing ? `【確認のお願い】${page.name}が見つかりません（URL が変わった可能性）`
@@ -141,7 +155,91 @@ export function downIssue(page, error, fails, { missing = false } = {}) {
   };
 }
 
+/**
+ * 公式サイトが、自動のアクセスを断ったとき（HTTP 401・403・429）。ページはあるので「URL が変わった」とは書かず、
+ * 断られる日が続いたとき（BLOCKED_DAYS 日）だけ知らせる。開けるようになると自動で閉じる
+ */
+export const isBlocked = (error) => /HTTP (?:401|403|429)\b/.test(String(error));
+export const BLOCKED_DAYS = 7;
+export function blockedIssue(page, error, fails) {
+  return {
+    key: `watchdown-${page.id}`,
+    title: `【お知らせ】${page.name}が自動チェックを断っています（サイトの表示には影響なし）`,
+    body: [
+      `毎日の自動チェックで次の公式ページを開こうとすると、${fails}日続けて「アクセスの拒否」が返りました。ページがなくなったのではなく、公式サイトが GitHub のサーバーからの自動のアクセスを断っていると考えられます。サイトの表示と還元率の計算には影響しません。`,
+      '',
+      `- ページ：[${page.name}](${page.url})`,
+      `- 応答：${error}`,
+      `- 見張っていた内容：${page.what}（\`${page.file}\`）`,
+      '',
+      '### やること',
+      `1. 上のページをブラウザで開き、${page.what}が変わっていないかを確かめます（URL を探す必要はありません）。`,
+      `2. 断られる状態が続くと、このページの変化は自動では分かりません。見張りをやめるときは、\`config/watch.json\` から \`${page.id}\` の行を消します（消すと、この Issue は自動で閉じます）。${page.kind === 'point' ? 'ポイントの率は、確認から90日たつと見直しのお願いが届くので、そこで確かめられます。' : ''}`,
+      '3. また開けるようになると、この Issue は自動で閉じます。',
+      '',
+      HOW_TO_FIX,
+    ].join('\n'),
+  };
+}
+
 const addDays = (iso, k) => new Date(Date.parse(`${iso}T00:00:00Z`) + k * 86400000).toISOString().slice(0, 10);
+const dayNo = (iso) => Math.round(Date.parse(`${iso}T00:00:00Z`) / 86400000);
+
+/** 変わり続けるページ（毎日ちがう内容）は、見つけてからこの日数で知らせる（1日だけの一時的な表示は知らせない） */
+export const PENDING_MAX_DAYS = 3;
+/** まだ閉じていない「内容が変わりました」の Issue を、まとめたり元に戻ったら閉じたりする対象にする日数 */
+export const ISSUE_KEEP_DAYS = 30;
+const BACK_NOTE = '自動チェックで、公式ページがこの Issue の前の内容に戻ったことを確認しました。一時的な変化だったと考えられるので、この Issue を閉じます。この Issue を見てファイルを直していたら、元に戻してください。';
+const MERGE_NOTE = '同じページで新しい変化があったので、新しい Issue にまとめました（最初の変化の前の内容と比べています）。この Issue は閉じます。';
+
+/**
+ * 公式ページの見張りの判断（通信しない部分）。data/watch.json の記録 rec と、今日取り出した行 got から、何をするかを決める。
+ *   same     … 前の日と同じ（前の日に見つけた変化が元に戻っていたら reverted：一時的な表示だったので知らせない）
+ *   pending  … 変化を見つけた。次の日も変わったままなら知らせる（メンテナンス中の表示など、1日だけの変化を知らせないため）
+ *   raise    … 次の日も変わったまま（または PENDING_MAX_DAYS 日変わり続けた）→「内容が変わりました」の Issue。
+ *              同じページのまだ閉じていない古い Issue は、新しい Issue にまとめて閉じる（比べるのは最初の変化の前の内容）
+ *   back     … まだ閉じていない Issue の前の内容に戻った → その Issue を閉じる
+ * closed … 閉じた Issue の key（読めなかったときは null。そのときは「元に戻った」の判断をしない）。
+ *          閉じた Issue（運営者や Claude が確かめたもの）は、確認済みとして記録から消す
+ * 戻り値：{ rec, action, issue?, close: [{ key, note }] }
+ */
+export function trackPage(page, rec = {}, got = [], { today, closed = null } = {}) {
+  const r = { ...rec };
+  const close = [];
+  const newHash = hashLines(got);
+  // 閉じた Issue と、30日より前の Issue は、確認済みとして外す（すべて外れたら「最初の変化の前の内容」も捨てる）
+  const fresh = (k) => { const m = String(k).match(/(\d{4}-\d{2}-\d{2})$/); return !m || dayNo(today) - dayNo(m[1]) <= ISSUE_KEEP_DAYS; };
+  if (r.issueKeys?.length) {
+    r.issueKeys = r.issueKeys.filter((k) => fresh(k) && !(closed && closed.has(k)));
+    if (!r.issueKeys.length) { delete r.issueKeys; delete r.base; }
+  }
+  const accept = () => { r.hash = newHash; r.lines = got; delete r.pending; };
+  if (!r.hash) { accept(); return { rec: r, action: 'first', close }; }
+  const prevLines = watchedLines(page, r.lines || []);
+  const prevHash = hashLines(prevLines);
+  if (newHash === prevHash) {
+    const action = r.pending ? 'reverted' : 'same';
+    accept();
+    return { rec: r, action, close };
+  }
+  if (closed && r.base && newHash === r.base.hash) {
+    for (const key of r.issueKeys || []) close.push({ key, note: BACK_NOTE });
+    delete r.base; delete r.issueKeys; accept();
+    return { rec: r, action: 'back', close };
+  }
+  if (r.pending && (r.pending.hash === newHash || dayNo(today) - dayNo(r.pending.since) >= PENDING_MAX_DAYS - 1)) {
+    const open = r.issueKeys || [];
+    for (const key of open) close.push({ key, note: MERGE_NOTE });
+    const issue = changeIssue(page, r.base?.lines || prevLines, got, today, { merged: open.length });
+    r.base ??= { hash: prevHash, lines: prevLines, since: r.pending.since };
+    r.issueKeys = [issue.key];
+    r.changedAt = today;
+    accept();
+    return { rec: r, action: 'raise', issue, close };
+  }
+  r.pending = { hash: newHash, lines: got, since: r.pending?.since || today };
+  return { rec: r, action: 'pending', close };
+}
 
 /** 最後のジャンボが売り終わってから、次のジャンボが登録されないまま何日たったら知らせるか（ふだんの間は35〜60日） */
 export const JUMBO_GAP_DAYS = 60;
