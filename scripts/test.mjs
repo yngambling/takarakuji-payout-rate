@@ -251,18 +251,50 @@ const renderT = createRenderer({
   preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
 });
 
-t('ポイント還元ランキング（2.0%が1位、銀行のロトは1口1ポイント）', () => {
+t('ポイント還元ランキング（2.2%が1位、銀行のロトは1口1ポイント）', () => {
   const html = renderT.point().html;
   assert.ok(html.includes('ポイント還元ランキング'));
   const first = html.indexOf('<tr class="first">');
   assert.ok(first > 0, '1位の行がある');
-  assert.ok(/楽天toto|ドコモスポーツくじ|宝くじ公式サイト/.test(html.slice(first, first + 600)), '1位は2.0%の買い方');
+  assert.ok(/楽天toto|ドコモスポーツくじ|宝くじ公式サイト/.test(html.slice(first, first + 600)), '1位は2.2%の買い方');
+  assert.ok(html.slice(first, first + 1200).includes('リクルートカードで払う場合') && html.includes('<span class="cu" data-to="2.2" data-dec="1">2.2</span><small>%</small>'), '1位は購入場所の1%＋リクルートカードの1.2%');
   assert.ok(html.includes('0.5%'), '楽天銀行のロト・ナンバーズ（200円で1ポイント）');
   const text = html.replace(/<script[\s\S]*?<\/script>/g, '');
   for (const bad of ['NaN', 'undefined', 'Infinity', '[object']) assert.ok(!text.includes(bad), `${bad} が出ている`);
-  // 還元率が1%より高いカード：ランキングには入れず、確かめ方と合わせて案内する。PayPay は前の月の条件で＋0.5%
-  assert.ok(html.includes('リクルートカードの1.2%など') && html.includes('<dt>還元率が1%より高いクレジットカードで払うと、もっとポイントが付きますか？</dt>'), '1%より高いカードの案内');
-  assert.ok(html.includes('その翌月は＋0.5%') && html.includes('https://www.jcb.co.jp/myjcb/pop/recruit-point.html'), 'PayPay の上乗せの条件と、カードの対象外の一覧の出典');
+  // リクルートカード：ランキングに入れ、くじの購入が対象か確かめるよう案内する。PayPay は前の月の条件で＋0.5%
+  assert.ok(html.includes('<dt>リクルートカードで払うと、ポイントは何%になりますか？</dt>') && html.includes('使う前にカード会社に確かめてください'), 'リクルートカードの案内');
+  assert.ok(html.includes('その翌月は＋0.5%') && html.includes('合計2.5%'), 'PayPay の上乗せの条件');
+  assert.equal(html.split('href="https://www.jcb.co.jp/myjcb/pop/recruit-point.html"').length - 1, 1, 'カードの対象外の一覧の出典（1回だけ）');
+  assert.ok(html.includes('<span class="pay">（PayPayクレジットで払う場合）</span>') && html.includes('支払いのポイントは、使った支払い方法の1つ分です'), '支払い方法のポイントは、どれか1つ');
+});
+
+const GD0 = await import('./lib/guide.mjs');
+t('支払い方法のポイント（pay）は、いちばん高いもの1つだけ足す・いちばん付く買い方の文', () => {
+  const mk = (pts) => createRenderer({
+    site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} },
+    links, points: pts, rows: rowsT, byId: Object.fromEntries(rowsT.map((r) => [r.id, r])), log: [], history: { days: {} },
+    catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])),
+    preview: false, placeholders: false, inlineCss: false, css: '', cssVersion: 'x',
+    guidePages: [GD0.parseGuide('---\ntitle: t\norder: 1\n---\nロト6：{{pt:loto6}}。BIG：{{pt:big}}。BIG1000：{{pt:big1000}}。\n', 'ptest.md')],
+  });
+  const page = (rd) => rd.guides().find((g) => g.path === 'guide/ptest.html').html;
+  // いまの設定：購入場所の1%に、支払い方法のうちいちばん高いリクルートカードの1.2%（PayPayクレジットの1.0%は足さない）
+  const now = page(mk(points));
+  assert.ok(now.includes('ロト6：宝くじ公式サイトをリクルートカードで払う方法（2.2%）。'), now.match(/ロト6：[^。]*。/)?.[0]);
+  assert.ok(now.includes('BIG：楽天toto・ドコモスポーツくじをリクルートカードで払う方法（どちらも2.2%）。'), now.match(/BIG：[^。]*。/)?.[0]);
+  assert.ok(now.includes('BIG1000：楽天totoをリクルートカードで払う方法（2.2%）。'), 'ドコモスポーツくじで買えないくじ');
+  // 目的別のおすすめ：支払い方法を決めたもの（dポイントを貯めている人は dカード）は、その率
+  const kk = mk(points).kaikata().html;
+  assert.ok(kk.includes('dカードで払うと、ポイントは合計2.0%。') && kk.includes('リクルートカードで払うと、ポイントは合計2.2%。'), '目的別のおすすめの率');
+  // リクルートカードの部分を消すと、元の買い方（2.0%）に戻る。払い方の違う買い方が並ぶときは「と、」でつなぐ
+  const noRecruit = JSON.parse(JSON.stringify(points));
+  for (const rt of noRecruit.routes) rt.parts = rt.parts.filter((p) => p.name !== 'リクルートポイント');
+  const old = page(mk(noRecruit));
+  assert.ok(old.includes('ロト6：宝くじ公式サイトをPayPayクレジットで払う方法（2.0%）。'), old.match(/ロト6：[^。]*。/)?.[0]);
+  assert.ok(old.includes('BIG：楽天totoを楽天カードで払う方法と、ドコモスポーツくじをdカードで払う方法（どちらも2.0%）。'), old.match(/BIG：[^。]*。/)?.[0]);
+  // スポーツくじオフィシャルサイト：リクルートカードがなければ「カードのポイント」（＋α）のまま
+  const nr = mk(noRecruit).point().html;
+  assert.ok(nr.includes('支払いに使うカードのポイントが付く') && nr.includes('<span class="sub">＋カードのポイント</span>'), '率の分からないカードだけの買い方');
 });
 
 t('期間限定のキャンペーン（config/campaigns.json：くじ別ページの購入場所の下・ポイント還元ランキング・期間が過ぎたら消える）', () => {
@@ -481,7 +513,7 @@ t('くじ別ページの解説とよくある質問（data/guides.json）', () =
     const r = rowsT.find((x) => x.id === id);
     if (!r || r.def.model === 'none') continue;
     const h = rg.game(r).html;
-    assert.ok(h.includes(`<h2 id="about">`) && h.includes('<div class="guide">') && !h.includes('**') && !/NaN|undefined/.test(h.replace(/<script[\s\S]*?<\/script>/g, '')), `${id} のページ`);
+    assert.ok(h.includes(`<h2 id="about">`) && h.includes('<div class="guide">') && !h.includes('**') && !h.includes('{{') && !/NaN|undefined/.test(h.replace(/<script[\s\S]*?<\/script>/g, '')), `${id} のページ`);
     assert.ok(!h.includes('キャリーオーバー0円を含めて計算'), `${id} の説明文（キャリーオーバーが0円なら「いまはキャリーオーバーなし」）`);
   }
   // ジャンボ以外のくじ：題名に「当選確率」（キャリーオーバーのあるくじは「キャリーオーバー」も）、説明文に1等の当選確率、よくある質問の先頭に当選確率
@@ -1359,7 +1391,7 @@ t('ジャンボの自動登録のページ（確認待ちの注記・自動の�
   assert.ok(html.includes('<h2 id="about">年末ジャンボミニの特徴と還元率</h2>') && html.includes('gd-card gd-odds') && html.includes('100万分の1'), '自動の解説');
   assert.ok(html.includes('<dt>年末ジャンボミニはいつまで買えますか？</dt>') && html.includes('"@type":"FAQPage"'), '自動のよくある質問');
   assert.ok(html.includes('2026年11月5日の宝くじ公式サイトの発表をもとに自動で作成しています'), '自動の解説の注記');
-  assert.ok(html.includes('宝くじ公式サイトをPayPayクレジットで払う方法（2.0%）'), 'ポイントが一番多い買い方');
+  assert.ok(html.includes('宝くじ公式サイトをリクルートカードで払う方法（2.2%）'), 'ポイントが一番多い買い方');
   assert.ok(html.includes('みずほ銀行') && html.includes('href="https://www.takarakuji-official.jp/"'), '購入先（config/links.json の jumboDefault）');
   assert.ok(html.includes(NEWS26.url), '出典に公式発表');
   for (const bad of ['NaN', 'undefined', 'Infinity', '[object', '**']) assert.ok(!text.includes(bad), `${bad} が出ている`);

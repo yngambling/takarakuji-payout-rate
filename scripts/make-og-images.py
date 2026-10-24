@@ -50,6 +50,7 @@ IMAGES = {
     'jumbo-summer': (['サマー', 'ジャンボ'], 'tickets', None, 'gold'),
     'jumbo-dream': (['ドリーム', 'ジャンボ'], 'tickets', None, 'gold'),
     'jumbo-valentine': (['バレンタイン', 'ジャンボ'], 'tickets', None, 'gold'),
+    'quickone': (['クイック', 'ワン'], 'phone', None, 'red'),
 }
 
 CX = 915  # 絵の真ん中（横）
@@ -331,6 +332,54 @@ def draw_tickets(img, fpath):
         img.alpha_composite(t, (x, y))
 
 
+def bolt(d, x, y, k, fill):
+    """いなずま（すぐ結果が分かる印）"""
+    pts = [(15, 0), (2, 24), (12, 24), (6, 44), (24, 16), (13, 16), (20, 0)]
+    d.polygon([(s(x + px * k), s(y + py * k)) for px, py in pts], fill=fill)
+
+
+def draw_phone(img):
+    """スマホの画面に、当たりの星と、めくった券（クイックワン：ネットで買って、その場で結果が分かる）"""
+    w, h, r = 252, 440, 40
+    x0, y0 = CX - w / 2, 340 - h / 2
+    shadow(img, lambda d, c: d.rounded_rectangle([s(x0), s(y0), s(x0 + w), s(y0 + h)], radius=s(r), fill=c), blur=10, offset=(6, 12), alpha=95)
+    d = ImageDraw.Draw(img)
+    d.rounded_rectangle([s(x0), s(y0), s(x0 + w), s(y0 + h)], radius=s(r), fill=NAVY)
+    sx0, sy0, sx1, sy1 = x0 + 14, y0 + 40, x0 + w - 14, y0 + h - 34
+    d.rounded_rectangle([s(sx0), s(sy0), s(sx1), s(sy1)], radius=s(18), fill=GOLD_SOFT)
+    d.rounded_rectangle([s(CX - 30), s(y0 + 17), s(CX + 30), s(y0 + 25)], radius=s(4), fill='#3b4b6b')
+    d.rounded_rectangle([s(CX - 40), s(y0 + h - 20), s(CX + 40), s(y0 + h - 13)], radius=s(4), fill='#3b4b6b')
+    # 当たりの星と、光
+    cy = sy0 + 118
+    rays = layer()
+    rd = ImageDraw.Draw(rays)
+    for i in range(12):
+        a = i * math.pi / 6 + math.pi / 12
+        p1 = (CX + 66 * math.cos(a - 0.12), cy + 66 * math.sin(a - 0.12))
+        p2 = (CX + 102 * math.cos(a), cy + 102 * math.sin(a))
+        p3 = (CX + 66 * math.cos(a + 0.12), cy + 66 * math.sin(a + 0.12))
+        rd.polygon([(s(x), s(y)) for x, y in (p1, p2, p3)], fill=(242, 177, 0, 150))
+    img.alpha_composite(rays)
+    d = ImageDraw.Draw(img)
+    star(d, CX, cy + 4, 74, 32, GOLD)
+    star(d, CX, cy + 4, 44, 19, '#ffd84d')
+    # めくった券：3枚のうち1枚が当たり
+    tw, th, gap = 58, 74, 12
+    ty = sy1 - th - 26
+    for i in range(3):
+        tx = CX - (3 * tw + 2 * gap) / 2 + i * (tw + gap)
+        hit = i == 1
+        d.rounded_rectangle([s(tx), s(ty), s(tx + tw), s(ty + th)], radius=s(10), fill=RED if hit else WHITE, outline=None if hit else '#e2d6b0', width=s(3))
+        if hit:
+            star(d, tx + tw / 2, ty + th / 2 + 2, 20, 9, GOLD)
+        else:
+            d.rounded_rectangle([s(tx + 12), s(ty + th / 2 - 4), s(tx + tw - 12), s(ty + th / 2 + 4)], radius=s(4), fill='#e2d6b0')
+    # いなずまと、きらきら
+    bolt(d, x0 + w - 6, y0 - 34, 2.6, GOLD)
+    for (px, py, ro) in [(x0 - 52, y0 + 64, 22), (x0 + w + 58, y0 + h - 120, 16), (x0 - 30, y0 + h - 70, 12)]:
+        star(d, px, py, ro, ro * 0.38, WHITE)
+
+
 def make(key, fpath):
     lines, kind, spec, bg = IMAGES[key]
     img = layer()
@@ -347,6 +396,8 @@ def make(key, fpath):
         draw_basket(img, spec)
     elif kind == 'tickets':
         draw_tickets(img, fpath)
+    elif kind == 'phone':
+        draw_phone(img)
     brand(img, bg, fpath)
     title(img, bg, lines, fpath)
     out = img.convert('RGB').resize((W, H), Image.LANCZOS)

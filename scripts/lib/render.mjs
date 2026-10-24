@@ -68,11 +68,14 @@ const md = (iso) => `${+iso.slice(5, 7)}/${+iso.slice(8, 10)}`;
 const CROWN = '<svg class="crown" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M2.3 7.4l5.1 4.1L12 4.3l4.6 7.2 5.1-4.1-2.1 11.6H4.4z"/><rect fill="currentColor" x="4.4" y="20" width="15.2" height="2.3" rx=".6"/></svg>';
 const CLOCK = '<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.2" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="M12 6.8V12l3.6 2.2" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
 
-/** 「目的別のおすすめ」（購入場所のページ）。route は config/points.json の id */
+/**
+ * 「目的別のおすすめ」（購入場所のページ）。route は config/points.json の id。
+ * pay を書くと、その支払い方法で払ったときの率を書く（書かなければ、いちばんポイントが付く支払い方法）
+ */
 const PICKS = [
   { title: 'ジャンボもロトも1か所で買いたい', route: 'takarakuji' },
   { title: 'BIG・DUNKをポイント重視で買いたい', route: 'rakuten_toto' },
-  { title: 'dポイントを貯めている', route: 'docomo_toto' },
+  { title: 'dポイントを貯めている', route: 'docomo_toto', pay: 'dカードで払う' },
   { title: '銀行口座ひとつにまとめたい', route: 'rakutenbank_toto' },
 ];
 
@@ -155,28 +158,40 @@ export function createRenderer(ctx) {
 
   const partRate = (p, price) => (Number.isFinite(p.rate) ? p.rate : Number.isFinite(p.perUnit) && price > 0 ? p.perUnit / price : null);
 
-  /** その買い方で、あるくじを買ったときのポイント還元率（分かっている分だけ足す） */
-  function routeRateFor(rt, gid) {
+  /**
+   * その買い方で、あるくじを買ったときのポイント還元率（分かっている分だけ足す）。
+   * 支払い方法のポイント（parts の pay がある項目。PayPayクレジット・楽天カード・リクルートカードなど）は、
+   * どれか1つで払うので、いちばん高いものだけを足す。how は、その支払い方法の説明（pay がなければ route の how）
+   */
+  function routeRateFor(rt, gid, onlyPay = null) {
     const price = ctx.defs[gid]?.price || 0;
     let rate = 0;
     let plus = false;
+    let pay = null;
+    let payUnknown = false;
     for (const p of rt.parts || []) {
       const v = partRate(p, price);
+      if (p.pay && onlyPay && p.pay !== onlyPay) continue; // 支払い方法を決めたとき（目的別のおすすめ）は、それだけ
+      if (p.pay) { if (v == null) payUnknown = true; else if (!pay || v > pay.v + 1e-12) pay = { v, p }; continue; }
       if (v == null) plus = true; else rate += v;
     }
+    // 率の分かる支払い方法があれば、そのいちばん高いもの。率の分からない支払い方法（ほかのカード）しかなければ「＋α」
+    if (pay) rate += pay.v; else if (payUnknown) plus = true;
     for (const c of campaigns) if (c.route === rt.id && Number.isFinite(c.rate) && (!c.games || c.games.includes(gid))) rate += c.rate;
-    return { rate, plus };
+    return { rate, plus, how: pay ? pay.p.pay : rt.how || '' };
   }
 
-  /** 買い方の最大のポイント還元率（買えるくじのうち一番高いもの） */
-  function routeMax(rt) {
-    let best = { rate: 0, plus: false };
+  /** 買い方の最大のポイント還元率（買えるくじのうち一番高いもの）。onlyPay … 支払い方法を決めるとき（pay の文） */
+  function routeMax(rt, onlyPay = null) {
+    let best = { rate: 0, plus: false, how: rt.how || '' };
     for (const gid of shopGames[rt.shop] || []) {
-      const x = routeRateFor(rt, gid);
+      const x = routeRateFor(rt, gid, onlyPay);
       if (x.rate > best.rate || (x.rate === best.rate && x.plus)) best = x;
     }
     return best;
   }
+  /** 支払い方法のポイントが2つ以上ある買い方（「どれか1つ」と添える） */
+  const payCount = (rt) => (rt.parts || []).filter((p) => p.pay).length;
 
   const bestCache = {};
   /** そのくじを一番ポイントが付く買い方で買ったとき */
@@ -193,6 +208,30 @@ export function createRenderer(ctx) {
     return best;
   }
   const effRate = (r) => r.rate + (bestRoute(r.id)?.rate || 0);
+
+  /**
+   * そのくじでポイントがいちばん付く買い方の説明（同じ率の買い方は全部）。解説の文に使う：
+   *   「宝くじ公式サイトをPayPayクレジットで払う方法（2.0%）」「楽天toto・ドコモスポーツくじをリクルートカードで払う方法（どちらも2.2%）」
+   *   「楽天totoを楽天カードで払う方法と、ドコモスポーツくじをdカードで払う方法（どちらも2.0%）」。ポイントが付く買い方がなければ空
+   */
+  function bestPointText(gid) {
+    const list = [];
+    for (const rt of routes) {
+      if (!(shopGames[rt.shop] || []).includes(gid)) continue;
+      const x = routeRateFor(rt, gid);
+      if (x.rate > 0) list.push({ rt, ...x });
+    }
+    if (!list.length) return '';
+    const top = Math.max(...list.map((x) => x.rate));
+    const tops = list.filter((x) => x.rate > top - 1e-9);
+    const name = (x) => shops[x.rt.shop]?.name || x.rt.shop;
+    const way = (names, how) => `${names}${how ? `を${how}方法` : 'で買う方法'}`;
+    const hows = [...new Set(tops.map((x) => x.how))];
+    const body = hows.length === 1 ? way(tops.map(name).join('・'), hows[0]) : tops.map((x) => way(name(x), x.how)).join('と、');
+    return `${body}（${tops.length > 2 ? 'いずれも' : tops.length === 2 ? 'どちらも' : ''}${fmtPt(top)}）`;
+  }
+  /** data/guides.json の文の {{pt}} を、そのくじでポイントがいちばん付く買い方に置き換える（ポイントの率が変わっても文を直さなくてよいように） */
+  const gdFill = (text, gid) => String(text).replace(/\{\{pt\}\}/g, () => bestPointText(gid) || 'ポイント還元ランキングで比べている買い方');
 
   const routesRanked = routes.map((rt) => ({ rt, ...routeMax(rt) }))
     .sort((a, b) => b.rate - a.rate || (b.plus ? 0 : 1) - (a.plus ? 0 : 1) || (shopGames[b.rt.shop]?.length || 0) - (shopGames[a.rt.shop]?.length || 0));
@@ -553,10 +592,10 @@ ${about.map((a) => {
     if (keys[0] && signups[keys[0]]?.kind === 'site' && !s.affiliate && !compact) btns.splice(1, 0, signupBtn(keys[0], 'btn-ghost'));
     return `<article class="rt-card">
 <div class="rt-top">${x.rate > 0 ? `<span class="rt-lbl">ポイント最大</span><span class="num">${cuPct(x.rate)}<small>%</small></span>${x.plus ? '<span class="rt-plus">＋α</span>' : ''}` : '<span class="rt-lbl">ポイント</span><span class="rt-none">支払いに使うカードのポイントが付く</span>'}</div>
-<p class="rt-name">${esc(s.name)}${rt.how ? `<span>× ${esc(rt.how)}</span>` : ''}</p>
+<p class="rt-name">${esc(s.name)}${x.how ? `<span>× ${esc(x.how)}</span>` : ''}</p>
 <p class="rt-games">${esc(games)}</p>
 <p class="rt-desc">${esc(rt.feature || '')}</p>
-${compact ? '' : `<ul class="parts">${(rt.parts || []).map((p) => { const v = partRate(p, Math.min(...(shopGames[rt.shop] || []).map((g) => ctx.defs[g].price))); return `<li><b>${v == null ? '＋α' : fmtPt(v)}</b><span>${esc(p.name)}<span class="sub">${esc(p.detail || '')}</span></span></li>`; }).join('')}</ul>`}
+${compact ? '' : `<ul class="parts">${(rt.parts || []).map((p) => { const v = partRate(p, Math.min(...(shopGames[rt.shop] || []).map((g) => ctx.defs[g].price))); return `<li><b>${v == null ? '＋α' : fmtPt(v)}</b><span>${esc(p.name)}${p.pay && payCount(rt) > 1 ? `<span class="pay">（${esc(p.pay)}場合）</span>` : ''}<span class="sub">${esc(p.detail || '')}</span></span></li>`; }).join('')}</ul>${payCount(rt) > 1 ? '<p class="pay-note">支払いのポイントは、使った支払い方法の1つ分です</p>' : ''}`}
 ${prNote(`<div class="btns">${btns.join('')}</div>`)}
 </article>`;
   }
@@ -566,7 +605,7 @@ ${prNote(`<div class="btns">${btns.join('')}</div>`)}
   function sidebar(rel, ads = true) {
     const top5 = listed.slice(0, 5).map((r) => `<li><a href="${rel}kuji/${r.id}.html">${rankMark(rankOf[r.id])}<span>${esc(r.def.name)}</span><span class="val">${pct(r.rate)}</span></a></li>`).join('');
     const cos = coList.map((r) => `<li><a href="${rel}kuji/${r.id}.html"><span>${esc(r.def.name)}</span><span class="val small">${yen(r.carryover)}</span></a></li>`).join('');
-    const pts = topRoutes.slice(0, 3).map((x) => `<li><a href="${rel}point.html">${rankMark(routeRank(x))}<span>${esc(shops[x.rt.shop].name)}<span class="sub">${esc(x.rt.how || '')}</span></span><span class="val">${fmtPt(x.rate)}</span></a></li>`).join('');
+    const pts = topRoutes.slice(0, 3).map((x) => `<li><a href="${rel}point.html">${rankMark(routeRank(x))}<span>${esc(shops[x.rt.shop].name)}<span class="sub">${esc(x.how || '')}</span></span><span class="val">${fmtPt(x.rate)}</span></a></li>`).join('');
     const all = rows.filter((r) => r.computable && !isPastJumbo(r.def, now.iso)).sort((a, b) => ctx.order[a.id] - ctx.order[b.id])
       .map((r) => `<li><a href="${rel}kuji/${r.id}.html"><span>${esc(r.def.name)}</span><span class="val">${pct(r.rate)}</span></a></li>`).join('');
     return `<aside class="side" aria-label="サイドバー">
@@ -909,7 +948,7 @@ ${sparse ? `<p class="note">記録があるのは${fmtShort(pts[0].d)}以降で�
   function pointFaqAnswer() {
     const tops = topRoutes.filter((x) => Math.abs(x.rate - (topRoutes[0]?.rate || 0)) < 1e-9);
     if (!tops.length) return 'ポイント還元ランキングのページで、購入場所ごとのポイントを比べています。';
-    return `${fmtYmd(checkedOn).replace(/（.）/, '')}に確認した時点では、${tops.map((x) => `${shops[x.rt.shop].name}（${x.rt.how || '通常の支払い'}）`).join('、')}が購入額の${fmtPt(tops[0].rate)}でいちばん高くなっています。購入場所ごとの比較はポイント還元ランキングのページにまとめています。`;
+    return `${fmtYmd(checkedOn).replace(/（.）/, '')}に確認した時点では、${tops.map((x) => `${shops[x.rt.shop].name}（${x.how || '通常の支払い'}）`).join('、')}が購入額の${fmtPt(tops[0].rate)}でいちばん高くなっています。購入場所ごとの比較はポイント還元ランキングのページにまとめています。`;
   }
 
   function faqItems() {
@@ -1144,9 +1183,7 @@ ${row('発売総数', ...both((x) => `${yen(x.totalTickets).replace(/円$/, '')}
     // くじごとの解説とよくある質問（data/guides.json。書いてあるくじだけ出す。書いていないジャンボは賞金表から作る）
     let gd = guides[r.id];
     if (!gd && isJumbo(d)) {
-      const pr = bestRoute(r.id);
-      const pointText = pr ? `${shops[pr.route.shop]?.name || pr.route.shop}${pr.route.how ? `を${pr.route.how}方法` : 'で買う方法'}（${fmtPt(pr.rate)}）` : '';
-      gd = autoGuide(d, { rate: ev.computable ? r.rate : null, point: pointText, sibling: sib });
+      gd = autoGuide(d, { rate: ev.computable ? r.rate : null, point: bestPointText(r.id), sibling: sib });
     }
     gd ||= {};
     // 公式発表から自動で登録・更新したジャンボは、手で書いた解説でも、公式発表の日を出す
@@ -1154,8 +1191,9 @@ ${row('発売総数', ...both((x) => `${yen(x.totalTickets).replace(/円$/, '')}
     const gdNote = gd.auto ? gd.note
       : d.autoFrom && (gd.note || !(gd.checkedOn > (d.autoFrom.on || ''))) ? autoSourceNote(d)
         : gd.note || (gd.checkedOn ? `※しくみと数値は、${fmtYmd(gd.checkedOn)}に公式の発表で確認したものです。` : '');
-    const about = (gd.about || []).map((a) => (typeof a === 'string' ? { text: a } : a)).filter((a) => typeof a?.text === 'string' && a.text.trim());
-    const faq = (gd.faq || []).filter((x) => x?.q && x?.a).map((x) => [x.q, x.a]);
+    const about = (gd.about || []).map((a) => (typeof a === 'string' ? { text: a } : a)).filter((a) => typeof a?.text === 'string' && a.text.trim())
+      .map((a) => ({ ...a, text: gdFill(a.text, r.id) }));
+    const faq = (gd.faq || []).filter((x) => x?.q && x?.a).map((x) => [x.q, gdFill(x.a, r.id)]);
     // 手で書いた解説のジャンボにも、賞金表から計算する質問（何枚買えば当たるか・ミニとどちらが当たりやすいか）を足す
     if (isJumbo(d) && !gd.auto && faq.length) for (const f of dynamicFaq(d, { sibling: sib })) if (!faq.some(([q]) => q === f.q)) faq.push([f.q, f.a]);
     // ジャンボ以外で解説のあるくじは、「当選確率はどれくらい？」を先頭に足す（「ロト6 確率」のように探す人が多いため。数字は等級の表から）
@@ -1179,7 +1217,7 @@ ${row('発売総数', ...both((x) => `${yen(x.totalTickets).replace(/円$/, '')}
     if (fp) tiles.push(['1等の金額', `${yen(fp.amount)}${fp.note ? `<small>${esc(fp.note)}</small>` : ''}`]);
     if (fp) tiles.push(['1等の当せん確率', `${odds(fp.p)}<small>${probPct(fp.p)}</small>`]);
     tiles.push(['次の回', `${esc(r.status.short || r.status.text)}${cdHtml(r) ? `<small>${cdHtml(r)}</small>` : r.status.shortSub ? `<small>${esc(r.status.shortSub)}</small>` : ''}`]);
-    if (br) tiles.push(['ポイント込みの還元率', `<span class="ptv">${pct(effRate(r))}</span><small>${esc(shops[br.route.shop].name)}${br.route.how ? `で買って${esc(br.route.how)}と` : 'で買うと'}＋${fmtPt(br.rate)}</small>`]);
+    if (br) tiles.push(['ポイント込みの還元率', `<span class="ptv">${pct(effRate(r))}</span><small>${esc(shops[br.route.shop].name)}${br.how ? `で買って${esc(br.how)}と` : 'で買うと'}＋${fmtPt(br.rate)}</small>`]);
 
     const kv = [];
     if (r.salesEst && d.model === 'parimutuel') kv.push(['想定する販売額', `${yen(r.salesEst)}<span class="sub">${esc(r.salesNote)}</span>`]);
@@ -1422,7 +1460,7 @@ ${ad('bottom')}
 
   function shopPointCell(sid) {
     const x = shopPoint(sid);
-    if (x && x.rate > 0) return `<b class="ptv">${fmtPt(x.rate)}${x.plus ? '＋α' : ''}</b>${routeByShop[sid].how ? `<span class="sub">${esc(routeByShop[sid].how)}場合</span>` : ''}`;
+    if (x && x.rate > 0) return `<b class="ptv">${fmtPt(x.rate)}${x.plus ? '＋α' : ''}</b>${x.how ? `<span class="sub">${esc(x.how)}場合</span>` : ''}`;
     if (x && x.plus) return '<span class="sub">カードのポイント</span>';
     return '<span class="sub">—</span>';
   }
@@ -1465,7 +1503,8 @@ ${trs}
       if (!x) return '';
       const s = shops[x.rt.shop];
       const keys = (x.rt.signups || []).filter((k) => signups[k] && signups[k].kind !== 'site');
-      const rateLine = x.rate > 0 ? (x.rt.how ? `${x.rt.how}と、ポイントは合計${fmtPt(x.rate)}。` : `ポイントは購入額の${fmtPt(x.rate)}。`) : '';
+      const y = p.pay ? routeMax(x.rt, p.pay) : x; // 支払い方法を決めたおすすめ（dポイントを貯めている人は dカード など）
+      const rateLine = y.rate > 0 ? (y.how ? `${y.how}と、ポイントは合計${fmtPt(y.rate)}。` : `ポイントは購入額の${fmtPt(y.rate)}。`) : '';
       return `<article class="pick"><p class="pick-q">${esc(p.title)}</p><p class="pick-a">${esc(s.name)}${x.rate > 0 ? `<span class="ptb">ポイント最大${fmtPt(x.rate)}</span>` : ''}</p><p>${esc(x.rt.feature || '')}。${esc(rateLine)}</p>${prNote(`<div class="btns">${aBtn({ url: s.url, affiliate: !!s.affiliate }, 'btn-sub', `${s.name}へ`)}${keys.map((k) => signupBtn(k, 'btn-sub')).join('')}</div>`)}</article>`;
     }).join('');
     const nShops = shopIds.length;
@@ -1533,25 +1572,23 @@ ${ad('bottom')}
     const ranking = routesRanked.map((x) => {
       const s = shops[x.rt.shop];
       const priceMin = Math.min(...(shopGames[x.rt.shop] || []).map((g) => ctx.defs[g].price));
-      const parts = (x.rt.parts || []).map((p) => { const v = partRate(p, priceMin); return `<li><b>${v == null ? '＋α' : fmtPt(v)}</b>${esc(p.name)}</li>`; }).join('');
+      const parts = (x.rt.parts || []).map((p) => { const v = partRate(p, priceMin); return `<li><b>${v == null ? '＋α' : fmtPt(v)}</b>${esc(p.name)}${p.pay && payCount(x.rt) > 1 ? `<span class="pay">（${esc(p.pay)}場合）</span>` : ''}</li>`; }).join('');
       const btns = [aBtn({ url: s.url, affiliate: !!s.affiliate }, 'btn-mini first', `${s.short || s.name}へ`), ...(x.rt.signups || []).filter((k) => signups[k] && signups[k].kind !== 'site').map((k) => signupBtn(k, 'btn-mini', signups[k].kind === 'bank' ? '口座を開く' : `${signups[k].name}を見る`))].join('');
-      return `<tr${routeRank(x) === 1 && x.rate > 0 ? ' class="first"' : ''}><td class="c">${x.rate > 0 ? rankMark(routeRank(x)) : '<span class="sub">—</span>'}</td><td><b class="gname">${esc(s.name)}</b>${x.rt.how ? `<span class="sub">${esc(x.rt.how)}場合</span>` : ''}</td><td class="c"><span class="rate${x.rate >= 0.015 ? ' hi' : ''}">${x.rate > 0 ? fmtPt(x.rate) : '—'}</span>${x.plus ? '<span class="sub">＋カードのポイント</span>' : ''}</td><td><ul class="parts-mini">${parts}</ul>${x.rt.base ? `<span class="sub">${esc(x.rt.base)}</span>` : ''}</td><td>${esc(gamesLabel(shopGames[x.rt.shop] || []))}</td><td class="lk">${btns}</td></tr>`;
+      return `<tr${routeRank(x) === 1 && x.rate > 0 ? ' class="first"' : ''}><td class="c">${x.rate > 0 ? rankMark(routeRank(x)) : '<span class="sub">—</span>'}</td><td><b class="gname">${esc(s.name)}</b>${x.how ? `<span class="sub">${esc(x.how)}場合</span>` : ''}</td><td class="c"><span class="rate${x.rate >= 0.015 ? ' hi' : ''}">${x.rate > 0 ? fmtPt(x.rate) : '—'}</span>${x.plus ? '<span class="sub">＋カードのポイント</span>' : ''}</td><td><ul class="parts-mini">${parts}</ul>${x.rt.base ? `<span class="sub">${esc(x.rt.base)}</span>` : ''}</td><td>${esc(gamesLabel(shopGames[x.rt.shop] || []))}</td><td class="lk">${btns}</td></tr>`;
     }).join('\n');
     const noPts = [...noPoint].filter((sid) => shops[sid] && shopGames[sid]?.length);
     const eff = [...listed].map((r) => ({ r, br: bestRoute(r.id) })).sort((a, b) => effRate(b.r) - effRate(a.r) || ctx.order[a.r.id] - ctx.order[b.r.id]);
     const effRows = eff.map(({ r, br }, i) => {
       const l = br ? shopLinks(r.id).find((x) => x.key === br.route.shop) : null;
-      return `<tr${i === 0 ? ' class="first"' : ''} data-kuji="${r.id}"><td class="c">${rankMark(1 + eff.filter((y) => Math.round(effRate(y.r) * 1000) > Math.round(effRate(r) * 1000)).length)}</td><td><a class="gname" href="${rel}kuji/${r.id}.html">${esc(r.def.name)}</a></td><td class="r">${pct(r.rate)}</td><td class="r">${br ? `＋${fmtPt(br.rate)}` : '—'}</td><td class="r"><span class="rate${effRate(r) >= 0.5 ? ' hi' : ''}">${pct(effRate(r))}</span></td><td>${br ? `${esc(shops[br.route.shop].name)}${br.route.how ? `<span class="sub">${esc(br.route.how)}</span>` : ''}` : '—'}</td><td class="lk">${l ? aBtn(l, 'btn-mini first', `${l.short}で買う`) : ''}</td></tr>`;
+      return `<tr${i === 0 ? ' class="first"' : ''} data-kuji="${r.id}"><td class="c">${rankMark(1 + eff.filter((y) => Math.round(effRate(y.r) * 1000) > Math.round(effRate(r) * 1000)).length)}</td><td><a class="gname" href="${rel}kuji/${r.id}.html">${esc(r.def.name)}</a></td><td class="r">${pct(r.rate)}</td><td class="r">${br ? `＋${fmtPt(br.rate)}` : '—'}</td><td class="r"><span class="rate${effRate(r) >= 0.5 ? ' hi' : ''}">${pct(effRate(r))}</span></td><td>${br ? `${esc(shops[br.route.shop].name)}${br.how ? `<span class="sub">${esc(br.how)}</span>` : ''}` : '—'}</td><td class="lk">${l ? aBtn(l, 'btn-mini first', `${l.short}で買う`) : ''}</td></tr>`;
     }).join('\n');
     const allSources = [];
     for (const x of routesRanked) for (const s of x.rt.sources || []) if (!allSources.some((y) => y.url === s.url)) allSources.push(s);
-    allSources.push(
+    for (const s of [
       { title: '利用できるクレジットカード発行会社の上限金額（宝くじ公式サイト よくあるご質問）', url: 'https://www.takarakuji-official.jp/contact/faq/kfaq/kfaq04/detail-0013.html' },
       { title: '宝くじポイントの獲得（宝くじ公式サイト よくあるご質問）', url: 'https://www.takarakuji-official.jp/contact/faq/pfaq/detail-2019073002.html' },
       { title: '提携サイトで購入（スポーツくじオフィシャルサイト）', url: 'https://www.toto-dream.com/big/buy/teikei/' },
-      { title: 'リクルートカード（ポイント還元率1.2%）', url: 'https://recruit-card.jp/' },
-      { title: 'リクルートポイントの対象とならないご利用分（JCB）', url: 'https://www.jcb.co.jp/myjcb/pop/recruit-point.html' },
-    );
+    ]) if (!allSources.some((y) => y.url === s.url)) allSources.push(s);
     const faqs = [
       ['ポイントがいちばん付く買い方は？', pointFaqAnswer()],
       ['ポイントサイトを経由すると、くじの購入でもポイントがもらえますか？', `当サイトが${fmtYmd(checkedOn).replace(/（.）/, '')}に調べた範囲では、宝くじやスポーツくじの購入そのものでポイントがもらえるポイントサイトの案件は見つかりませんでした。購入場所のポイントと、支払い方法のポイントの2つを組み合わせるのが基本です。`],
@@ -1559,7 +1596,7 @@ ${ad('bottom')}
       ['宝くじポイントは何に使えますか？', '1ポイント＝1円として、宝くじ公式サイト（1ポイント単位）と宝くじ売り場（100ポイント単位）での宝くじの購入に使えます。購入で貯まったポイントの有効期限は、翌々年度の末日（3月31日）です。'],
       ['銀行で買うとポイントは付きますか？', '楽天銀行は、ロト・ナンバーズが1口ごとに楽天ポイント1ポイント、スポーツくじは購入額の1%の楽天銀行totoポイントが付きます。そのほかの銀行は、公式ページにくじの購入で貯まるポイントの記載がありません。'],
       ['宝くじ公式サイトではどんな支払い方法が使えますか？', 'クレジットカード（Visa・Mastercard・JCB）、PayPay（PayPay残高・PayPayクレジット）、d払い（電話料金合算払いのみ）、au PAY（auかんたん決済）、ソフトバンク・ワイモバイルまとめて支払いが使えます。宝くじポイント（1%）に、支払い方法側のポイントが加わる場合があります。'],
-      ['還元率が1%より高いクレジットカードで払うと、もっとポイントが付きますか？', 'カード会社の決まりで宝くじの購入がポイントの対象になっていれば、宝くじポイント（1%）とカードのポイントを合わせて2%を超えることがあります（リクルートカードの1.2%なら2.2%）。ただし、カード会社の案内には「一部ポイントの対象外になる利用がある」とだけ書かれていることが多く、宝くじが対象かどうかは書かれていないため、このサイトのランキングには入れていません。使う前に、カード会社に確かめてください。'],
+      ['リクルートカードで払うと、ポイントは何%になりますか？', '宝くじ公式サイト・楽天toto・ドコモスポーツくじでは、購入場所のポイント（1%）にリクルートポイント（1.2%）が加わり、合わせて2.2%です。スポーツくじオフィシャルサイトはサイト独自のポイントがないので1.2%です。リクルートポイントの対象にならない利用の一覧に宝くじとスポーツくじは載っていませんが、対象だとはっきり書かれているわけでもありません。心配なときは、使う前にカード会社に確かめてください。'],
     ];
     const body = `
 ${crumbs(rel, [{ name: 'ポイント還元ランキング' }])}
@@ -1570,7 +1607,7 @@ ${top ? `<section class="conclusion">
 <p class="c-label">結論</p>
 <p class="c-kicker">いちばんポイントが付く買い方</p>
 <div class="c-main"><p class="c-name">${rankMark(1)}<span>${tops.map((x) => esc(shops[x.rt.shop].name)).join('・')}</span></p><p class="c-rate"><span class="lbl">最大</span><span class="num">${cuPct(top.rate)}<small>%</small></span></p></div>
-<ul class="c-list">${tops.map((x) => `<li>${esc(shops[x.rt.shop].name)}：${esc(x.rt.how || '')}と <b>${fmtPt(x.rate)}</b>（${esc(gamesLabel(shopGames[x.rt.shop] || []))}）</li>`).join('')}</ul>
+<ul class="c-list">${tops.map((x) => `<li>${esc(shops[x.rt.shop].name)}：${esc(x.how || '')}と <b>${fmtPt(x.rate)}</b>（${esc(gamesLabel(shopGames[x.rt.shop] || []))}）</li>`).join('')}</ul>
 </section>` : ''}
 ${share(path, top ? `宝くじ・totoのポイント還元ランキング：1位は${tops.map((x) => shops[x.rt.shop].name).join('・')}（${fmtPt(top.rate)}）` : site.siteName)}
 ${toc([['ranking', '購入場所のポイント還元ランキング'], ['today', 'くじ別：ポイント込みの還元率（今日）'], ['detail', '買い方ごとのくわしい条件'], ['combine', 'ポイントの組み合わせ方'], ...(cpItems.length ? [['campaign', '開催中のキャンペーン']] : []), ['card', '宝くじ公式サイトで使えるクレジットカード'], ['faq', 'よくある質問']])}
@@ -1600,10 +1637,10 @@ ${routesRanked.filter((x) => x.rt.caution).map((x) => `<p class="note">※${esc(
 <p>くじのポイントは、次の2つを足し合わせられます。</p>
 <ol class="steps">
 <li><b>購入場所のポイント</b><span>宝くじ公式サイトの宝くじポイント（1%）、楽天totoの楽天ポイント（1%）、ドコモスポーツくじのdポイント（1%）、楽天銀行の楽天銀行totoポイント（1%）など、買う場所で付くポイントです。</span></li>
-<li><b>支払い方法のポイント</b><span>楽天totoは楽天カード、ドコモスポーツくじはdカードで払うと、さらに1%付きます。宝くじ公式サイトはPayPayクレジットで払うとPayPayポイントが基本1.0%付きます（前の月にPayPayで200円以上の支払いを30回以上・合計10万円以上すると、その翌月は＋0.5%）。クレジットカード払いなら、カード会社のポイントが付く場合があります。</span></li>
+<li><b>支払い方法のポイント</b><span>楽天totoは楽天カード、ドコモスポーツくじはdカードで払うと、さらに1%付きます。宝くじ公式サイトはPayPayクレジットで払うとPayPayポイントが基本1.0%付きます（前の月にPayPayで200円以上の支払いを30回以上・合計10万円以上すると、その翌月は＋0.5%）。リクルートカード（JCB）は、宝くじ公式サイト・楽天toto・ドコモスポーツくじ・スポーツくじオフィシャルサイトのどれでも払えて、カードのポイントが1.2%付きます。支払い方法のポイントは、払うときに使った1つ分です。</span></li>
 </ol>
 <p>銀行の口座から買う場合（楽天銀行を除く）と、くじの購入そのものをポイントサイト経由にする方法は、ポイントが付く仕組みが見当たりませんでした。</p>
-<p>還元率が1%より高いクレジットカード（リクルートカードの1.2%など）で宝くじ公式サイトの代金を払うと、宝くじポイントと合わせて2%を超えることがあります。ただし、宝くじの購入がポイントの対象になるかはカード会社の決まりによるので、このランキングには入れていません。使う前に、カード会社のポイントの対象外の一覧を確かめてください。</p>
+<p>リクルートカードの1.2%は、カード会社が案内している通常の還元率です。リクルートポイントの対象にならない利用の一覧（例として載っているもの）に、宝くじとスポーツくじはありません（${fmtYmd(checkedOn).replace(/（.）/, '')}に確認）。ただ、くじの購入が対象だとはっきり書かれているわけでもないので、心配なときは使う前にカード会社に確かめてください。対象にならなかった場合も、購入場所のポイント（1%）は付きます。PayPayの＋0.5%の条件を満たした月は、宝くじ公式サイトではPayPayクレジットのほうが多くなります（合計2.5%）。</p>
 ${cpItems.length ? `<h2 id="campaign">開催中のキャンペーン</h2>
 <p>宝くじとスポーツくじを買う人が対象の、期間限定のキャンペーンです（抽せんや特典。終わったものは自動で消えます）。</p>
 ${cpList(cpItems, { target: true })}
@@ -1758,7 +1795,7 @@ ${hasContact ? '<h2>個人情報の取り扱い</h2><p>お問い合わせでい�
     warnedGames.add(id);
     console.log(`::warning::解説ページ（content/guide）で使っているくじ「${id}」が、data/games.json にないか計算できません。「—」と表示しています`);
   }
-  const GUIDE_TOKENS = ['date', 'rate', 'ev', 'price', 'p1', 'max', 'name', 'co'];
+  const GUIDE_TOKENS = ['date', 'rate', 'ev', 'price', 'p1', 'max', 'name', 'co', 'pt'];
   function guideToken(name, arg) {
     if (!GUIDE_TOKENS.includes(name)) return null;
     if (name === 'date') return fmtYmd(now.iso);
@@ -1770,6 +1807,7 @@ ${hasContact ? '<h2>個人情報の取り扱い</h2><p>お問い合わせでい�
     if (name === 'p1') return odds(chanceTop(r).p);
     if (name === 'max') return pct(Number.isFinite(r.maxRate) ? r.maxRate : r.rate);
     if (name === 'co') return r.hasCO && r.carryover > 0 ? yen(r.carryover) : 'なし'; // いまのキャリーオーバー
+    if (name === 'pt') return bestPointText(r.id) || 'ポイント還元ランキングで比べている買い方'; // ポイントがいちばん付く買い方
     return r.def.name;
   }
 
