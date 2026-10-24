@@ -888,7 +888,7 @@ t('検索とシェアの画像（くじ別の16:9の画像・季節ごとのジ�
 
 /* ---------- 公式ページの見張り・お知らせ ---------- */
 
-const { extractLines, hashLines, diffLines, scheduleChecks, changeIssue, specialChecks, watchGate, pageMissing, pageTitle, downIssue } = await import('./lib/watchlib.mjs');
+const { extractLines, hashLines, diffLines, scheduleChecks, changeIssue, specialChecks, watchGate, pageMissing, pageTitle, downIssue, trackPage, watchedLines, isBlocked, BLOCKED_DAYS } = await import('./lib/watchlib.mjs');
 
 t('公式ページの見張りは1日1回（朝6時以降の最初の更新）', () => {
   const today = '2026-10-12';
@@ -916,6 +916,80 @@ t('見張る行の取り出し（日付・残り日数は無視）', () => {
   const issue = changeIssue({ id: 'x', kind: 'point', name: 'テスト', url: 'https://example.com', file: 'config/points.json', what: '率' }, ['1%'], ['2%'], '2026-10-11');
   assert.equal(issue.key, 'watch-x-2026-10-11');
   assert.ok(issue.body.includes('- 1%') && issue.body.includes('- 2%'));
+});
+
+t('公式ページの見張りの Issue を減らす（お知らせの行は比べない・2日続いたら知らせる・まとめる・元に戻ったら閉じる）', () => {
+  const page = { id: 'pt-x', kind: 'point', name: 'テストのページ', url: 'https://example.com/x', keywords: ['ポイント', '%'], digit: true, file: 'config/points.json', what: 'ポイントの率' };
+  const html = (rate, extra = '') => `<div><p>購入額の${rate}%のポイントが貯まります</p>${extra}<p>ポイントは1ポイント1円で使えます（100ポイント単位）</p></div>`;
+  // お知らせ・キャンペーンの行は、ポイント・支払い方法・購入場所のページでは比べない（ルールのページは今までどおり）
+  const camp = '<p>エントリー&条件達成でもれなく全員に1,000,000ポイント山分け ※期間限定ポイント</p>';
+  assert.deepEqual(extractLines(html(1, camp), page), extractLines(html(1), page), 'キャンペーンの行（Issue #20 の形）は見ない');
+  assert.deepEqual(extractLines('<p>最終日は大変混み合い、繋がりにくい状況になる見込みです（10%増）</p><p>1%のポイント</p>', page), ['1%のポイント'], '混雑のお知らせ（Issue #8 の形）も見ない');
+  assert.equal(extractLines(`<p>キャンペーン期間中は1口 300円</p>`, { kind: 'rule', keywords: ['円'], digit: true }).length, 1, 'ルールのページは、キャンペーンという言葉があっても見る');
+  assert.equal(extractLines('<p>クレジットカードの家族カードおよび法人カードはご利用いただけません。</p><p>各銀行のシステムメンテナンス時等はご利用いただけません。</p>', { kind: 'pay', keywords: ['カード', '銀行'], digit: false }).length, 2, '支払い方法の決まり（ご利用いただけません・メンテナンス）は見る');
+  assert.deepEqual(extractLines('<p>楽天モバイルお申し込みで最大13,000ポイント!※条件有</p><p>購入した額の1%のポイント</p>', page), ['購入した額の1%のポイント'], '申し込み特典の広告の行は見ない');
+  assert.deepEqual(watchedLines(page, ['1%', 'キャンペーン実施中 10%']), ['1%'], '前に記録した行にも同じ決まり');
+  const L = (rate, extra) => extractLines(html(rate, extra), page);
+  const day = (d) => `2026-11-${String(d).padStart(2, '0')}`;
+  // 記録を始める → 同じ
+  let t = trackPage(page, {}, L(1), { today: day(1), closed: new Set() });
+  assert.equal(t.action, 'first');
+  // 決まりを変える前の記録（キャンペーンの行が入っている）と比べても、変化にしない
+  t = trackPage(page, { hash: 'old', lines: L(1).concat(['エントリーでもれなく100ポイントプレゼント']) }, L(1), { today: day(1), closed: new Set() });
+  assert.equal(t.action, 'same', '外した行だけの違いは変化にしない');
+  let rec = t.rec;
+  // 1日だけの変化（メンテナンス中の表示など。Issue #29・#30 の形）は知らせない
+  t = trackPage(page, rec, L(2), { today: day(2), closed: new Set() });
+  assert.equal(t.action, 'pending', '変化を見つけた日は待つ');
+  assert.ok(!t.issue && t.rec.hash === rec.hash && t.rec.pending.since === day(2));
+  t = trackPage(page, t.rec, L(1), { today: day(3), closed: new Set() });
+  assert.equal(t.action, 'reverted', '次の日に元に戻った');
+  assert.ok(!t.issue && !t.rec.pending);
+  rec = t.rec;
+  // 次の日も変わったままなら知らせる
+  t = trackPage(page, rec, L(2), { today: day(4), closed: new Set() });
+  t = trackPage(page, t.rec, L(2), { today: day(5), closed: new Set() });
+  assert.equal(t.action, 'raise');
+  assert.equal(t.issue.key, `watch-pt-x-${day(5)}`);
+  assert.ok(t.issue.body.includes('- 購入額の1%のポイントが貯まります') && t.issue.body.includes('- 購入額の2%のポイントが貯まります') && t.issue.body.includes('次の日の見張りでも'));
+  assert.deepEqual(t.rec.issueKeys, [`watch-pt-x-${day(5)}`]);
+  assert.equal(t.rec.base.hash, rec.hash, '最初の変化の前の内容を覚える');
+  const raised = t.rec;
+  // Issue が開いたままで、元の内容に戻った → その Issue を閉じる
+  t = trackPage(page, raised, L(1), { today: day(8), closed: new Set() });
+  assert.equal(t.action, 'back');
+  assert.deepEqual(t.close.map((c) => c.key), [`watch-pt-x-${day(5)}`]);
+  assert.ok(t.close[0].note.includes('前の内容に戻った') && !t.rec.base && !t.rec.issueKeys);
+  // 閉じた Issue を読めなかった日は、元に戻ったかを判断しない（ふつうの変化として扱う）
+  assert.equal(trackPage(page, raised, L(1), { today: day(8), closed: null }).action, 'pending');
+  // 運営者（や Claude）が Issue を閉じたあとに元に戻った → 確認済みなので、新しい変化として知らせる
+  t = trackPage(page, raised, L(1), { today: day(8), closed: new Set([`watch-pt-x-${day(5)}`]) });
+  assert.equal(t.action, 'pending');
+  assert.ok(!t.rec.base && !t.rec.issueKeys, '閉じた Issue は記録から外す');
+  // 30日より前の Issue は、閉じていなくても外す
+  t = trackPage(page, raised, L(1), { today: '2026-12-10', closed: new Set() });
+  assert.equal(t.action, 'pending');
+  // Issue が開いたまま、また変わった → 新しい Issue にまとめ、古い Issue を閉じる（比べるのは最初の変化の前の内容）
+  t = trackPage(page, raised, L(3), { today: day(9), closed: new Set() });
+  t = trackPage(page, t.rec, L(3), { today: day(10), closed: new Set() });
+  assert.equal(t.action, 'raise');
+  assert.deepEqual(t.close.map((c) => c.key), [`watch-pt-x-${day(5)}`]);
+  assert.ok(t.close[0].note.includes('まとめました'));
+  assert.ok(t.issue.body.includes('- 購入額の1%のポイントが貯まります') && t.issue.body.includes('- 購入額の3%のポイントが貯まります') && t.issue.body.includes('（1件）は、この Issue にまとめて閉じました'));
+  assert.deepEqual(t.rec.issueKeys, [`watch-pt-x-${day(10)}`]);
+  // 毎日ちがう内容に変わり続けるページは、3日目に知らせる
+  t = trackPage(page, rec, L(4), { today: day(11), closed: new Set() });
+  t = trackPage(page, t.rec, L(5), { today: day(12), closed: new Set() });
+  assert.equal(t.action, 'pending');
+  t = trackPage(page, t.rec, L(6), { today: day(13), closed: new Set() });
+  assert.equal(t.action, 'raise');
+  // 公式サイトが自動のアクセスを断ったとき（HTTP 403）は、URL が変わったとは書かず、7日続いたら知らせる
+  assert.ok(isBlocked('HTTP 403 https://www.rakuten-bank.co.jp/toto/first/point.html') && isBlocked('HTTP 429 x') && !isBlocked('HTTP 404 x') && !isBlocked('fetch failed'));
+  assert.equal(BLOCKED_DAYS, 7);
+  const b = downIssue(page, 'HTTP 403 https://example.com/x', 7);
+  assert.equal(b.key, 'watchdown-pt-x', '開けるようになったら、今までどおり自動で閉じる');
+  assert.ok(b.title.includes('断っています') && !b.body.includes('URLが変わった可能性') && b.body.includes('URL を探す必要はありません') && b.body.includes('90日'));
+  assert.ok(downIssue(page, 'HTTP 404 https://example.com/x', 3).title.includes('を開けません'), '404 などは今までどおり');
 });
 
 t('日付から分かるお願い（次のジャンボ・賞金表の確認・ポイントの見直し）', () => {
