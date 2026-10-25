@@ -1,5 +1,5 @@
 // ページの HTML をつくる
-import { esc, num, yenJa, man, pct, odds, fmtMd, fmtMdPlain, fmtYmd, fmtShort } from './util.mjs';
+import { esc, num, yenJa, yenApprox, man, pct, odds, fmtMd, fmtMdPlain, fmtYmd, fmtShort } from './util.mjs';
 import { carryoverTable, rateSeries } from './model.mjs';
 import { autoGuide, autoLead, autoSourceNote, buyChances, jumboSibling, compareSentence, chanceText, chanceAtLeast, chanceOfN, oddsJa, dynamicFaq, firstPrizeNeed } from './jumbo.mjs';
 import { renderGuideBody, giftTax, GIFT_AMOUNTS } from './guide.mjs';
@@ -428,9 +428,10 @@ export function createRenderer(ctx) {
     return `<span class="bar" aria-hidden="true"><i class="${rate >= 0.5 ? 'hi' : ''}" style="width:${w.toFixed(1)}%"></i></span>`;
   }
 
-  /** 数字のカウントアップ（JSがなくても最終の値が出る） */
-  const cuPct = (rate) => `<span class="cu" data-to="${(rate * 100).toFixed(1)}" data-dec="1">${(rate * 100).toFixed(1)}</span>`;
-  const cuYen = (n) => `<span class="cuy" data-to="${Math.round(n)}">${yen(n)}</span>`;
+  /** 大きな数字（％の前の数字。小数1けた） */
+  const pctNum = (rate) => (rate * 100).toFixed(1);
+  /** 数字のカウントアップ（JSがなくても最終の値が出る）。動かすのは結論ボックスとスコアボードの数字だけ（UI_JS） */
+  const cuPct = (rate) => `<span class="cu" data-to="${pctNum(rate)}" data-dec="1">${pctNum(rate)}</span>`;
 
   function statusBadges(r, { co = true } = {}) {
     const t = [];
@@ -591,7 +592,7 @@ ${about.map((a) => {
     // 会員登録のボタン（「楽天totoをはじめる」など）。店のリンクが広告リンクのときは、登録もそのリンクの先でできる（ASP の成果の対象）ので出さない
     if (keys[0] && signups[keys[0]]?.kind === 'site' && !s.affiliate && !compact) btns.splice(1, 0, signupBtn(keys[0], 'btn-ghost'));
     return `<article class="rt-card">
-<div class="rt-top">${x.rate > 0 ? `<span class="rt-lbl">ポイント最大</span><span class="num">${cuPct(x.rate)}<small>%</small></span>${x.plus ? '<span class="rt-plus">＋α</span>' : ''}` : '<span class="rt-lbl">ポイント</span><span class="rt-none">支払いに使うカードのポイントが付く</span>'}</div>
+<div class="rt-top">${x.rate > 0 ? `<span class="rt-lbl">ポイント最大</span><span class="num">${pctNum(x.rate)}<small>%</small></span>${x.plus ? '<span class="rt-plus">＋α</span>' : ''}` : '<span class="rt-lbl">ポイント</span><span class="rt-none">支払いに使うカードのポイントが付く</span>'}</div>
 <p class="rt-name">${esc(s.name)}${x.how ? `<span>× ${esc(x.how)}</span>` : ''}</p>
 <p class="rt-games">${esc(games)}</p>
 <p class="rt-desc">${esc(rt.feature || '')}</p>
@@ -604,7 +605,7 @@ ${prNote(`<div class="btns">${btns.join('')}</div>`)}
 
   function sidebar(rel, ads = true) {
     const top5 = listed.slice(0, 5).map((r) => `<li><a href="${rel}kuji/${r.id}.html">${rankMark(rankOf[r.id])}<span>${esc(r.def.name)}</span><span class="val">${pct(r.rate)}</span></a></li>`).join('');
-    const cos = coList.map((r) => `<li><a href="${rel}kuji/${r.id}.html"><span>${esc(r.def.name)}</span><span class="val small">${yen(r.carryover)}</span></a></li>`).join('');
+    const cos = coList.map((r) => `<li><a href="${rel}kuji/${r.id}.html"><span>${esc(r.def.name)}</span><span class="val small">${yenApprox(r.carryover)}</span></a></li>`).join('');
     const pts = topRoutes.slice(0, 3).map((x) => `<li><a href="${rel}point.html">${rankMark(routeRank(x))}<span>${esc(shops[x.rt.shop].name)}<span class="sub">${esc(x.how || '')}</span></span><span class="val">${fmtPt(x.rate)}</span></a></li>`).join('');
     const all = rows.filter((r) => r.computable && !isPastJumbo(r.def, now.iso)).sort((a, b) => ctx.order[a.id] - ctx.order[b.id])
       .map((r) => `<li><a href="${rel}kuji/${r.id}.html"><span>${esc(r.def.name)}</span><span class="val">${pct(r.rate)}</span></a></li>`).join('');
@@ -676,17 +677,17 @@ ${guideList.length ? `<section class="widget plain"><h2 class="widget-title">${H
     ].map(([k, label, href]) => `<a href="${href}"${current === k ? ' aria-current="page"' : ''}>${label}</a>`).join('');
 
     const ticker = coList.length
-      ? `<div class="ticker"><div class="wrap"><span class="ticker-label">キャリーオーバー速報</span><div class="tk-view"><ul class="tk-list">${coList.map((r) => `<li><a href="${rel}kuji/${r.id}.html">${esc(r.def.name)}<span class="amt">${yen(r.carryover)}</span></a></li>`).join('')}</ul></div></div></div>${TICKER_JS}`
+      ? `<div class="ticker"><div class="wrap"><span class="ticker-label">キャリーオーバー<span class="tl-x">速報</span></span><div class="tk-view"><ul class="tk-list">${coList.map((r) => `<li><a href="${rel}kuji/${r.id}.html">${esc(r.def.name)}<span class="amt">${yenApprox(r.carryover)}</span></a></li>`).join('')}</ul></div></div></div>`
       : '';
 
     const inner = `<a class="skip" href="#main">本文へ移動</a>
 <header>
-<div class="topbar" id="top"><div class="wrap"><span><b class="live">毎日更新</b>　最終更新 ${fmtYmd(now.iso)} ${hhmm}</span><span>当サイトはプロモーション（広告）を含みます</span></div></div>
+<div class="topbar" id="top"><div class="wrap"><span class="tb-up"><b class="live">毎日更新</b>　最終更新 ${fmtYmd(now.iso)} ${hhmm}</span><span class="tb-pr">当サイトはプロモーション（広告）を含みます</span></div></div>
 <div class="site-header"><div class="wrap">
 <a class="logo" href="${home(rel)}">${CROWN}<span class="l1">宝くじ</span><span class="l2">還元率</span><span class="l3">ランキング</span></a>
 <p class="tagline">${esc(site.tagline)}</p>
 </div></div>
-<nav class="gnav" aria-label="メニュー"><div class="wrap">${nav}</div></nav>
+<nav class="gnav" aria-label="メニュー"><div class="wrap">${nav}</div></nav>${NAV_JS}
 ${ticker}
 </header>
 <div class="wrap layout">
@@ -722,7 +723,7 @@ ${UI_JS}${!preview && site.ga4 ? `\n${CLICK_JS}` : ''}`;
 <td class="c k-rk">${rankMark(rankOf[r.id])}</td>
 <td class="k-nm"><a class="gname" href="${rel}kuji/${r.id}.html">${esc(d.name)}</a><span class="sub">${GROUP_LABEL[d.group] || ''}・1口${yen(d.price)}</span></td>
 <td class="k-rt"><span class="rate${r.rate >= 0.5 ? ' hi' : ''}">${pct(r.rate)}</span>${bar(r.rate)}${br ? `<span class="sub pt">ポイント込み${pct(effRate(r))}</span>` : ''}</td>
-<td class="k-co" data-label="キャリーオーバー">${r.hasCO ? `<span class="co">${yen(r.carryover)}</span>` : '<span class="sub">なし</span>'}${statusBadges(r, { co: false }) ? `<span class="sub">${statusBadges(r, { co: false })}</span>` : ''}</td>
+<td class="k-co" data-label="キャリーオーバー">${r.hasCO ? `<span class="co">${yenApprox(r.carryover)}</span>` : '<span class="sub">なし</span>'}${statusBadges(r, { co: false }) ? `<span class="sub">${statusBadges(r, { co: false })}</span>` : ''}</td>
 <td class="r k-tp" data-label="1等の金額">${fp ? `<b>${yen(fp.amount)}</b>${fp.note ? `<span class="sub">${esc(fp.note)}</span>` : ''}` : '—'}</td>
 <td class="r k-pb" data-label="1等の当せん確率">${fp ? `${odds(fp.p)}<span class="sub">${probPct(fp.p)}</span>` : '—'}</td>
 <td class="k-nx" data-label="次の回">${esc(r.status.short || r.status.text)}${r.status.shortSub ? `<span class="sub">${esc(r.status.shortSub)}</span>` : ''}</td>
@@ -749,9 +750,9 @@ ${body}
       return `<article class="rank-card c${rank}" data-kuji="${r.id}">
 <div class="rc-head">${rankMark(rank)}<a class="rc-name" href="${rel}kuji/${r.id}.html">${esc(r.def.name)}</a>${statusBadges(r)}</div>
 <div class="rc-body">
-<div class="rc-rate"><span class="lbl">還元率</span><span class="num">${cuPct(r.rate)}<small>%</small></span>${bar(r.rate)}${delta(r)}${br ? `<p class="rc-pt"><a href="${rel}point.html">ポイント込み <b>${pct(effRate(r))}</b></a></p>` : ''}</div>
+<div class="rc-rate"><span class="lbl">還元率</span><span class="num">${pctNum(r.rate)}<small>%</small></span>${bar(r.rate)}${delta(r)}${br ? `<p class="rc-pt"><a href="${rel}point.html">ポイント込み <b>${pct(effRate(r))}</b></a></p>` : ''}</div>
 <dl class="facts">
-<dt>キャリーオーバー</dt><dd>${r.hasCO ? `<span class="co">${r.carryover > 0 ? cuYen(r.carryover) : '0円'}</span>` : 'なし'}</dd>
+<dt>キャリーオーバー</dt><dd>${r.hasCO ? `<span class="co">${yen(r.carryover)}</span>` : 'なし'}</dd>
 <dt>1等の金額</dt><dd>${fp ? `<b>${yen(fp.amount)}</b>${fp.note ? `（${esc(fp.note)}）` : ''}` : '—'}</dd>
 <dt>1等の当せん確率</dt><dd>${fp ? `${odds(fp.p)}（${probPct(fp.p)}）` : '—'}</dd>
 <dt>次の回</dt><dd>${esc(r.status.short || r.status.text)}${cd ? `<span class="cd-line">${cd}</span>` : r.status.shortSub ? `・${esc(r.status.shortSub)}` : ''}</dd>
@@ -999,7 +1000,7 @@ ${sparse ? `<p class="note">記録があるのは${fmtShort(pts[0].d)}以降で�
 ${bar(best.rate)}
 <ul class="chips">
 ${best.special?.on ? `<li class="chip chip-pt">${esc(best.special.name)}<b>1等最高${esc(best.special.capText)}</b></li>` : ''}
-${best.hasCO && best.carryover > 0 ? `<li class="chip chip-co">キャリーオーバー<b>${cuYen(best.carryover)}</b></li>` : ''}
+${best.hasCO && best.carryover > 0 ? `<li class="chip chip-co">キャリーオーバー<b>${yen(best.carryover)}</b></li>` : ''}
 ${cdHtml(best) ? `<li class="chip chip-cd">${cdHtml(best)}</li>` : `<li class="chip">${esc(best.status.short || best.status.text)}</li>`}
 ${bbr ? `<li class="chip chip-pt"><a href="${rel}point.html">ポイント込み<b>${pct(effRate(best))}</b></a></li>` : ''}
 </ul>
@@ -1212,7 +1213,7 @@ ${row('発売総数', ...both((x) => `${yen(x.totalTickets).replace(/円$/, '')}
     sections.push(['data', 'くわしいデータ'], ['rules', 'ルールと注意']);
 
     const tiles = [];
-    if (r.hasCO) tiles.push(['キャリーオーバー', `<span class="co">${r.carryover > 0 ? cuYen(r.carryover) : '0円'}</span>${r.provisional ? '<small>暫定（前の回の結果待ち）</small>' : ''}`]);
+    if (r.hasCO) tiles.push(['キャリーオーバー', `<span class="co">${yen(r.carryover)}</span>${r.provisional ? '<small>暫定（前の回の結果待ち）</small>' : ''}`]);
     else tiles.push(['1口の値段', yen(d.price)]);
     if (fp) tiles.push(['1等の金額', `${yen(fp.amount)}${fp.note ? `<small>${esc(fp.note)}</small>` : ''}`]);
     if (fp) tiles.push(['1等の当せん確率', `${odds(fp.p)}<small>${probPct(fp.p)}</small>`]);
@@ -2132,8 +2133,11 @@ const UI_JS = `<script>
     els.forEach(function(el){ io.observe(el); });
   }
 
-  // 横にスクロールする表は、キーボードでも操作できるよう、フォーカスできるようにする
-  all('.tbl-wrap').forEach(function(el){ if (el.scrollWidth > el.clientWidth + 1 && !el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0'); });
+  // 横にスクロールする表は、キーボードでも操作できるよう、フォーカスできるようにする。横に動かしたら、止めてある左の列に影を付ける
+  all('.tbl-wrap').forEach(function(el){
+    if (el.scrollWidth > el.clientWidth + 1 && !el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+    el.addEventListener('scroll', function(){ el.classList.toggle('sx', el.scrollLeft > 2); }, { passive: true });
+  });
 
   // スマホで画面の下に出る購入ボタン
   var st = d.querySelector('.sticky-cta'), anchor = d.querySelector('[data-sticky-anchor]'), foot = d.querySelector('.foot');
@@ -2154,40 +2158,23 @@ const UI_JS = `<script>
   if (reduce) return;
 
   whenShown(function(){
-  // 下にある要素は、見えたときにふわっと表示
-  var vh = w.innerHeight || 800;
-  var rv = all('main h2, .rank-card, .chart, .kuji-sec, .shops > li, .rt-card, .pick, .related > a, .tbl-wrap, .steps > li, .faq > dt, .side .widget, .score-grid > div');
-  var pre = rv.filter(function(el){ return el.getBoundingClientRect().top > vh * 0.98; });
-  pre.forEach(function(el){
-    var i = 0, p = el.previousElementSibling;
-    while (p && i < 5 && p.tagName === el.tagName && p.className.split(' ')[0] === el.className.split(' ')[0]) { i++; p = p.previousElementSibling; }
-    el.style.transitionDelay = (i * 70) + 'ms';
-  });
-  pre.forEach(function(el){ el.classList.add('rv', 'pre'); });
-  onView(pre, function(el){ el.classList.remove('pre'); setTimeout(function(){ el.style.transitionDelay = ''; }, 1200); });
-
-  // 数字のカウントアップ。数えているあいだは、最後の数字と同じ幅に固定して、まわりの文字や表がずれないようにする
+  // 数字のカウントアップは、結論ボックスとくじ別ページのスコアボードの大きな数字だけ（ほかの数字は最初から見せる）。
+  // 数えているあいだは、最後の数字と同じ幅に固定して、まわりの文字や表がずれないようにする
   // （2行に折り返して表示している数字は、幅を固定できないので動かさない）
-  function yj(n){
-    n = Math.round(n); var f = function(x){ return x.toLocaleString('ja-JP'); };
-    if (n < 10000) return f(n) + '円';
-    var o = Math.floor(n / 1e8), m = Math.floor(n % 1e8 / 1e4), r = n % 1e4;
-    return (o ? f(o) + '億' : '') + (m ? f(m) + '万' : '') + (r ? f(r) : '') + '円';
-  }
   function countUp(el){
     var to = parseFloat(el.getAttribute('data-to')); if (!isFinite(to) || to <= 0) return;
     var rs = el.getClientRects(); if (rs.length !== 1) return;
-    var isYen = el.classList.contains('cuy'), dec = +(el.getAttribute('data-dec') || 0), fin = el.textContent, s0 = null, dur = isYen ? 1200 : 900;
+    var dec = +(el.getAttribute('data-dec') || 0), fin = el.textContent, s0 = null, dur = 900;
     var st = el.style; st.display = 'inline-block'; st.width = rs[0].width + 'px'; st.whiteSpace = 'nowrap';
     function f(ts){
       if (s0 === null) s0 = ts;
       var k = Math.min(1, (ts - s0) / dur), e = 1 - Math.pow(1 - k, 3), v = to * e;
-      el.textContent = isYen ? yj(v) : v.toFixed(dec);
+      el.textContent = v.toFixed(dec);
       if (k < 1) w.requestAnimationFrame(f); else { el.textContent = fin; st.display = ''; st.width = ''; st.whiteSpace = ''; }
     }
     w.requestAnimationFrame(f);
   }
-  onView(all('.cu, .cuy'), countUp, { threshold: 0.5 });
+  onView(all('.conclusion .c-rate .cu, .score-top .cu'), countUp, { threshold: 0.5 });
 
   // 還元率のバーとグラフの線
   onView(all('.bar'), function(el){ el.classList.add('fill'); }, { threshold: 0.3 });
@@ -2199,29 +2186,19 @@ const UI_JS = `<script>
 /** ads.txt の中身。サイト運営者 ID が「ca-pub- と数字」の形のときだけ作り、それ以外（空・pub- だけなど）は空にする */
 export const adsTxt = (client) => (/^ca-pub-\d+$/.test(String(client || '')) ? `google.com, ${String(client).slice(3)}, DIRECT, f08c47fec0942fa0\n` : '');
 
-/* ---------------- フォント・キャリーオーバー速報の帯 ---------------- */
+/* ---------------- フォント・メニュー ---------------- */
 
 /** このサイトから配信するフォント（static/fonts。全ページで先に読み込む）。作り方は README の「フォント」 */
 export const FONT_FILES = ['oswald-700.woff2', 'dela-gothic-one-logo.woff2'];
 
-// キャリーオーバー速報の帯：はみ出すときだけ横に流す。帯のすぐ後ろで動かして、ページの表示の途中で帯の高さが変わらないようにする。
-// 「視差効果を減らす」がオンの人には流さない（折り返して全部見せる）
-const TICKER_JS = `<script>
+// メニュー：スマホでは1行で横にスクロールするので、いまのページの項目が見える所まで動かしておく。
+// メニューのすぐ後ろで動かして、表示されてから位置が変わらないようにする
+const NAV_JS = `<script>
 (function(){
-  var s = document.currentScript, tk = s && s.previousElementSibling;
-  if (!tk || !tk.classList.contains('ticker')) return;
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  var view = tk.querySelector('.tk-view'), list = tk.querySelector('.tk-list');
-  if (!view || !list) return;
-  tk.classList.add('measure');
-  if (list.scrollWidth > view.clientWidth + 2) {
-    Array.prototype.slice.call(list.children).forEach(function(li){
-      var c = li.cloneNode(true); c.setAttribute('aria-hidden', 'true');
-      Array.prototype.slice.call(c.querySelectorAll('a')).forEach(function(a){ a.tabIndex = -1; });
-      list.appendChild(c);
-    });
-    list.style.setProperty('--tk-dur', Math.max(16, Math.round(list.scrollWidth / 2 / 50)) + 's');
-    tk.classList.add('run');
-  } else tk.classList.remove('measure');
+  var s = document.currentScript, nav = s && s.previousElementSibling, w = nav && nav.firstElementChild;
+  var cur = w && w.querySelector('[aria-current]');
+  if (!cur || w.scrollWidth <= w.clientWidth + 1) return;
+  var x = cur.getBoundingClientRect().left - w.getBoundingClientRect().left + w.scrollLeft;
+  w.scrollLeft = Math.max(0, x - (w.clientWidth - cur.offsetWidth) / 2);
 })();
 </script>`;
