@@ -97,7 +97,7 @@ h1, h2, h3 { text-wrap: balance; }
 .crumbs { margin: 0 0 8px; font-size: 13.5px; color: var(--sub); }
 .crumbs a { display: inline-block; padding: 10px 4px; margin: -10px -4px; color: var(--sub); } /* 押せる範囲を上下に広げる（行の高さは変えない） */
 .page-title { font-size: 28px; line-height: 1.4; margin: 0 0 6px; }
-.updated { margin: 0 0 16px; font-size: 14px; color: var(--sub); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.updated { margin: 0 0 16px; font-size: 14px; color: var(--sub); display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
 h2 { font-size: 21px; line-height: 1.45; margin: 44px 0 16px; padding: 11px 16px; background: var(--red); color: var(--white); border-left: 8px solid var(--gold); border-radius: 3px; }
 h3 { font-size: 18px; line-height: 1.5; margin: 28px 0 12px; padding: 2px 0 6px 12px; border-left: 6px solid var(--red); border-bottom: 1px solid var(--line); }
 p { margin: 0 0 14px; }
