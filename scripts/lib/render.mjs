@@ -745,7 +745,7 @@ ${UI_JS}${!preview && site.ga4 ? `\n${CLICK_JS}` : ''}`;
 <span class="rkl-by">${l ? aBtn(l, 'btn-row', l.short) : ''}</span>
 </li>`;
     }).join('\n');
-    return `${hasAd(items) ? prLine('ランキングのボタンには広告を含みます') : ''}<ol class="rkl">
+    return `${hasAd(items) ? prLine('ボタンには広告を含みます') : ''}<ol class="rkl">
 ${items}
 </ol>
 <div class="note"><p>※還元率は、1口買ったときに戻ってくる金額の平均を、1口の値段で割ったものです。バーの縦線は50%の位置です。くじの名前を押すと、くわしい額と、1等の金額・当せん確率・締切が見られます。</p>

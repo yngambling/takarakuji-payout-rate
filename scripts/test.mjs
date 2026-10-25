@@ -445,7 +445,7 @@ t('広告のボタンを含む並びや表の上に1行だけ「PR（広告を�
   assert.ok(withAd >= 5 && withoutAd >= 1, `広告を含む並び ${withAd}・含まない並び ${withoutAd}`);
   // 表と一覧：広告のボタンがあれば、表や一覧の上に1行
   for (const [name, h, re] of [
-    ['トップのランキング', pages[0], /<p class="pr-note"><b>PR<\/b>（ランキングのボタンには広告を含みます）<\/p>\n<ol class="rkl">/],
+    ['トップのランキング', pages[0], /<p class="pr-note"><b>PR<\/b>（ボタンには広告を含みます）<\/p>\n<ol class="rkl">/],
     ['ポイント還元ランキングの表', pages[1], /<h2 id="ranking">[^<]*<\/h2>\n<p class="pr-note"><b>PR<\/b>（表のボタンには広告を含みます）<\/p>/],
     ['購入場所の比較表', pages[2], /<p class="pr-note"><b>PR<\/b>（表のボタンには広告を含みます）<\/p>\n<p class="scroll-hint">表は横にスクロールできます →<\/p>\n<div class="tbl-wrap"><table class="t shoptbl">/],
     ['くじ別ページの購入場所の一覧', pages[4], /<p class="pr-note"><b>PR<\/b>（購入場所のボタンには広告を含みます）<\/p>\n<ul class="shops">/],
