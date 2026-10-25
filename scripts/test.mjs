@@ -679,6 +679,7 @@ t('解説ページ（content/guide の本物の原稿・一覧のページ・サ
 
 const RD0 = await import('./lib/render.mjs');
 const { yenJa: yenJaT } = await import('./lib/util.mjs');
+const UT = await import('./lib/util.mjs');
 
 t('くじ別ページの頭の答えの1文（今日の還元率・1等の当選確率・次の回）と、DUNK のまとめページ', () => {
   // 当選確率の文での言い方
@@ -789,16 +790,17 @@ t('表示の速さと使いやすさ（フォントはこのサイトから・�
   // 共有プレビュー（CSS をページに埋め込む）は、フォントの場所をページの階層に合わせる
   const pv = createRenderer({ site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} }, links, points, rows: rowsT, byId: Object.fromEntries(rowsT.map((r) => [r.id, r])), log: [], history: { days: {} }, catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])), preview: true, placeholders: true, inlineCss: true, css, cssVersion: 'x' });
   assert.ok(pv.game(rowsT.find((r) => r.id === 'loto6')).html.includes('url("../fonts/oswald-700.woff2")'));
-  // 表示の途中でずれない：残り時間は書き込む前から幅を取る・数字のカウントアップは幅を固定・速報の帯は帯のすぐ後ろで決める・広告の枠は先に高さを取る
+  // 表示の途中でずれない：残り時間は書き込む前から幅を取る・数字のカウントアップは幅を固定・メニューの位置はメニューのすぐ後ろで決める・広告の枠は先に高さを取る
   assert.ok(css.includes('.cd-r:empty::before { content: "あと00時間00分"; visibility: hidden; }') && !css.includes('.cd-r:empty { display: none; }'), '残り時間');
   assert.ok(top.includes("st.width = rs[0].width + 'px'"), 'カウントアップ');
-  assert.ok(/<div class="ticker">[\s\S]*?<\/ul><\/div><\/div><\/div><script>\n\(function\(\)\{\n  var s = document\.currentScript/.test(top) && !/var tk = d\.querySelector\('\.ticker'\)/.test(top), '速報の帯');
+  assert.ok(/<\/nav><script>\n\(function\(\)\{\n  var s = document\.currentScript, nav = s && s\.previousElementSibling/.test(top), 'メニュー');
+  assert.ok(/<div class="ticker">[\s\S]*?<\/ul><\/div><\/div><\/div>\n<\/header>/.test(top) && !/tk\.classList|tk-dur/.test(top), '速報の帯は流さない（帯の後ろに動かすコードを置かない）');
   assert.ok(/\.ad ins\.adsbygoogle \{ min-height: \d+px; \}/.test(css) && css.includes('.ad:has(> ins.adsbygoogle[data-ad-status="unfilled"]) { display: none; }'), '広告の枠');
   // 読み上げ・キーボード：ページの見出し部分（header）に帯と速報を入れる・順位の印に aria-label を付けない・シェアボタンはまとまり・横にスクロールする表に入れる・空の見出しのセルを作らない
-  assert.ok(/<header>\n<div class="topbar" id="top">[\s\S]*?<div class="site-header"><div class="wrap">[\s\S]*?<nav class="gnav"[\s\S]*?<\/script>\n<\/header>\n<div class="wrap layout">/.test(top) && !top.includes('<header class="site-header">'), 'ページの見出し部分');
+  assert.ok(/<header>\n<div class="topbar" id="top">[\s\S]*?<div class="site-header"><div class="wrap">[\s\S]*?<nav class="gnav"[\s\S]*?<\/nav><script>[\s\S]*?<\/script>\n<div class="ticker">[\s\S]*?\n<\/header>\n<div class="wrap layout">/.test(top) && !top.includes('<header class="site-header">'), 'ページの見出し部分');
   assert.ok(!/<span class="rk[^"]*" aria-label/.test(top) && top.includes('<span class="rk rk1"><svg class="crown"'), '順位の印');
   assert.ok(top.includes('<div class="share" role="group" aria-label="この記事をシェア">'), 'シェアボタン');
-  assert.ok(top.includes("all('.tbl-wrap').forEach(function(el){ if (el.scrollWidth > el.clientWidth + 1 && !el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0'); });"), '横にスクロールする表');
+  assert.ok(top.includes("if (el.scrollWidth > el.clientWidth + 1 && !el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');"), '横にスクロールする表');
   const hw = renderT.game(rowsT.find((r) => r.id === 'halloween2026')).html;
   assert.ok(hw.includes('<thead><tr><th><span class="vh">項目</span></th>') && !hw.includes('<th></th>'), 'ミニとの比較の表');
   // 文字の色の濃さ：白い文字とボタンの色、金色の数字、シェアボタン（WCAG の AA：4.5:1 以上）
@@ -809,6 +811,53 @@ t('表示の速さと使いやすさ（フォントはこのサイトから・�
     ['ポイントの数字', color('.ptv'), '#ffffff'], ['ポイントのチップ', color('.chip-pt b'), v('gold-soft')], ['ポイントの内訳', color('.parts b'), '#ffffff'], ['薄い文字', v('mute'), '#ffffff']]) {
     assert.ok(fg && b && contrast(fg, b) >= 4.5, `${label}の色の濃さが足りません（${fg} と ${b}：${fg && b ? contrast(fg, b).toFixed(2) : '?'}）`);
   }
+});
+
+t('見やすさ（文字の大きさ・押しやすさ・止めた左の列・一覧の額は概数・動きは結論の数字だけ）', () => {
+  const css = readFileSync(path.join(ROOT, 'static/style.css'), 'utf8');
+  // 一覧の額は概数（10億円以上は億の整数・1億円以上は小数1けた・1万円以上は万の整数。丸めたときだけ「約」）
+  const { yenApprox } = UT;
+  assert.deepEqual([0, 5000, 85e6, 94999999, 99996000, 1e8, 3.2e8, 323456789, 9.94e8, 9.96e8, 1e9, 5001651420].map(yenApprox),
+    ['0円', '5,000円', '8,500万円', '約9,500万円', '約1億円', '1億円', '3.2億円', '約3.2億円', '約9.9億円', '約10億円', '10億円', '約50億円']);
+  const top = renderT.index().html;
+  const co = rowsT.filter((r) => r.hasCO && r.carryover > 0);
+  assert.ok(co.length > 0, '見本にキャリーオーバーがある');
+  const tk = top.match(/<div class="ticker">[\s\S]*?<\/ul>/)[0];
+  const side = top.match(/キャリーオーバー発生中<\/h2><ul>[\s\S]*?<\/ul>/)[0];
+  for (const r of co) {
+    assert.ok(tk.includes(`<span class="amt">${UT.yenApprox(r.carryover)}</span>`), `速報の帯は概数（${r.id}）`);
+    assert.ok(side.includes(`<span class="val small">${UT.yenApprox(r.carryover)}</span>`), `サイドバーは概数（${r.id}）`);
+  }
+  const mx = co.filter((r) => r.listed).sort((a, b) => b.carryover - a.carryover)[0];
+  const rankTbl = top.match(/<table class="t rank">[\s\S]*?<\/table>/)[0];
+  assert.ok(rankTbl.includes(`<span class="co">${UT.yenApprox(mx.carryover)}</span>`), 'ランキングの表は概数');
+  assert.ok(top.includes(`キャリーオーバー最大　<a href="kuji/${mx.id}.html">${mx.def.name}</a>　<b>${UT.yenJa(mx.carryover)}</b>`), '結論ボックスはくわしい額');
+  // 動き：スクロールでふわっと表示はしない・カウントアップは結論ボックスとスコアボードの数字だけ・速報の帯は流さない
+  assert.ok(!/ふわっと|classList\.add\('rv'/.test(top) && !/\.rv[ .{]/.test(css), 'ふわっと表示しない');
+  assert.ok(top.includes("onView(all('.conclusion .c-rate .cu, .score-top .cu'), countUp"), 'カウントアップは大きな数字だけ');
+  assert.ok(!/@keyframes tk|\.ticker\.run|animation: tk/.test(css), '速報の帯は流さない');
+  assert.ok(/\.tk-view \{[^}]*overflow-x: auto;/.test(css), '速報の帯は横にスクロール');
+  // 文字の大きさ：本文は16px（スマホも）・小さい文字も13px以上。例外はグラフの目盛り（SVG）・広告の札・順位の「位」などの飾り
+  assert.ok(css.includes('body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.8 var(--font-body); }') && /@media \(max-width: 700px\) \{\n  body \{ font-size: 16px; \}/.test(css), '本文は16px');
+  const small = [];
+  for (const m of css.matchAll(/([^{}\n][^{}]*)\{([^{}]*)\}/g)) {
+    const sel = m[1].trim();
+    for (const f of m[2].matchAll(/font-size: ([\d.]+)px/g)) if (+f[1] < 13) small.push(`${sel}：${f[1]}px`);
+  }
+  const OK_SMALL = ['.rk i', '.t.rank .k-by .btn-mini', '.chart-head .range', '.chart.big .spark text', '.chart.big .spark text.end', '.ad-label', '.ad-ph', '.widget li a .sub', '.widget .rk i'];
+  assert.deepEqual(small.filter((x) => !OK_SMALL.includes(x.split('：')[0])), [], '13pxより小さい文字（増やすときは OK_SMALL に理由ごと足す）');
+  // 押しやすさ：メニュー・速報の帯・目次・サイドバーのリンクは高さ44px前後
+  for (const re of [/\.gnav a \{[^}]*padding: 10px 12px 7px;/, /\.ticker a \{ display: block; padding: 10px 20px 10px 0;/, /\.toc a \{ display: block; padding: 8px 0;/, /\.widget \.w-more a \{ display: block; padding: 10px 12px;/, /\.foot nav a \{ display: inline-block; padding: 10px 0;/, /\.crumbs a \{ display: inline-block; padding: 10px 4px; margin: -10px -4px;/]) assert.ok(re.test(css), `押しやすさ：${re}`);
+  // 止めた左の列：線はセルごと（separate）・下を流れる文字が透けない背景・ランキングの2つは名前の列
+  assert.ok(css.includes('table.t { border-collapse: separate; border-spacing: 0;') && css.includes('.t td { background-color: var(--white); }'), '表の線と背景');
+  assert.ok(/\.tbl-wrap > \.t:not\(\.rank, \.tiers, \.ptrank, \.efftbl\) > :is\(thead, tbody\) > tr > :first-child,[\s\S]*?\{ position: sticky; left: 0; z-index: 1; \}/.test(css), '左の列を止める');
+  assert.ok(top.includes("el.addEventListener('scroll', function(){ el.classList.toggle('sx', el.scrollLeft > 2); }, { passive: true });"), '横に動かしたら影');
+  // ヘッダー：スマホでは上の帯の最終更新とキャッチコピーを出さない（最終更新は各ページの見出しの下）
+  assert.ok(top.includes('<span class="tb-up"><b class="live">毎日更新</b>') && top.includes('<span class="tb-pr">当サイトはプロモーション（広告）を含みます</span>') && top.includes('<p class="updated"><span class="badge">毎日更新</span>'));
+  assert.ok(css.includes('.topbar .tb-up, .tagline, .ticker-label .tl-x { display: none; }'));
+  // 「広告を含みます」の文字は、サイトの文字の平均より小さくしない（リンクシェアの案内）：PR の1行は本文と同じ16px、上の帯は15px以上
+  const fs = (sel) => +((css.match(new RegExp(`${sel.replace(/[.]/g, '\\.')} \\{[^}]*?font-size: ([\\d.]+)px`)) || [])[1] || 0);
+  assert.ok(fs('.pr-note') >= 16 && fs('.topbar') >= 15 && fs('.sticky-cta .pr-mark') >= 15, `広告の表示の文字：PR の1行 ${fs('.pr-note')}px・上の帯 ${fs('.topbar')}px・追従ボタンの PR ${fs('.sticky-cta .pr-mark')}px`);
 });
 
 t('ページ移動を速くする（Speculation Rules：サイト内のリンクだけ先読み・広告や新しいタブは除く・先読み中は動きを待つ）', () => {
@@ -830,7 +879,7 @@ t('ページ移動を速くする（Speculation Rules：サイト内のリンク
   for (const a of btns) assert.ok(/target="_blank"/.test(a), `購入ボタンは新しいタブ：${a}`);
   // 先読みで裏で描いたページは、表示されたときに動きとページの位置の処理を始める
   assert.ok(top.includes("function whenShown(fn){ if (d.prerendering) d.addEventListener('prerenderingchange', fn, { once: true }); else fn(); }"), '表示を待つ');
-  assert.equal((top.match(/whenShown\(function\(\)\{/g) || []).length, 2, 'ページの位置と、動き（ふわっと表示・カウントアップ・バー）');
+  assert.equal((top.match(/whenShown\(function\(\)\{/g) || []).length, 2, 'ページの位置と、動き（カウントアップ・バー・グラフの線）');
   // 共有プレビュー（ファイルを直接開く）には入れない
   const pv = createRenderer({ site: { siteName: '宝くじ還元率ランキング', tagline: 't', baseUrl: 'https://example.com', adsense: {} }, links, points, rows: rowsT, byId: Object.fromEntries(rowsT.map((x) => [x.id, x])), log: [], history: { days: {} }, catalog: { order: [], items: {} }, now: pageNow, state, defs, order: Object.fromEntries(Object.keys(defs).map((k, i) => [k, i])), preview: true, placeholders: true, inlineCss: true, css: '', cssVersion: 'x' });
   assert.ok(!pv.about().html.includes('speculationrules'), '共有プレビューには入れない');

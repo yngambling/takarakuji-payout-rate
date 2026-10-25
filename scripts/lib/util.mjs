@@ -102,6 +102,23 @@ export function yenJa(n) {
   return `${oku ? `${num(oku)}億` : ''}${manPart ? `${num(manPart)}万` : ''}${rest ? num(rest) : ''}円`;
 }
 
+/**
+ * 一覧（速報の帯・サイドバー・ランキングの表）で使う、ひと目で読める概数：
+ * 5,001,651,420 → 約50億円、323,456,789 → 約3.2億円、85,000,000 → 8,500万円、0 → 0円。
+ * 10億円以上は億の整数、1億円以上は億の小数1けた、1万円以上は万の整数。丸めて額が変わったときだけ「約」を付ける。
+ * くわしい額（結論・TOP3・くじ別ページ）は yenJa でそのまま出す
+ */
+export function yenApprox(n) {
+  n = Math.round(Number(n) || 0);
+  if (n <= 0) return '0円';
+  const about = (unit) => (Math.round(n / unit) * unit === n ? '' : '約');
+  const t = Math.round(n / 1e7); // 0.1億円の単位
+  if (t >= 100) return `${about(1e8)}${num(Math.round(n / 1e8))}億円`;
+  if (t >= 10) return `${about(1e7)}${t % 10 ? (t / 10).toFixed(1) : String(t / 10)}億円`;
+  if (n >= 1e4) return `${about(1e4)}${num(Math.round(n / 1e4))}万円`;
+  return `${num(n)}円`;
+}
+
 /** 上限額の表示：1,200,000,000 → 12億円、700,000,020 → 7億円 */
 export function capLabel(n) {
   if (!Number.isFinite(n)) return 'なし';
