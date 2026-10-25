@@ -38,7 +38,7 @@ html { -webkit-text-size-adjust: 100%; background: var(--bg); }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.8 var(--font-body); }
 a { color: var(--blue); text-underline-offset: 2px; transition: color .15s; }
 a:hover { color: var(--red); }
-a:focus-visible, button:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
 img, svg { max-width: 100%; }
 .wrap { max-width: 1200px; margin: 0 auto; padding-inline: 16px; }
 .skip { position: absolute; left: -9999px; }
@@ -274,6 +274,49 @@ ul.note li + li { margin-top: 3px; }
 .bar::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; background: var(--ink); opacity: .55; }
 .bar.fill i { animation: barfill 1.1s var(--ease) both; }
 
+/* 全くじの還元率ランキング：1くじ1行。スマホは2段（くじ・還元率／キャリーオーバー・ボタン）、本文の幅が640px以上なら1段 */
+.rkl { list-style: none; margin: 0 0 10px; padding: 0; border-top: 1px solid var(--line); container-type: inline-size; }
+.rkl-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 112px; grid-template-areas: "rk nm rt" "rk mt by"; align-items: center; gap: 6px 10px; padding: 10px 8px 10px 2px; border-bottom: 1px solid var(--line); }
+.rkl-row.first { background: var(--gold-soft); }
+.rkl-rk { grid-area: rk; align-self: start; display: flex; justify-content: center; }
+.rkl .rk .crown { width: 26px; height: 26px; }
+.rkl .rk b { font-size: 20px; }
+.rkl .rkn b { width: 28px; height: 28px; font-size: 15px; }
+.rkl-nm { grid-area: nm; min-width: 0; }
+.rkl-nm .gname { display: inline-block; padding: 8px 0; margin: -8px 0; font-weight: 700; font-size: 17px; line-height: 1.4; } /* 押せる範囲を上下に広げる（行の高さは変えない） */
+.rkl-nm .sub { display: none; }
+.rkl-rt { grid-area: rt; text-align: right; }
+.rkl-rt .rate { display: block; font-family: var(--font-num); font-weight: 700; font-size: 26px; line-height: 1.1; }
+.rkl-rt .rate.hi { color: var(--red); }
+.rkl-rt .bar { margin: 4px 0 2px auto; width: 96px; }
+.rkl-mt { grid-area: mt; min-width: 0; font-size: 14px; line-height: 1.5; color: var(--sub); }
+.rkl-mt b { color: var(--ink); white-space: nowrap; }
+.rkl-mt b.red { color: var(--red); }
+.rkl-k { margin-right: 4px; }
+.rkl-by { grid-area: by; }
+.rkl-by .btn { width: 100%; } /* 列の幅をそろえる（行ごとにボタンの幅が違っても、縦の列がずれないように） */
+.btn-row { background: var(--green); color: var(--white); border-bottom: 3px solid var(--green-dk); padding: 9px 12px 7px; min-height: 42px; font-size: 14px; white-space: nowrap; }
+.btn-row::after { content: "›"; margin-left: 2px; font-size: 1.15em; line-height: 1; }
+.btn-row:hover { background: #0b7d39; color: var(--white); }
+@container (min-width: 640px) {
+  .rkl-row { grid-template-columns: 52px minmax(0, 1fr) 128px minmax(150px, .9fr) 132px; grid-template-areas: "rk nm rt mt by"; gap: 0 16px; padding: 10px 12px 10px 4px; }
+  .rkl-rk { align-self: center; }
+  .rkl-nm .sub { display: block; }
+  .rkl-rt { text-align: left; }
+  .rkl-rt .bar { width: 100%; margin: 4px 0 2px; }
+}
+
+/* 長い表の折りたたみ（トップの等級の表・最近の結果）。押すと開き、開いているときは「閉じる」 */
+.fold { margin: 0 0 14px; border: 2px solid var(--line); border-radius: 8px; background: var(--white); }
+.fold > summary { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; padding: 10px 16px; cursor: pointer; font-weight: 700; color: var(--navy); list-style: none; border-radius: 6px; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary::after { content: ""; width: 9px; height: 9px; border-right: 2.5px solid currentColor; border-bottom: 2.5px solid currentColor; transform: translateY(-3px) rotate(45deg); transition: transform .2s; }
+.fold[open] > summary::after { transform: translateY(2px) rotate(-135deg); }
+.fold > summary:hover { background: var(--soft); }
+.fold .f-close, .fold[open] .f-open { display: none; }
+.fold[open] .f-close { display: inline; }
+.fold-body { padding: 4px 12px 12px; }
+
 /* ---------- 表 ---------- */
 .tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 0 10px; }
 .scroll-hint { display: none; font-size: 13px; color: var(--sub); margin: 0 0 4px; }
@@ -293,15 +336,15 @@ table.t { border-collapse: separate; border-spacing: 0; border-top: 1px solid va
 .t .rate.hi { color: var(--red); }
 .t .gname { font-weight: 700; font-size: 16px; }
 .t a.gname, .t thead a { display: inline-block; padding: 8px 0; margin: -8px 0; } /* 押せる範囲を上下に広げる（行の高さは変えない） */
-/* 横にスクロールする表は、左の列（くじ・等級・日付など）を止めておく。ポイントのランキング2つは順位の次の名前の列、等級の表はくじの列。
+/* 横にスクロールする表は、左の列（くじ・等級・日付など）を止めておく。ポイントのランキング2つは順位の次の名前の列、トップの最近の結果は日付の次のくじの列、等級の表はくじの列。
    見出しの行は、横にスクロールする箱の中では上に止められない（箱が縦のスクロールの基準になるため） */
-.tbl-wrap > .t:not(.rank, .tiers, .ptrank, .efftbl) > :is(thead, tbody) > tr > :first-child,
+.tbl-wrap > .t:not(.tiers, .ptrank, .efftbl, .games) > :is(thead, tbody) > tr > :first-child,
 .tbl-wrap > .t.tiers > thead > tr > :first-child, .tbl-wrap > .t.tiers td.gcell,
-.tbl-wrap > .t:is(.ptrank, .efftbl) > :is(thead, tbody) > tr > :nth-child(2) { position: sticky; left: 0; z-index: 1; }
-.tbl-wrap > .t:not(.rank) > thead > tr > :first-child { white-space: nowrap; }
-.tbl-wrap.sx > .t:not(.rank, .tiers, .ptrank, .efftbl) > :is(thead, tbody) > tr > :first-child,
+.tbl-wrap > .t:is(.ptrank, .efftbl, .games) > :is(thead, tbody) > tr > :nth-child(2) { position: sticky; left: 0; z-index: 1; }
+.tbl-wrap > .t > thead > tr > :first-child { white-space: nowrap; }
+.tbl-wrap.sx > .t:not(.tiers, .ptrank, .efftbl, .games) > :is(thead, tbody) > tr > :first-child,
 .tbl-wrap.sx > .t.tiers > thead > tr > :first-child, .tbl-wrap.sx > .t.tiers td.gcell,
-.tbl-wrap.sx > .t:is(.ptrank, .efftbl) > :is(thead, tbody) > tr > :nth-child(2) { box-shadow: 6px 0 6px -4px rgba(0, 0, 0, .22); }
+.tbl-wrap.sx > .t:is(.ptrank, .efftbl, .games) > :is(thead, tbody) > tr > :nth-child(2) { box-shadow: 6px 0 6px -4px rgba(0, 0, 0, .22); }
 .t tfoot th, .t tfoot td { background: var(--gold-soft); font-weight: 700; }
 /* ジャンボ：何枚買うと当たる？・ミニとの比較 */
 .t.buy-chance { min-width: 560px; }
@@ -309,15 +352,6 @@ table.t { border-collapse: separate; border-spacing: 0; border-top: 1px solid va
 .t.compare { min-width: 480px; }
 .t.compare thead th .sub { color: #dfe5ef; }
 .t.compare thead th a { color: var(--white); }
-.t.rank { table-layout: fixed; min-width: 808px; }
-.t.rank tr.first td { background: var(--gold-soft); }
-.t.rank td { font-size: 14px; }
-.t.rank thead th { font-size: 13px; line-height: 1.35; padding: 7px 4px; }
-.t.rank .co { font-size: 14px; }
-.t.rank .sub.pt { color: #8a6200; font-weight: 700; }
-.t.rank .k-by .minis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
-.t.rank .k-by .btn-mini { text-align: center; padding: 4px 2px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
-.t.rank .k-by .btn-mini.first { grid-column: 1 / -1; font-size: 13px; padding: 4px 4px; }
 .t.tiers { min-width: 720px; }
 .t.tiers tbody.g:nth-of-type(even) td, .t.tiers tbody.g:nth-of-type(even) th { background: #fafafa; }
 .t.tiers td.gcell { width: 190px; min-width: 170px; background: var(--white) !important; }
@@ -340,7 +374,8 @@ table.t { border-collapse: separate; border-spacing: 0; border-top: 1px solid va
 .parts-mini b { display: inline-block; min-width: 3.4em; font-family: var(--font-num); color: #8a6200; }
 
 /* 最近の結果 */
-.t.results td:first-child { white-space: nowrap; }
+.t.results { min-width: 560px; }
+.t.results td { white-space: nowrap; } /* 額や「該当なし」を1文字ずつ折り返さない（スマホは横にスクロール） */
 
 /* ---------- スコアボード（くじ別ページの冒頭） ---------- */
 .score { border: 3px solid var(--red); border-radius: 8px; overflow: hidden; margin: 6px 0 18px; }
@@ -630,24 +665,6 @@ table.t { border-collapse: separate; border-spacing: 0; border-top: 1px solid va
   .kuji-tbl th { width: 7.5em; white-space: normal; }
   .share a { flex: 1 1 calc(50% - 8px); }
   .foot { padding-bottom: 64px; }
-  /* ランキング表は1行ずつ縦に並べる */
-  .rank-wrap .scroll-hint { display: none; }
-  .t.rank { min-width: 0; table-layout: auto; }
-  .t.rank colgroup, .t.rank thead { display: none; }
-  .t.rank, .t.rank tbody { display: block; width: 100%; }
-  .t.rank { border: 0; }
-  .t.rank tr { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-areas: "rk nm rt" "rk co co" "rk tp tp" "rk pb pb" "rk nx nx" "rk by by"; gap: 4px 10px; padding: 12px 10px; border: 1px solid var(--line); border-top: 0; }
-  .t.rank tr:first-child { border-top: 1px solid var(--line); }
-  .t.rank tr.first { background: var(--gold-soft); }
-  .t.rank td { display: block; border: 0; padding: 0; text-align: left; background: transparent !important; }
-  .t.rank .k-rk { grid-area: rk; } .t.rank .k-nm { grid-area: nm; } .t.rank .k-rt { grid-area: rt; text-align: right; }
-  .t.rank .k-co { grid-area: co; } .t.rank .k-tp { grid-area: tp; } .t.rank .k-pb { grid-area: pb; } .t.rank .k-nx { grid-area: nx; }
-  .t.rank .k-by { grid-area: by; padding-top: 4px; }
-  .t.rank .k-by .minis { display: flex; flex-wrap: wrap; }
-  .t.rank .k-by .btn-mini, .t.rank .k-by .btn-mini.first { padding: 5px 10px; font-size: 13px; grid-column: auto; }
-  .t.rank td[data-label]::before { content: attr(data-label); display: inline-block; min-width: 7.2em; margin-right: 4px; color: var(--sub); font-size: 13px; font-weight: 700; }
-  .t.rank td[data-label] .sub { display: inline; margin-left: 6px; }
-  .t.rank .k-rt .bar { width: 90px; margin-left: auto; }
 }
 /* 幅320pxの小さなスマホでも、ロゴを1行に収める */
 @media (max-width: 359px) { .logo { font-size: 20px; } .logo .crown { width: 26px; height: 26px; } }
