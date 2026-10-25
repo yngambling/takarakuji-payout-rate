@@ -5,6 +5,8 @@ import { autoGuide, autoLead, autoSourceNote, buyChances, jumboSibling, compareS
 import { renderGuideBody, giftTax, GIFT_AMOUNTS } from './guide.mjs';
 
 const GROUP_LABEL = { takarakuji: '宝くじ', sports: 'スポーツくじ' };
+/** トップの「最近の結果」で、最初から見せる件数（残りは折りたたむ） */
+const RECENT_SHOWN = 5;
 
 /** 宝くじのジャンボ（賞金が決まっているくじ）か */
 const isJumbo = (d) => d?.model === 'fixed' && d.group === 'takarakuji';
@@ -520,6 +522,14 @@ export function createRenderer(ctx) {
 </div>`;
   }
 
+  /** 長い表を折りたたむ（押すと開く。JS なしで動く）。開いているときは「閉じる」と出す */
+  function fold(label, html) {
+    return `<details class="fold"><summary><span class="f-open">${esc(label)}</span><span class="f-close">閉じる</span></summary>
+<div class="fold-body">
+${html}
+</div></details>`;
+  }
+
   function toc(items) {
     return `<nav class="toc" aria-label="目次"><p class="toc-title">目次</p><ol>${items.map(([id, t]) => `<li><a href="#${id}">${esc(t)}</a></li>`).join('')}</ol></nav>`;
   }
@@ -714,31 +724,32 @@ ${UI_JS}${!preview && site.ga4 ? `\n${CLICK_JS}` : ''}`;
 
   /* ---------------- 表 ---------------- */
 
-  function rankTable(rel) {
-    const body = listed.map((r) => {
+  /**
+   * 全くじの還元率ランキング：1くじ1行（順位・くじ・還元率とバー・キャリーオーバーの概数・いちばんポイントが付く購入場所のボタン1つ）。
+   * 1等の金額・確率・締切・ほかの購入場所は、くじ別ページで見せる
+   */
+  function rankList(rel) {
+    const items = listed.map((r) => {
       const d = r.def;
+      const l = shopLinks(r.id)[0];
       const fp = firstPrize(r);
-      const br = bestRoute(r.id);
-      return `<tr${rankOf[r.id] === 1 ? ' class="first"' : ''} data-kuji="${r.id}">
-<td class="c k-rk">${rankMark(rankOf[r.id])}</td>
-<td class="k-nm"><a class="gname" href="${rel}kuji/${r.id}.html">${esc(d.name)}</a><span class="sub">${GROUP_LABEL[d.group] || ''}・1口${yen(d.price)}</span></td>
-<td class="k-rt"><span class="rate${r.rate >= 0.5 ? ' hi' : ''}">${pct(r.rate)}</span>${bar(r.rate)}${br ? `<span class="sub pt">ポイント込み${pct(effRate(r))}</span>` : ''}</td>
-<td class="k-co" data-label="キャリーオーバー">${r.hasCO ? `<span class="co">${yenApprox(r.carryover)}</span>` : '<span class="sub">なし</span>'}${statusBadges(r, { co: false }) ? `<span class="sub">${statusBadges(r, { co: false })}</span>` : ''}</td>
-<td class="r k-tp" data-label="1等の金額">${fp ? `<b>${yen(fp.amount)}</b>${fp.note ? `<span class="sub">${esc(fp.note)}</span>` : ''}` : '—'}</td>
-<td class="r k-pb" data-label="1等の当せん確率">${fp ? `${odds(fp.p)}<span class="sub">${probPct(fp.p)}</span>` : '—'}</td>
-<td class="k-nx" data-label="次の回">${esc(r.status.short || r.status.text)}${r.status.shortSub ? `<span class="sub">${esc(r.status.shortSub)}</span>` : ''}</td>
-<td class="k-by">${miniButtons(r.id)}</td>
-</tr>`;
+      const badges = statusBadges(r, { co: false });
+      const key = r.hasCO
+        ? `<span class="rkl-k">キャリーオーバー <b${r.carryover > 0 ? ' class="red"' : ''}>${yenApprox(r.carryover)}</b></span>`
+        : fp ? `<span class="rkl-k">${d.model === 'numbers' ? 'ストレート' : '1等'} <b>${yenApprox(fp.amount)}</b></span>` : '';
+      return `<li class="rkl-row${rankOf[r.id] === 1 ? ' first' : ''}" data-kuji="${r.id}">
+<span class="rkl-rk">${rankMark(rankOf[r.id])}</span>
+<span class="rkl-nm"><a class="gname" href="${rel}kuji/${r.id}.html">${esc(d.name)}</a><span class="sub">${GROUP_LABEL[d.group] || ''}・1口${yen(d.price)}</span></span>
+<span class="rkl-rt"><span class="rate${r.rate >= 0.5 ? ' hi' : ''}">${pct(r.rate)}</span>${bar(r.rate)}</span>
+<span class="rkl-mt">${key}${badges ? ` ${badges}` : ''}</span>
+<span class="rkl-by">${l ? aBtn(l, 'btn-row', l.short) : ''}</span>
+</li>`;
     }).join('\n');
-    return `${hasAd(body) ? prLine('表のボタンには広告を含みます') : ''}<div class="rank-wrap"><p class="scroll-hint">表は横にスクロールできます →</p>
-<div class="tbl-wrap"><table class="t rank">
-<colgroup><col style="width:46px"><col style="width:96px"><col style="width:96px"><col style="width:112px"><col style="width:104px"><col style="width:92px"><col style="width:88px"><col style="width:172px"></colgroup>
-<thead><tr><th>順位</th><th>くじ</th><th>還元率</th><th>キャリー<br>オーバー</th><th>1等の金額</th><th>1等の<br>当せん確率</th><th>次の回</th><th>購入場所</th></tr></thead>
-<tbody>
-${body}
-</tbody></table></div>
-<div class="note"><p>※還元率は、1口買ったときに戻ってくる金額の平均を、1口の値段で割ったものです。バーの縦線は50%の位置です。「ポイント込み」は、いちばんポイントが付く買い方で買った場合です（<a href="${rel}point.html">ポイント還元ランキング</a>）。</p>
-<p>※1等の金額は、同じ回に1等が複数出た場合の山分けを織り込んだ平均額です。「暫定」は、前の回の結果が出る前の繰越額で計算していることを表します。購入場所のボタンは、ポイントが多い順に並べています。</p></div></div>`;
+    return `${hasAd(items) ? prLine('ボタンには広告を含みます') : ''}<ol class="rkl">
+${items}
+</ol>
+<div class="note"><p>※還元率は、1口買ったときに戻ってくる金額の平均を、1口の値段で割ったものです。バーの縦線は50%の位置です。くじの名前を押すと、くわしい額と、1等の金額・当せん確率・締切が見られます。</p>
+<p>※ボタンは、いちばんポイントが付く購入場所です。ほかの購入場所とポイント込みの還元率は、くじ別のページと<a href="${rel}point.html">ポイント還元ランキング</a>にあります。「暫定」は、前の回の結果が出る前の繰越額で計算していることを表します。</p></div>`;
   }
 
   function top3Cards(rel) {
@@ -834,7 +845,7 @@ ${body}
       const t1 = e.firstWinners == null ? '—' : e.firstWinners > 0 ? `${num(e.firstWinners)}口<span class="sub">1口${yen(e.firstPrize)}</span>` : '該当なし';
       return `<tr><td>${fmtShort(e.date)}</td>${showGame ? `<td><a class="gname" href="${rel}kuji/${e.game}.html">${esc(d?.name || e.game)}</a></td>` : ''}<td class="nw">第${e.round}回</td><td class="r">${t1}</td><td class="r ${e.carryover > 0 ? 'co' : ''}">${e.carryover > 0 ? yen(e.carryover) : '0円'}</td></tr>`;
     }).join('\n');
-    return `<div class="tbl-wrap"><table class="t results"><thead><tr><th>発表日</th>${showGame ? '<th>くじ</th>' : ''}<th>回</th><th>1等</th><th>次回へのキャリーオーバー</th></tr></thead><tbody>
+    return `<div class="tbl-wrap"><table class="t results${showGame ? ' games' : ''}"><thead><tr><th>発表日</th>${showGame ? '<th>くじ</th>' : ''}<th>回</th><th>1等</th><th>次回へのキャリーオーバー</th></tr></thead><tbody>
 ${trs}
 </tbody></table></div>`;
   }
@@ -1025,17 +1036,19 @@ ${ad('top')}
 <h2 id="top3">還元率ランキングTOP3</h2>
 ${top3Cards(rel)}${jbox ? `\n<h2 id="jumbo">ジャンボ宝くじ（発売中・発売予定）</h2>\n${jbox}` : ''}
 <h2 id="ranking">全くじの還元率ランキング</h2>
-${rankTable(rel)}
+${rankList(rel)}
 ${ad('middle')}
 <h2 id="otoku">ポイントでもっとお得に買う</h2>
 <p>同じくじでも、どこで・何で払うかで付くポイントが変わります。登録や口座開設だけで始められる、ポイントが付く買い方です（${fmtYmd(checkedOn).replace(/（.）/, '')}に各社の公式ページで確認）。</p>
 <div class="rt-grid two">${cards.map((x) => routeCard(x, { rel, compact: true })).join('\n')}</div>
 <p class="more-link"><a href="${rel}point.html">ポイント還元ランキングをくわしく見る ›</a></p>
 <h2 id="tiers">等級ごとの当せん金と確率</h2>
-${bigTierTable(rel)}
+<p>くじごとに、等級ごとの当せん確率と1口の当せん金、還元率への寄与をまとめた表です。くじ別のページにも、同じ表があります。</p>
+${fold(`等級の表を開く（${listed.length}くじ）`, bigTierTable(rel))}
 ${ad('middle2')}
 <h2 id="results">最近の結果とキャリーオーバーの動き</h2>
-${resultsTable(rel, recent)}
+${resultsTable(rel, recent.slice(0, RECENT_SHOWN))}${recent.length > RECENT_SHOWN ? `
+${fold(`さらに${recent.length - RECENT_SHOWN}件を見る`, resultsTable(rel, recent.slice(RECENT_SHOWN)))}` : ''}
 <h2 id="faq">よくある質問</h2>
 ${faqHtml(faqs)}
 ${ad('bottom')}
@@ -1065,14 +1078,14 @@ ${guideList.length ? `<h3>${HUB_NAME}</h3>\n${guideLinks(rel)}` : ''}
         const t1 = d.tiers?.find((t) => t.tier === 1);
         return `<tr><td class="nw">第${d.round}回</td><td class="nw">${fmtShort(d.date)}</td><td class="r">${d.sales ? yen(d.sales) : '—'}</td><td class="r">${t1 ? (t1.winners ? `${num(t1.winners)}口<span class="sub">1口${yen(t1.prize)}</span>` : '該当なし') : '—'}</td><td class="r ${d.carryover > 0 ? 'co' : ''}">${d.carryover != null ? yen(d.carryover) : '—'}</td></tr>`;
       }).join('\n');
-      return `<div class="tbl-wrap"><table class="t"><thead><tr><th>回</th><th>抽せん日</th><th>販売実績額</th><th>1等</th><th>キャリーオーバー</th></tr></thead><tbody>${trs}</tbody></table></div>`;
+      return `<div class="tbl-wrap"><table class="t results"><thead><tr><th>回</th><th>抽せん日</th><th>販売実績額</th><th>1等</th><th>キャリーオーバー</th></tr></thead><tbody>${trs}</tbody></table></div>`;
     }
     if (st.results?.length) {
       const trs = st.results.slice(0, 10).map((d) => {
         const t1 = d.tiers?.find((t) => t.tier === 1);
         return `<tr><td class="nw">第${d.round}回</td><td class="nw">${d.resultDate ? fmtShort(d.resultDate) : '—'}</td><td class="r">${d.sales ? yen(d.sales) : '—'}</td><td class="r">${t1 ? (t1.winners ? `${num(t1.winners)}口<span class="sub">1口${yen(t1.prize)}</span>` : '該当なし') : '—'}</td><td class="r ${d.carryoverOut > 0 ? 'co' : ''}">${yen(d.carryoverOut || 0)}</td></tr>`;
       }).join('\n');
-      return `<div class="tbl-wrap"><table class="t"><thead><tr><th>回</th><th>結果発表</th><th>売上金額</th><th>1等</th><th>次回へのキャリーオーバー</th></tr></thead><tbody>${trs}</tbody></table></div>`;
+      return `<div class="tbl-wrap"><table class="t results"><thead><tr><th>回</th><th>結果発表</th><th>売上金額</th><th>1等</th><th>次回へのキャリーオーバー</th></tr></thead><tbody>${trs}</tbody></table></div>`;
     }
     return '';
   }
