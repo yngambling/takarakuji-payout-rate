@@ -2,8 +2,8 @@
  "_note": "ページごとの内容のハッシュと、内容が最後に変わった日時（build.mjs が更新）。sitemap.xml の lastmod と、検索エンジンへの通知（scripts/indexnow.mjs）に使います。",
  "pages": {
   "index.html": {
-   "hash": "c4e20303db709211",
-   "changed": "2026-10-28T12:47+09:00"
+   "hash": "dff643649af554f3",
+   "changed": "2026-10-28T19:03+09:00"
   },
   "kuji/loto6.html": {
    "hash": "ce27fd6c4b7d3181",
@@ -18,16 +18,16 @@
    "changed": "2026-10-28T01:03+09:00"
   },
   "kuji/bingo5.html": {
-   "hash": "3b96479fb546beab",
-   "changed": "2026-10-28T01:03+09:00"
+   "hash": "8b346e0dfcf75ceb",
+   "changed": "2026-10-28T19:03+09:00"
   },
   "kuji/numbers4.html": {
-   "hash": "ea469c8c588a6d82",
-   "changed": "2026-10-28T01:03+09:00"
+   "hash": "c2545bdc32db8610",
+   "changed": "2026-10-28T19:03+09:00"
   },
   "kuji/numbers3.html": {
-   "hash": "b29d0bdd7b7610cd",
-   "changed": "2026-10-28T01:03+09:00"
+   "hash": "195aa97bdbe102c5",
+   "changed": "2026-10-28T19:03+09:00"
   },
   "kuji/halloween2026.html": {
    "hash": "93725652adc08422",
@@ -46,24 +46,24 @@
    "changed": "2026-10-28T01:03+09:00"
   },
   "kuji/megabig.html": {
-   "hash": "6e52c07034c2b35d",
-   "changed": "2026-10-28T01:03+09:00"
+   "hash": "e585b221bae3250e",
+   "changed": "2026-10-28T19:03+09:00"
   },
   "kuji/big.html": {
-   "hash": "1f9243b5e03bb9dd",
-   "changed": "2026-10-28T01:03+09:00"
+   "hash": "43c2c1216d93eb5e",
+   "changed": "2026-10-28T19:03+09:00"
   },
   "kuji/big100.html": {
-   "hash": "ae8270b8fd2754ea",
-   "changed": "2026-10-28T01:03+09:00"
+   "hash": "79c973c5639207b8",
+   "changed": "2026-10-28T19:03+09:00"
   },
   "kuji/big1000.html": {
-   "hash": "94247810973932c4",
-   "changed": "2026-10-28T01:03+09:00"
+   "hash": "e33ca74da69fb340",
+   "changed": "2026-10-28T19:03+09:00"
   },
   "kuji/minibig.html": {
-   "hash": "4cae481e4ddae8db",
-   "changed": "2026-10-28T01:03+09:00"
+   "hash": "4a8cf164da78a883",
+   "changed": "2026-10-28T19:03+09:00"
   },
   "kuji/dunk10.html": {
    "hash": "74ab3f4c10a82c1e",
