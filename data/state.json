@@ -1,6 +1,6 @@
 {
  "_note": "scripts/fetch.mjs が公式サイトから自動で更新します。取得に失敗した項目は前回の値が残り、error に理由が入ります。",
- "updatedAt": "2026-10-31T18:58:00+09:00",
+ "updatedAt": "2026-10-31T19:47:00+09:00",
  "games": {
   "loto7": {
    "draws": [
@@ -694,7 +694,7 @@
      "complete": true
     }
    ],
-   "fetchedAt": "2026-10-31T18:58:00+09:00",
+   "fetchedAt": "2026-10-31T19:47:00+09:00",
    "source": "みずほ銀行 当せん番号データ（CSV）"
   },
   "loto6": {
@@ -1436,7 +1436,7 @@
      "complete": true
     }
    ],
-   "fetchedAt": "2026-10-31T18:58:00+09:00",
+   "fetchedAt": "2026-10-31T19:47:00+09:00",
    "source": "みずほ銀行 当せん番号データ（CSV）"
   },
   "big": {
@@ -1447,11 +1447,11 @@
     "salesEnd": "2026-11-03",
     "salesEndTime": "13:45",
     "resultDate": "2026-11-03",
-    "salesSoFar": 71580900,
+    "salesSoFar": 73045500,
     "carryoverIn": null,
     "firstPool": null,
-    "asOf": "2026-10-31T18:58:00+09:00",
-    "fetchedAt": "2026-10-31T18:58:00+09:00"
+    "asOf": "2026-10-31T19:47:00+09:00",
+    "fetchedAt": "2026-10-31T19:47:00+09:00"
    },
    "results": [
     {
@@ -4637,7 +4637,7 @@
      "carryoverOut": 3701131440
     }
    ],
-   "fetchedAt": "2026-10-31T18:58:00+09:00",
+   "fetchedAt": "2026-10-31T19:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "megabig": {
@@ -4648,11 +4648,11 @@
     "salesEnd": "2026-11-03",
     "salesEndTime": "13:45",
     "resultDate": "2026-11-03",
-    "salesSoFar": 49240800,
+    "salesSoFar": 50606100,
     "carryoverIn": null,
     "firstPool": null,
-    "asOf": "2026-10-31T18:58:00+09:00",
-    "fetchedAt": "2026-10-31T18:58:00+09:00"
+    "asOf": "2026-10-31T19:47:00+09:00",
+    "fetchedAt": "2026-10-31T19:47:00+09:00"
    },
    "results": [
     {
@@ -7838,7 +7838,7 @@
      "carryoverOut": 6595607175
     }
    ],
-   "fetchedAt": "2026-10-31T18:58:00+09:00",
+   "fetchedAt": "2026-10-31T19:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "big100": {
@@ -7849,11 +7849,11 @@
     "salesEnd": "2026-11-03",
     "salesEndTime": "13:45",
     "resultDate": "2026-11-03",
-    "salesSoFar": 31412600,
+    "salesSoFar": 32248400,
     "carryoverIn": null,
     "firstPool": null,
-    "asOf": "2026-10-31T18:58:00+09:00",
-    "fetchedAt": "2026-10-31T18:58:00+09:00"
+    "asOf": "2026-10-31T19:47:00+09:00",
+    "fetchedAt": "2026-10-31T19:47:00+09:00"
    },
    "results": [
     {
@@ -10669,7 +10669,7 @@
      "carryoverOut": 273776210
     }
    ],
-   "fetchedAt": "2026-10-31T18:58:00+09:00",
+   "fetchedAt": "2026-10-31T19:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "big1000": {
@@ -10680,11 +10680,11 @@
     "salesEnd": "2026-11-03",
     "salesEndTime": "13:45",
     "resultDate": "2026-11-03",
-    "salesSoFar": 13919400,
+    "salesSoFar": 14161000,
     "carryoverIn": null,
     "firstPool": null,
-    "asOf": "2026-10-31T18:58:00+09:00",
-    "fetchedAt": "2026-10-31T18:58:00+09:00"
+    "asOf": "2026-10-31T19:47:00+09:00",
+    "fetchedAt": "2026-10-31T19:47:00+09:00"
    },
    "results": [
     {
@@ -13130,7 +13130,7 @@
      "carryoverOut": 0
     }
    ],
-   "fetchedAt": "2026-10-31T18:58:00+09:00",
+   "fetchedAt": "2026-10-31T19:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "minibig": {
@@ -13141,11 +13141,11 @@
     "salesEnd": "2026-11-03",
     "salesEndTime": "13:45",
     "resultDate": "2026-11-03",
-    "salesSoFar": 10767200,
+    "salesSoFar": 10938600,
     "carryoverIn": null,
     "firstPool": null,
-    "asOf": "2026-10-31T18:58:00+09:00",
-    "fetchedAt": "2026-10-31T18:58:00+09:00"
+    "asOf": "2026-10-31T19:47:00+09:00",
+    "fetchedAt": "2026-10-31T19:47:00+09:00"
    },
    "results": [
     {
@@ -15221,7 +15221,7 @@
      "carryoverOut": 0
     }
    ],
-   "fetchedAt": "2026-10-31T18:58:00+09:00",
+   "fetchedAt": "2026-10-31T19:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "dunk10": {
@@ -15232,11 +15232,11 @@
     "salesEnd": "2026-11-07",
     "salesEndTime": "13:55",
     "resultDate": "2026-11-08",
-    "salesSoFar": 3192900,
+    "salesSoFar": 3365100,
     "carryoverIn": null,
     "firstPool": null,
-    "asOf": "2026-10-31T18:58:00+09:00",
-    "fetchedAt": "2026-10-31T18:58:00+09:00"
+    "asOf": "2026-10-31T19:47:00+09:00",
+    "fetchedAt": "2026-10-31T19:47:00+09:00"
    },
    "results": [
     {
@@ -15278,7 +15278,7 @@
      "carryoverOut": 56746687
     }
    ],
-   "fetchedAt": "2026-10-31T18:58:00+09:00",
+   "fetchedAt": "2026-10-31T19:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "dunk6a": {
@@ -15291,7 +15291,7 @@
     "resultDate": "2026-11-07",
     "salesSoFar": null,
     "asOf": null,
-    "fetchedAt": "2026-10-31T18:58:00+09:00"
+    "fetchedAt": "2026-10-31T19:47:00+09:00"
    },
    "results": [
     {
@@ -15351,7 +15351,7 @@
      "carryoverOut": 0
     }
    ],
-   "fetchedAt": "2026-10-31T18:58:00+09:00",
+   "fetchedAt": "2026-10-31T19:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果"
   },
   "dunk6b": {
@@ -15398,7 +15398,7 @@
      "carryoverOut": 0
     }
    ],
-   "fetchedAt": "2026-10-31T18:58:00+09:00",
+   "fetchedAt": "2026-10-31T19:47:00+09:00",
    "source": "スポーツくじオフィシャルサイト くじ結果",
    "nextSale": {
     "round": 11,
@@ -15409,7 +15409,7 @@
     "resultDate": "2026-11-08",
     "salesSoFar": null,
     "asOf": null,
-    "fetchedAt": "2026-10-31T18:58:00+09:00"
+    "fetchedAt": "2026-10-31T19:47:00+09:00"
    }
   }
  },
@@ -15441,7 +15441,7 @@
  },
  "products": {
   "big": {
-   "at": "2026-10-31T18:58:00+09:00",
+   "at": "2026-10-31T19:47:00+09:00",
    "labels": [
     "BIG",
     "MEGA BIG",
@@ -15451,7 +15451,7 @@
    ]
   },
   "dunk": {
-   "at": "2026-10-31T18:58:00+09:00",
+   "at": "2026-10-31T19:47:00+09:00",
    "labels": [
     "DUNK10",
     "DUNK6-A",
