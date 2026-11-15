@@ -1,5 +1,50 @@
 [
  {
+  "key": "big-1672",
+  "date": "2026-11-15",
+  "game": "big",
+  "round": 1672,
+  "firstWinners": 0,
+  "firstPrize": 0,
+  "carryover": 5430103260
+ },
+ {
+  "key": "megabig-1672",
+  "date": "2026-11-15",
+  "game": "megabig",
+  "round": 1672,
+  "firstWinners": 0,
+  "firstPrize": 0,
+  "carryover": 10177405815
+ },
+ {
+  "key": "big100-1672",
+  "date": "2026-11-15",
+  "game": "big100",
+  "round": 1672,
+  "firstWinners": 0,
+  "firstPrize": 0,
+  "carryover": 1393588132
+ },
+ {
+  "key": "big1000-1672",
+  "date": "2026-11-15",
+  "game": "big1000",
+  "round": 1672,
+  "firstWinners": 5,
+  "firstPrize": 8440480,
+  "carryover": 0
+ },
+ {
+  "key": "minibig-1672",
+  "date": "2026-11-15",
+  "game": "minibig",
+  "round": 1672,
+  "firstWinners": 22,
+  "firstPrize": 1260160,
+  "carryover": 0
+ },
+ {
   "key": "loto7-703",
   "date": "2026-11-13",
   "game": "loto7",
