@@ -545,6 +545,8 @@
     "price": 300,
     "model": "fixed",
     "totalTickets": 460000000,
+    "units": 23,
+    "unitTickets": 20000000,
     "salesStart": "2026-11-24",
     "salesEnd": "2026-12-25",
     "drawDate": "2026-12-31",
@@ -552,11 +554,7 @@
     "drawLabel": "12月31日（木）抽せん",
     "deadline": "12月25日（金）まで",
     "payoutNote": "賞金は固定。キャリーオーバーなし",
-    "earlyNet": {
-      "from": "2026-10-23",
-      "shop": "mizuho"
-    },
-    "verify": "賞金・本数・発売期間は、みずほ銀行の「インターネット宝くじサービスでの販売予定の宝くじ」（2026年10月23日に確認）にもとづきます。宝くじ公式サイトの発表が出たら確認して更新します。",
+    "verify": "賞金・本数・発売期間は、2026年11月5日の宝くじ公式サイトの発表から自動で読み取ったものです（運営者の確認待ち）。",
     "tiers": [
       {
         "name": "1等",
@@ -604,8 +602,12 @@
         "count": 46000000
       }
     ],
-    "rules": "1等・前後賞合わせて10億円。同じ日に年末ジャンボミニ（第1135回）も発売・抽せんされます。",
+    "rules": "1等・前後賞合わせて10億円。",
     "sources": [
+      {
+        "title": "宝くじ公式サイト「宝ニュース」：「年末ジャンボ宝くじ」と「年末ジャンボミニ」が11月24日(火)から同時発売!~2つの“年末ジャンボ”で、令和8年熊本地震の被災地を支援~",
+        "url": "https://www.takarakuji-official.jp/news/recent/?newsId=261101"
+      },
       {
         "title": "みずほ銀行「インターネット宝くじサービスでの販売予定の宝くじ」",
         "url": "https://www.mizuhobank.co.jp/takarakuji/yotei/index.html"
@@ -614,7 +616,20 @@
         "title": "宝くじ公式サイト",
         "url": "https://www.takarakuji-official.jp/"
       }
-    ]
+    ],
+    "autoFrom": {
+      "url": "https://www.takarakuji-official.jp/news/recent/?newsId=261101",
+      "title": "「年末ジャンボ宝くじ」と「年末ジャンボミニ」が11月24日(火)から同時発売!~2つの“年末ジャンボ”で、令和8年熊本地震の被災地を支援~",
+      "date": "2026-11-05",
+      "on": "2026-11-17",
+      "hash": "68749d45",
+      "changes": [],
+      "from": "provisional"
+    },
+    "earlyNet": {
+      "from": "2026-10-23",
+      "shop": "mizuho"
+    }
   },
   "nenmatsumini2026": {
     "name": "年末ジャンボミニ",
@@ -624,6 +639,8 @@
     "price": 300,
     "model": "fixed",
     "totalTickets": 150000000,
+    "units": 15,
+    "unitTickets": 10000000,
     "salesStart": "2026-11-24",
     "salesEnd": "2026-12-25",
     "drawDate": "2026-12-31",
@@ -631,11 +648,7 @@
     "drawLabel": "12月31日（木）抽せん",
     "deadline": "12月25日（金）まで",
     "payoutNote": "賞金は固定。キャリーオーバーなし",
-    "earlyNet": {
-      "from": "2026-10-23",
-      "shop": "mizuho"
-    },
-    "verify": "賞金・本数・発売期間は、みずほ銀行の「インターネット宝くじサービスでの販売予定の宝くじ」（2026年10月23日に確認）にもとづきます。宝くじ公式サイトの発表が出たら確認して更新します。",
+    "verify": "賞金・本数・発売期間は、2026年11月5日の宝くじ公式サイトの発表から自動で読み取ったものです（運営者の確認待ち）。",
     "tiers": [
       {
         "name": "1等",
@@ -673,8 +686,12 @@
         "count": 15000000
       }
     ],
-    "rules": "1等・前後賞合わせて5,000万円。同じ日に年末ジャンボ宝くじ（第1134回）も発売・抽せんされます。",
+    "rules": "1等・前後賞合わせて5,000万円。",
     "sources": [
+      {
+        "title": "宝くじ公式サイト「宝ニュース」：「年末ジャンボ宝くじ」と「年末ジャンボミニ」が11月24日(火)から同時発売!~2つの“年末ジャンボ”で、令和8年熊本地震の被災地を支援~",
+        "url": "https://www.takarakuji-official.jp/news/recent/?newsId=261101"
+      },
       {
         "title": "みずほ銀行「インターネット宝くじサービスでの販売予定の宝くじ」",
         "url": "https://www.mizuhobank.co.jp/takarakuji/yotei/index.html"
@@ -683,7 +700,20 @@
         "title": "宝くじ公式サイト",
         "url": "https://www.takarakuji-official.jp/"
       }
-    ]
+    ],
+    "autoFrom": {
+      "url": "https://www.takarakuji-official.jp/news/recent/?newsId=261101",
+      "title": "「年末ジャンボ宝くじ」と「年末ジャンボミニ」が11月24日(火)から同時発売!~2つの“年末ジャンボ”で、令和8年熊本地震の被災地を支援~",
+      "date": "2026-11-05",
+      "on": "2026-11-17",
+      "hash": "803d3476",
+      "changes": [],
+      "from": "provisional"
+    },
+    "earlyNet": {
+      "from": "2026-10-23",
+      "shop": "mizuho"
+    }
   },
   "megabig": {
     "name": "MEGA BIG",
