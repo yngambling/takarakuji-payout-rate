@@ -2,8 +2,8 @@
  "_note": "ページごとの内容のハッシュと、内容が最後に変わった日時（build.mjs が更新）。sitemap.xml の lastmod と、検索エンジンへの通知（scripts/indexnow.mjs）に使います。",
  "pages": {
   "index.html": {
-   "hash": "b96b9e268ee97e4d",
-   "changed": "2026-11-18T04:25+09:00"
+   "hash": "b97c1425935bef4f",
+   "changed": "2026-11-18T06:24+09:00"
   },
   "kuji/loto6.html": {
    "hash": "07e7db68a979d572",
@@ -38,12 +38,12 @@
    "changed": "2026-11-18T04:25+09:00"
   },
   "kuji/nenmatsu2026.html": {
-   "hash": "8ad5ad7a70027114",
-   "changed": "2026-11-18T04:25+09:00"
+   "hash": "444a34ab349bc8ee",
+   "changed": "2026-11-18T06:24+09:00"
   },
   "kuji/nenmatsumini2026.html": {
-   "hash": "455cf22d058be5d0",
-   "changed": "2026-11-18T04:25+09:00"
+   "hash": "20d5f0840c8c3d60",
+   "changed": "2026-11-18T06:24+09:00"
   },
   "kuji/megabig.html": {
    "hash": "01e4b335179adcd5",
