@@ -2,8 +2,8 @@
  "_note": "ページごとの内容のハッシュと、内容が最後に変わった日時（build.mjs が更新）。sitemap.xml の lastmod と、検索エンジンへの通知（scripts/indexnow.mjs）に使います。",
  "pages": {
   "index.html": {
-   "hash": "c86fe5983ab65f2d",
-   "changed": "2026-11-17T13:49+09:00"
+   "hash": "29fccfd89d27d5bc",
+   "changed": "2026-11-17T21:31+09:00"
   },
   "kuji/loto6.html": {
    "hash": "3920959f3904d581",
@@ -14,20 +14,20 @@
    "changed": "2026-11-17T05:41+09:00"
   },
   "kuji/miniloto.html": {
-   "hash": "534c3ecaa5f815a4",
-   "changed": "2026-11-17T05:41+09:00"
+   "hash": "b4ba83d6c7d09169",
+   "changed": "2026-11-17T21:31+09:00"
   },
   "kuji/bingo5.html": {
    "hash": "c0aad3f4068ee3d2",
    "changed": "2026-11-17T05:41+09:00"
   },
   "kuji/numbers4.html": {
-   "hash": "1aa334bdcad39d1d",
-   "changed": "2026-11-17T05:41+09:00"
+   "hash": "9b3a19955202c295",
+   "changed": "2026-11-17T21:31+09:00"
   },
   "kuji/numbers3.html": {
-   "hash": "0bda217bdcb330ca",
-   "changed": "2026-11-17T05:41+09:00"
+   "hash": "b6cb9cd23089349c",
+   "changed": "2026-11-17T21:31+09:00"
   },
   "kuji/halloween2026.html": {
    "hash": "21c3f683943c3769",
