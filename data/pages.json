@@ -2,8 +2,8 @@
  "_note": "ページごとの内容のハッシュと、内容が最後に変わった日時（build.mjs が更新）。sitemap.xml の lastmod と、検索エンジンへの通知（scripts/indexnow.mjs）に使います。",
  "pages": {
   "index.html": {
-   "hash": "8bb0ff001a66dc2d",
-   "changed": "2026-11-18T12:54+09:00"
+   "hash": "6802916c86b93a4b",
+   "changed": "2026-11-18T21:18+09:00"
   },
   "kuji/loto6.html": {
    "hash": "07e7db68a979d572",
@@ -18,16 +18,16 @@
    "changed": "2026-11-18T04:25+09:00"
   },
   "kuji/bingo5.html": {
-   "hash": "00a221e4c1a0d18a",
-   "changed": "2026-11-18T04:25+09:00"
+   "hash": "6a61253cfea25962",
+   "changed": "2026-11-18T21:18+09:00"
   },
   "kuji/numbers4.html": {
-   "hash": "1a5823a392b65aac",
-   "changed": "2026-11-18T04:25+09:00"
+   "hash": "b20a6845e9ed4c68",
+   "changed": "2026-11-18T21:18+09:00"
   },
   "kuji/numbers3.html": {
-   "hash": "a9956ee3dd7c572a",
-   "changed": "2026-11-18T04:25+09:00"
+   "hash": "879e5b660f030fc9",
+   "changed": "2026-11-18T21:18+09:00"
   },
   "kuji/halloween2026.html": {
    "hash": "f0150adb7d1ad299",
@@ -70,8 +70,8 @@
    "changed": "2026-11-18T07:40+09:00"
   },
   "kuji/dunk6a.html": {
-   "hash": "f85fdbc3084382af",
-   "changed": "2026-11-18T07:40+09:00"
+   "hash": "ea56723811be2230",
+   "changed": "2026-11-18T21:18+09:00"
   },
   "kuji/dunk6b.html": {
    "hash": "d2fa3752ca69d43a",
