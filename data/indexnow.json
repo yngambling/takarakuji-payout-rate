@@ -1,8 +1,8 @@
 {
  "_note": "検索エンジン（IndexNow）に知らせるページの記録（scripts/indexnow.mjs が毎日書く）。plannedAt より後に内容が変わったページを、次の日に送ります。",
- "lastRun": "2026-11-22",
- "plannedAt": "2026-11-22T11:45+09:00",
- "run": "44977191038",
+ "lastRun": "2026-11-23",
+ "plannedAt": "2026-11-23T12:16+09:00",
+ "run": "45104523481",
  "urls": [
   "https://takarakuji-kangen.com/",
   "https://takarakuji-kangen.com/kuji/loto6.html",
