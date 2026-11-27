@@ -806,6 +806,24 @@
    "dunk10": 0.7947,
    "dunk6a": 0.5,
    "dunk6b": 0.5
+  },
+  "2026-11-28": {
+   "loto6": 0.3897,
+   "loto7": 0.4258,
+   "miniloto": 0.4488,
+   "bingo5": 0.45,
+   "numbers4": 0.45,
+   "numbers3": 0.45,
+   "nenmatsu2026": 0.5,
+   "nenmatsumini2026": 0.5,
+   "megabig": 0.3874,
+   "big": 0.5182,
+   "big100": 0.5366,
+   "big1000": 0.4942,
+   "minibig": 0.5,
+   "dunk10": 0.7947,
+   "dunk6a": 0.5,
+   "dunk6b": 0.5
   }
  }
 }
